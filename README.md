@@ -58,7 +58,7 @@ Finally, it calculates several prediction measures such as top_100_score(number 
 ### benchmark:
 We have trained the network on a large subsample (~30K) of structures from [Protein Data Bank](http://www.rcsb.org/). We have generated 10 decoys by docking every ligand back to its target and selecting only ones with Root Mean Square Deviation > 6A. 
 Approximately 250 images/sec can be generated and enqueued by a single processor.
-One epoch took approximately 25minutes on a single processor and one K80 GPU
+One epoch took approximately 25 minutes on a single processor and one K80 GPU.
 With a 4-layer network we have achieved: 
 
 top_100_score: 73.09
