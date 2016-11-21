@@ -4,6 +4,6 @@ Affinity core is a starting code for training deep convolutional neural networks
 
 ### scripts:
 
-[av3_database_master.py]( 
+[av3_database_master.py](./av2_atomdict.py)
 crawls and indexes directoris, parses protein structures (PDB files) into numpy arrays with 4 columns. The first three columns store coordinates of all atoms, fourth column stores an atom tag (float) corresponding to a particular element. Hashtable to determine the correspondence between chemical elements and numbers is sourced from av3_atomdict.py
 
