@@ -61,5 +61,5 @@ Approximately 250 images/sec can be generated and enqueued by a single processor
 One epoch took approximately 25minutes on a single processor and one K80 GPU
 With a 4-layer network we have achieved: 
 
-top 100score: 73.09
-confusion matrix: \[\[ 2462 293\] \[ 2745 40519\]\]
+top_100_score: 73.09
+confusion matrix: \[\[TP FP\] \[FN TN/]/]  \[\[2462 293\] \[ 2745 40519\]\]
