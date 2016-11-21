@@ -16,9 +16,9 @@ the main script. Takes database index (train_set.csv), and the database with .np
 
 While running, the main script creates directoris with various outputs:
 
-\\/summaries/logs\\ - stores some of the outputs of performance
-\\/summaries/netstate\\ - stores the saved weights of the network
-\\/summaries/test\\ - stores some of the variable states for visualization in tensorboard 
+|/summaries/logs - stores some of the outputs of performance
+|/summaries/netstate - stores the saved weights of the network
+|/summaries/test - stores some of the variable states for visualization in tensorboard 
 `./summaries/train` - stores some of the variable states for visualization in tensorboard 
 
 [av3_input.py](./av3_input.py)
