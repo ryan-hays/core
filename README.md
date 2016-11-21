@@ -11,7 +11,7 @@ Because the most commonly used to store molecule structures .pdb format is inher
 
 Finally, database master reads database_index.csv file, shuffles it and safely splits the data into training and testing sets.
 
-***av3** [av3.py](./av3.py)
+***av3*** [av3.py](./av3.py)
 
 the main script. Takes database index (train_set.csv), and the database with .npy arrays as an input. Performs training and basic evaluation of the network. Depends on av3_input.py which fills the queue with images. By default, av3 is optimizing weighted cross-entropy for a two-class sclassification problem with FP upweighted 10X compared to FN.
 <pre>
@@ -23,12 +23,20 @@ While running, the main script creates directoris with various outputs:
 /summaries/test - stores some of the variable states for visualization in tensorboard 
 /summaries/train - stores some of the variable states for visualization in tensorboard</pre> 
 
-***av3_input***[av3_input.py](./av3_input.py)
+***av3_input*** [av3_input.py](./av3_input.py)
 
-generates the image queue and fills it with images
-affine transform
-custom filename coordinator class
-multiple threads
+handles data preprocessing, starts multiple background threads to convert protein and drug coordinates into 3d images of pixels. Each of the background workers performs the following procedures:
+
+1. reads the ligand from .npy file
+2. randomly initializes the box nearby the center of mass of the ligand
+3. rotates and shifts the box until all of the ligand atoms can fit
+4. reads the protein
+5. crops the protein to the cube
+6. enqueues image and label
+
+In order to organize the reading of each protein-ligand pairs in random order, but only once by a single worker during one epoch, and also to count epchs, custom
+
+<pre>filename_coordinator_class()</pre> controls the process.
 
 
 ### benchmark:
