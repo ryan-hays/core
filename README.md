@@ -56,6 +56,9 @@ Finally, it calculates several prediction measures such as top_100_score(number 
 </pre>
 
 ### benchmark:
-We have tested the 
-
-Co-crystal structures of proteins and small molecules (binders) can be obtained from [Protein Data Bank](http://www.rcsb.org/).
+We have trained the network on a large subsample (~30K) of structures from [Protein Data Bank](http://www.rcsb.org/). We have generated 10 decoys by docking every ligand back to its target and selecting only ones with Root Mean Square Deviation > 6A. 
+Approximately 250 images/sec can be generated and enqueued by a single processor.
+One epoch took approximately 25minutes on a single processor and one K80 GPU
+With a 4-layer network we have achieved: 
+top 100score: 73.09
+confusion matrix: \[\[ 2462 293\] \[ 2745 40519\]\]
