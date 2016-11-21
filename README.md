@@ -13,6 +13,8 @@ Finally, database master reads database_index.csv file, shuffles it and safely s
 
 [av3.py](./av3.py)
 the main script. Takes database index (train_set.csv), and the database with .npy arrays as an input. Performs training and basic evaluation of the network. Depends on av3_input.py which fills the queue with images. By default, av3 is optimizing weighted cross-entropy for a two-class sclassification problem with FP upweighted 10X compared to FN.
+<pre>
+tf.nn.weighted_cross_entropy_with_logits()</pre>
 
 While running, the main script creates directoris with various outputs:
 <pre>/summaries/logs - stores some of the outputs of performance
