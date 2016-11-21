@@ -18,10 +18,10 @@ the main script. Takes database index (train_set.csv), and the database with .np
 tf.nn.weighted_cross_entropy_with_logits()</pre>
 
 While running, the main script creates directoris with various outputs:
-<pre>/summaries/logs - stores some of the outputs of performance
-/summaries/netstate - stores the saved weights of the network
-/summaries/test - stores some of the variable states for visualization in tensorboard 
-/summaries/train - stores some of the variable states for visualization in tensorboard</pre> 
+<pre>/summaries/logs  # stores some of the outputs of performance
+/summaries/netstate   # stores state of the network
+/summaries/test       # stores some of the variable states for visualization in tensorboard 
+/summaries/train      # stores some of the variable states for visualization in tensorboard</pre> 
 
 ***av3_input*** [av3_input.py](./av3_input.py)
 
