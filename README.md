@@ -15,14 +15,15 @@ Finally, database master reads database_index.csv file, shuffles it and safely s
 
 the main script. Takes database index (train_set.csv), and the database with .npy arrays as an input. Performs training and basic evaluation of the network. Depends on av3_input.py which fills the queue with images. By default, av3 is optimizing weighted cross-entropy for a two-class sclassification problem with FP upweighted 10X compared to FN.
 <pre>
-tf.nn.weighted_cross_entropy_with_logits()</pre>
+tf.nn.weighted_cross_entropy_with_logits()
+</pre>
 
 While running, the main script creates directoris with various outputs:
 <pre>
-/summaries/logs       # stores some of the outputs of performance
-/summaries/netstate   # stores state of the network
-/summaries/test       # stores some of the variable states for visualization in tensorboard 
-/summaries/train      # stores some of the variable states for visualization in tensorboard
+/summaries/x_logs       # stores some of the outputs of performance
+/summaries/x_netstate   # stores state of the network
+/summaries/x_test       # stores some of the variable states for visualization in tensorboard 
+/summaries/x_train      # stores some of the variable states for visualization in tensorboard
 </pre> 
 
 ***av3_input*** [av3_input.py](./av3_input.py)
@@ -39,8 +40,20 @@ handles data preprocessing, starts multiple background threads to convert protei
 
 In order to organize the reading of each protein-ligand pairs in random order, but only once by a single worker during one epoch, and also to count epchs, custom
 
-<pre>filename_coordinator_class()</pre> controls the process.
+<pre>
+filename_coordinator_class()
+</pre> 
+controls the process. After a specified number of epochs has been reached, filename coordinator closes the main loop and orders enqueue workers to stop.
 
+***av3_eval*** [av3_eval.py](./av3_eval.py)
+
+restores the network from the saved state and performs its evaluation. At first, it runs throught the dataset several times to accumulate predictions. After evaluations, it averages all of the predictions and ranks and reorders the dataset by descending prediction averages.
+
+Finally, it calculates several prediction measures such as top_100_score, confusion matrix, Area Under the Curve and writes sorted predictions, and computed metrics correspondingly into:
+<pre>
+/summaries/x_logs/x_predictions.txt
+/summaries/x_logs/x_scores.txt
+</pre>
 
 ### benchmark:
 We have tested the 
