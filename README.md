@@ -34,7 +34,8 @@ handles data preprocessing, starts multiple background threads to convert protei
 3. rotates and shifts the box until all of the ligand atoms can fit
 4. reads the protein
 5. crops the protein to the cube
-6. enqueues image and label
+6. rounds coordinates and converts sparse tensor(atoms) to dense(pixels)
+7. enqueues image and label
 
 In order to organize the reading of each protein-ligand pairs in random order, but only once by a single worker during one epoch, and also to count epchs, custom
 
