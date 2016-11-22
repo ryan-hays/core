@@ -10,26 +10,9 @@ FLAGS.saved_session = './summaries/36_netstate/netstate-155999'
 FLAGS.predictions_file_path = re.sub("netstate","logs",FLAGS.saved_session)
 
 
-# todo scores to calculate
-# todo top-100
-# todo AUC
 # todo log AUC
-# todo confusion matrix
 # todo cross entropy
-# todo very rare error -- duplicates in batch (related to coordinator)
 # change predictions to all_prediction to avoid confusion
-# now compute the metadata
-# todo scores to calculate
-# todo top-100
-# todo AUC
-# todo log AUC
-# todo confusion matrix
-# todo cross entropy
-
-
-
-
-# todo I want to be able to write a CSV file that has the following things
 # todo better epoch counter that can stop
 
 
@@ -54,9 +37,8 @@ class store_predictions:
         takes list of predictions, corresponding labels, returns float -percent that is correct"""
 
         # sort the array by predictions
-        # order = np.flipud(predictions.argsort())
-        # predictions = predictions[order]
-        # labels = labels[order]
+        order = np.flipud(predictions.argsort())
+        labels = labels[order]
 
         # take the top n
         num_positives = np.sum(np.asarray(labels,dtype=bool))
@@ -95,8 +77,9 @@ class store_predictions:
         """calculaets and returns the confusion matrix"""
         TP = np.sum((np.round(predictions) == True) * (np.asarray(labels, dtype=bool) == True))
         FP = np.sum((np.round(predictions) == True) * (np.asarray(labels, dtype=bool) == False))
-        TN = np.sum((np.round(predictions) == False) * (np.asarray(labels, dtype=bool) == False))
         FN = np.sum((np.round(predictions) == False) * (np.asarray(labels, dtype=bool) == True))
+        TN = np.sum((np.round(predictions) == False) * (np.asarray(labels, dtype=bool) == False))
+
 
         return np.array([[TP,FP],[FN,TN]])
 
