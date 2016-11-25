@@ -64,3 +64,5 @@ With a 4-layer network we have achieved:
 top_100_score: 73.09
 
 confusion matrix(\[\[TP FP\] \[FN TN\]\]):  \[\[2462 293\] \[ 2745 40519\]\]
+
+AUC: 0.92
