@@ -5,7 +5,7 @@ from av3 import FLAGS,max_net,compute_weighted_cross_entropy_mean
 from av3_input import launch_enqueue_workers
 
 # set up global parameters
-FLAGS.saved_session = './summaries/36_netstate/netstate-155999'
+FLAGS.saved_session = './summaries/1_netstate/saved_state-14999'
 
 FLAGS.predictions_file_path = re.sub("netstate","logs",FLAGS.saved_session)
 
@@ -30,7 +30,7 @@ class store_predictions:
         """converts numpy array into user defined format"""
         return np.char.array(np.around(number_array,decimals=3),itemsize=5)
 
-    def top_100_score(self,labels):
+    def top_100_score(self,predictions,labels):
         """ takes sorted in descending order by predictions list of labels
         if the dataset had n=100 drugs, how many drugs are in top 100 of the list
         top_100_score = (TP in head -n)/n, where n is a number of Positives in a whole dataset
@@ -48,28 +48,28 @@ class store_predictions:
         """calculates area under the curve AUC for binary predictions/labels needs
         sorted in descending order predictions"""
 
-        # calculate TP boolean mask
-        TP_mask = (np.round(predictions) == True) * (np.asarray(labels,dtype=bool) == True)
+	# sort the array by predictions
+        order = np.flipud(predictions.argsort())
+        labels = labels[order]
 
-        # slide from top to the bottom; sum TP, sum FP into an array
-        num_predictions = len(labels)
+        # sort arrays in descending order in case it has not been done
+	labeled_true = np.asarray(labels,dtype=bool) == True
+
+        # slide from top to the bottom; each time slide the threshold so as to predict one more label as positive
+        num_predictions = len(labeled_true)
         roc_curve = np.array([0,0])
-        memory = np.array([0,0])
         TP_above_threshold = 0
-        for i in range(num_predictions):
-            if TP_mask[i] == True:
+        for predict_as_positive in range(num_predictions):
+            if labeled_true[predict_as_positive] == True:
                 TP_above_threshold +=1
-            FP_above_threshold = i - TP_above_threshold
-
-            if not all(memory==[FP_above_threshold,TP_above_threshold]):
-                roc_curve = np.vstack((roc_curve,[FP_above_threshold,TP_above_threshold]))
-                memory = np.array([FP_above_threshold,TP_above_threshold])
+            	FP_above_threshold = predict_as_positive - TP_above_threshold
+		roc_curve = np.vstack((roc_curve,np.true_divide([FP_above_threshold,TP_above_threshold],predict_as_positive + 1)))
+	
+	print "roc_curve:",roc_curve
 
         # reduce into TP and FP rate, integrate with trapezoid to calculate AUC
-
-        auc = np.trapz(np.true_divide(roc_curve[:,1],np.sum(TP_mask)), x=np.true_divide(roc_curve[:,0],(num_predictions-np.sum(TP_mask))))
-        # abc stands for Area Below the Curve
-        # abc = np.trapz(np.true_divide(roc_curve[:,0],(num_predictions-np.sum(TP_mask))),x=np.true_divide(roc_curve[:,1],np.sum(TP_mask)))
+        auc = np.trapz(roc_curve[:,1], x=roc_curve[:,0])
+	print "AUC:",auc
 
         return auc
 
@@ -175,7 +175,7 @@ class store_predictions:
 
         f = open(file_path + "_scores.txt", 'w')
         f.write("top 100 score: ")
-        f.write(str(self.top_100_score(self.labels)))
+        f.write(str(self.top_100_score(self.predictions,self.labels)))
         f.write("\nAUC: ")
         f.write(str(self.auc(prediction_averages,self.labels)))
         f.write("\nconfusion matrix: ")
@@ -190,7 +190,7 @@ def evaluate_on_train_set():
     sess = tf.Session()
     train_image_queue,filename_coordinator = launch_enqueue_workers(sess=sess,pixel_size=FLAGS.pixel_size,side_pixels=FLAGS.side_pixels,
                                                                     num_workers=FLAGS.num_workers, batch_size=FLAGS.batch_size,
-                                                                    database_index_file_path=FLAGS.test_set_file_path,num_epochs=3)
+                                                                    database_index_file_path=FLAGS.train_set_file_path,num_epochs=3)
     y_, x_image_batch,ligand_filename,receptor_filename = train_image_queue.dequeue_many(FLAGS.batch_size)
     keep_prob = tf.placeholder(tf.float32)
     y_conv = max_net(x_image_batch, keep_prob)
