@@ -67,15 +67,15 @@ class store_predictions:
             # calculate True Positives Rate
             # TPR = TP / num_real_positives
             TPR = TP_above_threshold / float(num_positives)
-            print "TPR:",TPR
+            
             # FPR = FP / num_real_negatives
             FPR = (predict_as_positive +1 - TP_above_threshold) / (num_predictions - float(num_positives))
-            print "FPR:",FPR
+            
             roc_curve = np.vstack((roc_curve,[FPR,TPR]))
 
         roc_curve = np.vstack((roc_curve,[1.0,1.0]))
 
-        print roc_curve
+        
         # reduce into TP and FP rate, integrate with trapezoid to calculate AUC
         auc = np.trapz(roc_curve[:,1], x=roc_curve[:,0])
 
