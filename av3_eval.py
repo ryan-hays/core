@@ -5,7 +5,7 @@ from av3 import FLAGS,max_net,compute_weighted_cross_entropy_mean
 from av3_input import launch_enqueue_workers
 
 # set up global parameters
-FLAGS.saved_session = './summaries/1_netstate/saved_state-14999'
+FLAGS.saved_session = './summaries/2_netstate/saved_state-2999'
 
 FLAGS.predictions_file_path = re.sub("netstate","logs",FLAGS.saved_session)
 
@@ -48,28 +48,34 @@ class store_predictions:
         """calculates area under the curve AUC for binary predictions/labels needs
         sorted in descending order predictions"""
 
-	# sort the array by predictions
+        # sort the array by predictions in descending order in case it has not been done
         order = np.flipud(predictions.argsort())
         labels = labels[order]
 
-        # sort arrays in descending order in case it has not been done
-	labeled_true = np.asarray(labels,dtype=bool) == True
-
-        # slide from top to the bottom; each time slide the threshold so as to predict one more label as positive
+        # clean labels, calculate the number of positive labels
+        labeled_true = (np.asarray(labels,dtype=bool) == True)
+        num_positives = np.sum(labeled_true)
         num_predictions = len(labeled_true)
-        roc_curve = np.array([0,0])
+
+        # slide from top to the bottom;
+        # each time slide the threshold so as to predict one more label as positive
+        roc_curve = np.array([1,1])
         TP_above_threshold = 0
         for predict_as_positive in range(num_predictions):
             if labeled_true[predict_as_positive] == True:
                 TP_above_threshold +=1
-            	FP_above_threshold = predict_as_positive - TP_above_threshold
-		roc_curve = np.vstack((roc_curve,np.true_divide([FP_above_threshold,TP_above_threshold],predict_as_positive + 1)))
-	
-	print "roc_curve:",roc_curve
+                # calculate True Positives Rate
+                # TPR = TP / predicted_positives
+                TPR = TP_above_threshold / float((predict_as_positive +1))
+                # FPR = FP / predicted_negatives
+                FPR = (num_positives - TP_above_threshold) / float(num_predictions - predict_as_positive)
 
+                roc_curve = np.vstack((roc_curve,[FPR,TPR]))
+
+        roc_curve = np.vstack((roc_curve,[0,0]))
+        print "roc_curve", np.round(roc_curve * 100)
         # reduce into TP and FP rate, integrate with trapezoid to calculate AUC
-        auc = np.trapz(roc_curve[:,1], x=roc_curve[:,0])
-	print "AUC:",auc
+        auc = np.trapz(np.flipud(roc_curve[:,1]), x=np.flipud(roc_curve[:,0]))
 
         return auc
 
@@ -79,7 +85,6 @@ class store_predictions:
         FP = np.sum((np.round(predictions) == True) * (np.asarray(labels, dtype=bool) == False))
         FN = np.sum((np.round(predictions) == False) * (np.asarray(labels, dtype=bool) == True))
         TN = np.sum((np.round(predictions) == False) * (np.asarray(labels, dtype=bool) == False))
-
 
         return np.array([[TP,FP],[FN,TN]])
 
@@ -190,7 +195,7 @@ def evaluate_on_train_set():
     sess = tf.Session()
     train_image_queue,filename_coordinator = launch_enqueue_workers(sess=sess,pixel_size=FLAGS.pixel_size,side_pixels=FLAGS.side_pixels,
                                                                     num_workers=FLAGS.num_workers, batch_size=FLAGS.batch_size,
-                                                                    database_index_file_path=FLAGS.train_set_file_path,num_epochs=3)
+                                                                    database_index_file_path="fake_set.csv",num_epochs=3)
     y_, x_image_batch,ligand_filename,receptor_filename = train_image_queue.dequeue_many(FLAGS.batch_size)
     keep_prob = tf.placeholder(tf.float32)
     y_conv = max_net(x_image_batch, keep_prob)

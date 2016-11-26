@@ -1,4 +1,4 @@
-import time,argparse,os
+import time,os
 import tensorflow as tf
 import numpy as np
 from av3_input import launch_enqueue_workers
@@ -61,7 +61,7 @@ def pool_layer(layer_name,input_tensor,ksize,strides=[1, 1, 1, 1, 1],padding='SA
 
 def fc_layer(layer_name,input_tensor,output_dim):
   """makes a simple fully connected layer"""
-  input_dim = int((input_tensor.get_shape())[1])                                                                    #todo is it efficient ?
+  input_dim = int((input_tensor.get_shape())[1])
 
   with tf.name_scope(layer_name):
     weights = weight_variable([input_dim, output_dim])
@@ -130,16 +130,15 @@ def compute_weighted_cross_entropy_mean(logits, labels,batch_size):
     accepts "labels" instead of "targets" as in
     tf.nn.sparse_softmax_cross_entropy_with_logits"""
 
-    with tf.name_scope('weighted_cross_entropy_mean'):  # TODO there should be a better way then hardcoding labels
+    with tf.name_scope('weighted_cross_entropy_mean'):  # TODO (multiclass) now hardcoded to two classes
 
         # first column is inverted labels, second column is labels
-        batch_class_zero = tf.reshape(- labels + 1, [batch_size, 1])
+        batch_class_zero = tf.reshape(-labels + 1, [batch_size, 1])
         batch_class_one = tf.reshape(labels, [batch_size, 1])
         batch_y = tf.concat(1, (batch_class_zero, batch_class_one))
-        weighted_cross_entropy = tf.nn.weighted_cross_entropy_with_logits(logits, batch_y, pos_weight=10, name=None)
+        weighted_cross_entropy = tf.nn.weighted_cross_entropy_with_logits(logits, batch_y, pos_weight=0.1, name=None)
         cross_entropy_mean = tf.reduce_mean(weighted_cross_entropy, name='cross_entropy')
         return cross_entropy_mean
-
 
 
 
@@ -189,16 +188,18 @@ def train():
         start = time.time()
         training_error,_ = sess.run([cross_entropy_mean,train_step_run],feed_dict={keep_prob:0.5})
 
-        print "step:", batch_num, "run error:", training_error,"examples per second:", "%.2f" % (FLAGS.batch_size / (time.time() - start))
+        print "step:", batch_num, "run error:", training_error,\
+            "examples per second:", "%.2f" % (FLAGS.batch_size / (time.time() - start))
+
         # once in a hundred batches calculate correct predictions
         if (batch_num % 1000 == 999):
             # evaluate and print a few things
-            print "eval:------------------------------------------------------------------------------------------------"
+            print "eval:-------------------------------------------------------------------------------------"
             shuffled_training_error,training_error,train_summary = sess.run([shuffled_cross_entropy_mean,cross_entropy_mean,merged_summaries],feed_dict={keep_prob:0.5})
             print "step:", batch_num, "run error:",training_error, "shuffled run error:", shuffled_training_error
             train_writer.add_summary(train_summary, batch_num)
 
-            saver.save(sess,FLAGS.summaries_dir + '/' + str(FLAGS.run_index) + "_netstate", global_step=batch_num)
+            saver.save(sess,FLAGS.summaries_dir + '/' + str(FLAGS.run_index) + "_netstate/saved_state", global_step=batch_num)
 
         # exit the loop in case there is something wrong with the setup and model diverged into inf
         assert not np.isnan(training_error), 'Model diverged with loss = NaN'
