@@ -59,23 +59,26 @@ class store_predictions:
 
         # slide from top to the bottom;
         # each time slide the threshold so as to predict one more label as positive
-        roc_curve = np.array([1,1])
+        roc_curve = np.array([0.0,0.0])
         TP_above_threshold = 0
         for predict_as_positive in range(num_predictions):
             if labeled_true[predict_as_positive] == True:
                 TP_above_threshold +=1
-                # calculate True Positives Rate
-                # TPR = TP / predicted_positives
-                TPR = TP_above_threshold / float((predict_as_positive +1))
-                # FPR = FP / predicted_negatives
-                FPR = (num_positives - TP_above_threshold) / float(num_predictions - predict_as_positive)
+            # calculate True Positives Rate
+            # TPR = TP / num_real_positives
+            TPR = TP_above_threshold / float(num_positives)
+            print "TPR:",TPR
+            # FPR = FP / num_real_negatives
+            FPR = (predict_as_positive +1 - TP_above_threshold) / (num_predictions - float(num_positives))
+            print "FPR:",FPR
+            roc_curve = np.vstack((roc_curve,[FPR,TPR]))
 
-                roc_curve = np.vstack((roc_curve,[FPR,TPR]))
+        roc_curve = np.vstack((roc_curve,[1.0,1.0]))
 
-        roc_curve = np.vstack((roc_curve,[0,0]))
-        print "roc_curve", np.round(roc_curve * 100)
+        print roc_curve
         # reduce into TP and FP rate, integrate with trapezoid to calculate AUC
-        auc = np.trapz(np.flipud(roc_curve[:,1]), x=np.flipud(roc_curve[:,0]))
+        auc = np.trapz(roc_curve[:,1], x=roc_curve[:,0])
+
 
         return auc
 
