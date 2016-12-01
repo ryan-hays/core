@@ -2,6 +2,8 @@
 
 Affinity core is a starting code for training deep convolutional neural networks on crystallographic images of proteins to predict drug binding. In the simplest case, training set consists of two sets of structures of complexes of proteins together with small molecules labeled either 1 or 0 (binders and decoys). Networks can be used to classify and rank unlabeled complexes.
 
+After a few hours of training network visualization in tensorboard might look [like this](http://ec2-54-244-199-10.us-west-2.compute.amazonaws.com/)
+
 ### scripts:
 **database_master** [av3_database_master.py](./av3_database_master.py)
 
