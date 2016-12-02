@@ -5,7 +5,7 @@ from av3 import FLAGS,max_net,compute_weighted_cross_entropy_mean
 from av3_input import launch_enqueue_workers
 
 # set up global parameters
-FLAGS.saved_session = './summaries/2_netstate/saved_state-2999'
+FLAGS.saved_session = './summaries/6_netstate/saved_state-4999'
 
 FLAGS.predictions_file_path = re.sub("netstate","logs",FLAGS.saved_session)
 

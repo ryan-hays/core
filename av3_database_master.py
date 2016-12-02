@@ -69,10 +69,27 @@ def assign_label(ligand_file_path):                                             
     # 1 for the crystal structure
     # 0 for bad fast docking
     # NONE for good fast docking
+    label = None
     if re.search('crystal_ligands', ligand_file_path):
-        return 1
-    if re.search('fast_bottom',ligand_file_path):
-        return 0
+        if label == None:
+            label = 1
+        else:
+            raise Exception('can not assign two labels to one example')
+
+    if re.search('docked_ligands',ligand_file_path):
+        if label == None:
+            label = 0
+        else:
+            raise Exception('can not assign two labels to one example')
+
+    if label == None:
+        raise Exception("can not assign label")
+    else:
+        return label
+
+
+    # TODO if both have been assigned
+    # check if one of the labels has been assigned
 
     #random_label = int(round(random.random()))
     #return random_label
@@ -142,7 +159,7 @@ def split_into_train_and_test_sets(database_index_path,train_set_div):
 
 
 
-database_path = './data_sample'
+database_path = './filter_rmsd'
 database_index_path = "."
 train_set_div = 0.8 # 80 percent of the data will be used for training
 # 20 percent of the data will be used for testing
