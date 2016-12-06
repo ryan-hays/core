@@ -190,6 +190,29 @@ class store_predictions:
         f.write(str(self.confusion_matrix(prediction_averages,self.labels)))
         f.close()
 
+        # write submission
+
+        submission = {}
+        for i in range(num_examples):
+            ligand,receptor = self.pl_pairs[i].split(',')
+            ligand = ligand.split('/')[-1].split('.')[0]
+            receptor = receptor.split('/')[-1].split('.')[0]
+            if not receptor in submission.keys():
+                submission[receptor] = {}
+                submission[receptor]['ligands'] = [ligand]
+                submission[receptor]['score'] = [prediction_averages[i]]
+            else:
+                submission[receptor]['ligands'].append(ligand)
+                submission[receptor]['score'].append(prediction_averages[i])
+
+        with open(file_path+'_submission.txt','w') as f:
+            f.write('Id,Prediction\n')
+            for key in submission.keys():
+                ligands = np.array(submission[key]['ligands'])
+                scores = np.array(submission[key]['score'])
+                ligands = ligands[np.flipud(scores.argsort())]
+                f.write(key+','+' '.join(ligands)+'\n')
+
 
 def evaluate_on_train_set():
     "train a network"
