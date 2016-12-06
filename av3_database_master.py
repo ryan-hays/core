@@ -99,6 +99,7 @@ def assign_label(ligand_file_path):                                             
 def write_database_index_file(database_path,database_index_path):
     """crowls the database of the structure we are using and indexes it"""
     database_index_file = open(database_index_path + "/database_index.csv", "w")
+    step = 0
 
     # walking across the ligand folders
     for dirpath, dirnames, filenames in chain(os.walk(database_path +"/crystal_ligands"),os.walk(database_path +"/docked_ligands")):
@@ -112,7 +113,8 @@ def write_database_index_file(database_path,database_index_path):
                 ligand_file_path = str(os.path.abspath(dirpath) + "/" + filename)
                 label = assign_label(ligand_file_path)
                 if label is not None:
-                    print label
+                    print "added to database",step,"label:",label
+                    step +=1
                     receptor_file_path = os.path.abspath(str(database_path + "/receptors/" + pdb_name + ".npy"))
                 
                     if os.path.exists(receptor_file_path):
@@ -157,14 +159,12 @@ def split_into_train_and_test_sets(database_index_path,train_set_div):
     open(database_index_path + "/train_set.csv", "w").writelines(test_set)
 
 
+def prepare_database_for_av3(database_path,train_set_div,convert_to_npy,write_index,split):
+    if convert_to_npy:
+        preprocess_PDB_to_npy(database_path)
+    if write_index:
+        write_database_index_file(database_path,database_path)
+    if split:
+        split_into_train_and_test_sets(database_path,train_set_div)
 
-
-database_path = './filter_rmsd'
-database_index_path = "."
-train_set_div = 0.8 # 80 percent of the data will be used for training
-# 20 percent of the data will be used for testing
-
-
-preprocess_PDB_to_npy(database_path)
-write_database_index_file(database_path,database_index_path)
-split_into_train_and_test_sets(database_index_path,train_set_div)
+prepare_database_for_av3(database_path='../datasets/labeled_npy',train_set_div=0.8,convert_to_npy=False,write_index=True,split=True)
