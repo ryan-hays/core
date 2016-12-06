@@ -158,7 +158,6 @@ def split_into_train_and_test_sets(database_index_path,train_set_div):
     random.shuffle(test_set)
     open(database_index_path + "/train_set.csv", "w").writelines(test_set)
 
-
 def prepare_database_for_av3(database_path,train_set_div,convert_to_npy,write_index,split):
     if convert_to_npy:
         preprocess_PDB_to_npy(database_path)

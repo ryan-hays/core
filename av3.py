@@ -130,7 +130,7 @@ def max_net(x_image_batch,keep_prob):
 #    accepts "labels" instead of "targets" as in
 #    tf.nn.sparse_softmax_cross_entropy_with_logits"""
 #
-#    with tf.name_scope('weighted_cross_entropy_mean'):  # TODO (multiclass) now hardcoded to two classes
+#    with tf.name_scope('weighted_cross_entropy_mean'):  #
 #
 #        # first column is inverted labels, second column is labels
 #        # batch_class_zero = tf.reshape(-labels + 1, [batch_size, 1])
@@ -222,8 +222,8 @@ def train():
     keep_prob = tf.placeholder(tf.float32)
     y_conv = max_net(x_image_batch, keep_prob)
 
-    # todo
-    cross_entropy = unbalanced_sparse_softmax_cross_entropy_with_logits(y_conv,y_,[1,50])
+
+    cross_entropy = unbalanced_sparse_softmax_cross_entropy_with_logits(y_conv,y_,FLAGS.class_weights)
     cross_entropy_mean = tf.reduce_sum(cross_entropy) / FLAGS.batch_size
 
 
@@ -234,8 +234,8 @@ def train():
 
     with tf.name_scope('evaluate_predictions'):
 
-#        # first: evaluate error when labels are randomly shuffled
-#        # randomly shuffle along one of the dimensions:
+        # first: evaluate error when labels are randomly shuffled
+        # randomly shuffle along one of the dimensions:
         shuffled_y_ = tf.random_shuffle(y_)
         shuffled_cross_entropy_mean = tf.reduce_sum(unbalanced_sparse_softmax_cross_entropy_with_logits(y_conv,shuffled_y_,[1,50])) / FLAGS.batch_size
 
@@ -262,7 +262,7 @@ def train():
         print "step:", batch_num, "run error:", training_error,\
             "examples per second:", "%.2f" % (FLAGS.batch_size / (time.time() - start))
 
-        # once in a hundred batches calculate correct predictions
+        # once in a thousand batches calculate correct predictions
         if (batch_num % 1000 == 999):
             # evaluate and print a few things
             print "eval:-------------------------------------------------------------------------------------"
@@ -286,6 +286,9 @@ class FLAGS:
     pixel_size = 1
     # size of the box around the ligand in pixels
     side_pixels = 20
+    # weights for each class for the scoring function
+    # weights of [1 10] would mean that errors in a positive class are weighted 10 times more
+    class_weights = [1,50]
     # number of times each example in the dataset will be read
     num_epochs = 20
 
@@ -297,9 +300,9 @@ class FLAGS:
 
     # data directories
     # path to the csv file with names of images selected for training
-    train_set_file_path = '../datasets/filter_rmsd_atoms/train_set.csv'
+    train_set_file_path = '../datasets/labeled_npy/train_set.csv'
     # path to the csv file with names of the images selected for testing
-    test_set_file_path = '../datasets/filter_rmsd_atoms/test_set.csv'
+    test_set_file_path = '../datasets/labeled_npy/test_set.csv'
     # directory where to write variable summaries
     summaries_dir = './summaries'
 
