@@ -17,6 +17,7 @@ def parse(input_file):
 
     input_dict = {}
     with open(input_file) as fr:
+        fr.readline()
         for line in fr:
             key,value = line.strip('\n').split(',')
             value = value.split(' ')
