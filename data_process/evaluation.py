@@ -85,6 +85,8 @@ def mean_average_pricision(solution,submission,n=None):
 
 
 
+
+
 def eval():
     solution = './solution.txt'
     submission = './logs-155999_submission.txt'
