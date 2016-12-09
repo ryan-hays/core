@@ -42,7 +42,12 @@ class store_predictions:
 
         # take the top n
         num_positives = np.sum(np.asarray(labels,dtype=bool))
-        return np.sum(labels[0:num_positives]) / num_positives * 100
+
+        # if no positive labels return nan
+        if num_positives == 0:
+            return float('nan')
+        else:
+            return np.sum(labels[0:num_positives]) / num_positives * 100
 
     def auc(self,predictions,labels):
         """calculates area under the curve AUC for binary predictions/labels needs
@@ -56,6 +61,10 @@ class store_predictions:
         labeled_true = (np.asarray(labels,dtype=bool) == True)
         num_positives = np.sum(labeled_true)
         num_predictions = len(labeled_true)
+
+        # If no positive result return nan
+        if num_positives == 0:
+            return float('nan')
 
         # slide from top to the bottom;
         # each time slide the threshold so as to predict one more label as positive
