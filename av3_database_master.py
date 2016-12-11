@@ -82,6 +82,9 @@ def assign_label(ligand_file_path):                                             
         else:
             raise Exception('can not assign two labels to one example')
 
+    if re.search('/ligands/',ligand_file_path):
+        if label == None:
+            label = random.randint(0,1)
     if label == None:
         raise Exception("can not assign label")
     else:
