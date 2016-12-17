@@ -82,6 +82,9 @@ def assign_label(ligand_file_path):                                             
         else:
             raise Exception('can not assign two labels to one example')
 
+    if re.search('/ligands/',ligand_file_path):
+        if label == None:
+            label = random.randint(0,1)
     if label == None:
         raise Exception("can not assign label")
     else:
@@ -167,3 +170,6 @@ def prepare_database_for_av3(database_path,train_set_div,convert_to_npy,write_in
         split_into_train_and_test_sets(database_path,train_set_div)
 
 prepare_database_for_av3(database_path='../datasets/labeled_npy',train_set_div=0.8,convert_to_npy=False,write_index=True,split=True)
+
+# Index test_set with out lab
+prepare_database_for_av3(database_path='../datasets/unlabeled_npy',train_set_div=1.0,convert_to_npy=False,write_index=False,split=False)

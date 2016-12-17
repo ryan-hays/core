@@ -74,10 +74,20 @@ def count_and_report(input_path, report, counter):
     df.to_csv(report, index=False)
 
 
-def main():
-    count_and_report(config.BASE_YI,
-                     os.path.join(config.REPORT, 'atom_count.csv'),
+
+
+def example():
+
+    # count atom num for every ligand in input_path
+    count_and_report("/n/scratch2/yw174/result/fast",
+                     os.path.join('/home/xl198/report', 'atom_count.csv'),
                      count_atom_num)
+
+    # count number of ligands in every file in input_path
+    count_and_report('/n/scratch2/xl198/data/fast',
+                     os.path.join('/home/xl198/report','ligand_num.csv'),
+                    count_liangd_num)
+
 
 
 if __name__ == '__main__':

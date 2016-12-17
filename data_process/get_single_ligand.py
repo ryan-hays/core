@@ -12,18 +12,19 @@ The souce is a csv file contain columns ['PDBname','PDBResId']
 '''
 
 
-def get_pdb_and_crystal(input_file):
+def get_receptors_and_crystal_ligands(input_file):
+
     # source to place crystal ligand
-    crystal_source = os.path.join(config.BASE_DATA, 'H', 'addH')
+    crystal_source = source_crystal_ligands
     # dest to place converted ligand
-    crystal_dest = os.path.join(config.BASE_DATA, 'filter_rmsd', 'crystal_ligands')
+    crystal_dest = os.path.join(dest_database_path, 'crystal_ligands')
     if not os.path.exists(crystal_dest):
         os.mkdir(crystal_dest)
 
     # source to place pdb
-    pdb_source = os.path.join(config.BASE_DATA, 'H', 'data')
+    pdb_source = source_receptors
     # dest to place pdb
-    pdb_dest = os.path.join(config.BASE_DATA, 'filter_rmsd', 'receptors')
+    pdb_dest = os.path.join(dest_database_path, 'receptors')
     if not os.path.exists(pdb_dest):
         os.mkdir(pdb_dest)
 
@@ -50,10 +51,10 @@ def convert(item):
     RS = item['PDBResId']
     RES,Id = RS.split('_')
 
-    source_base = '/n/scratch2/xl198/data/result'
+    source_base = source_docked_ligands
     source_file_path= os.path.join(source_base,PDB,'_'.join([PDB,RES,'ligand','fast.mol']))
 
-    dest_base = '/n/scratch2/xl198/data/filter_rmsd/docked_ligands'
+    dest_base = os.path.join(dest_database_path,'docked_ligands')
     if not os.path.exists(dest_base):
         os.mkdir(dest_base)
     dest_path = os.path.join(dest_base,PDB)
@@ -66,18 +67,17 @@ def convert(item):
     os.system(cmd)
 
 def run(base, offset):
-    df = pd.read_csv('/home/xl198/remark/dec_1.csv')
-    convert(df.ix[base*1000+offset-1])
-    get_pdb_and_crystal(df.ix[base*1000+offset-1]['ID'])
+    df = pd.read_csv(input_csv)
+    df.apply(convert,axis=1)
+    df['ID'].apply(get_receptors_and_crystal_ligands, axis=1)
 
 
-def get():
-    '''
-    get crystal ligand and receptor
-    '''
-    df = pd.read_csv('/n/scratch2/xl198/data/remark/valid.csv')
-    for i in range(len(df)):
-        get_pdb_and_crystal(df.ix[i]['ID'])
+
+input_csv = '/home/xl198/remark/dec_1.csv'
+dest_database_path = '/n/scratch2/xl198/dataset/'
+source_docked_ligands = '/n/scratch2/xl198/data/result'
+source_crystal_ligands = '/n/scratch2/xl198/data/H/data'
+source_receptors = '/n/scratch2/xl198/data/H/addH'
 
 def main():
     args = sys.argv
