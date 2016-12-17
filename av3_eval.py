@@ -5,7 +5,7 @@ from av3 import FLAGS,max_net,unbalanced_sparse_softmax_cross_entropy_with_logit
 from av3_input import launch_enqueue_workers
 
 # set up global parameters
-FLAGS.saved_session = './summaries/65_netstate/saved_state-9999'
+FLAGS.saved_session = './summaries/66_netstate/saved_state-9999'
 
 FLAGS.predictions_file_path = re.sub("netstate","logs",FLAGS.saved_session)
 
@@ -229,12 +229,12 @@ def evaluate_on_train_set():
     sess = tf.Session()
     train_image_queue,filename_coordinator = launch_enqueue_workers(sess=sess,pixel_size=FLAGS.pixel_size,side_pixels=FLAGS.side_pixels,
                                                                     num_workers=FLAGS.num_workers, batch_size=FLAGS.batch_size,
-                                                                    database_index_file_path=FLAGS.train_set_file_path,num_epochs=2)
+                                                                    database_index_file_path=FLAGS.test_set_file_path,num_epochs=2)
     y_, x_image_batch,ligand_filename,receptor_filename = train_image_queue.dequeue_many(FLAGS.batch_size)
     keep_prob = tf.placeholder(tf.float32)
     y_conv = max_net(x_image_batch, keep_prob)
 
-    cross_entropy_mean = tf.reduce_sum(unbalanced_sparse_softmax_cross_entropy_with_logits(y_conv,y_,FLAGS.class_weights) / FLAGS.batch_size)
+    cross_entropy_mean = tf.reduce_sum(unbalanced_sparse_softmax_cross_entropy_with_logits(y_conv,y_) / FLAGS.batch_size)
 
     # compute softmax over raw predictions
     predictions = tf.nn.softmax(y_conv)[:,1]
