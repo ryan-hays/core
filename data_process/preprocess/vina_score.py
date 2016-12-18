@@ -3,9 +3,11 @@
 
 '''
 
-from vector_gen import pdb_container
+import csv
+import os
+
 from Config import *
-import os,csv
+from data_process.preprocess.utility.Receptor_container import pdb_container
 
 FILE_NAME = 'score_onlyinbox.csv'
 

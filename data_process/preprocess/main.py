@@ -1,11 +1,12 @@
-from Config import *
-import os
+import collections
 import csv
 import logging
-from vector_gen import pdb_container
+import os
 import time
 from functools import wraps
-import collections
+
+from Config import *
+from data_process.preprocess.utility.Receptor_container import pdb_container
 
 #This part is used to set debug log
 #This will generate a log that record every content logged with a specific security levels
