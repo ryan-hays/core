@@ -5,7 +5,7 @@ import csv
 
 from Config import *
 from data_process.preprocess.utility.autodock_utility import *
-from data_process.preprocess.utility.Receptor_container import pdb_container
+from data_process.preprocess.utility.Receptor_container_backup import pdb_container
 
 #Which content does the result includes
 SUMMARY_COLUMN = ['PDB name','PDB type', 'ligand NAME', 'ligand index in PDB', 'vina score(kcal/mol)', 'box_scale', 'pure_protein_gridmap_filename',

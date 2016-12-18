@@ -9,7 +9,7 @@ from functools import wraps
 
 from Config import *
 from data_process.preprocess.utility.autodock_utility import repair_pdbfile
-from data_process.preprocess.utility.Receptor_container import pdb_container
+from data_process.preprocess.utility.Receptor_container_backup import pdb_container
 
 '''
 The main program to extract molecules in .sdf files and compare with ligands on PDB files.

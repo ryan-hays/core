@@ -7,7 +7,7 @@ import csv
 import os
 
 from Config import *
-from data_process.preprocess.utility.Receptor_container import pdb_container
+from data_process.preprocess.utility.Receptor_container_backup import pdb_container
 
 FILE_NAME = 'score_onlyinbox.csv'
 
