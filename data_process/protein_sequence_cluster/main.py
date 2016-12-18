@@ -8,7 +8,7 @@ cluster_output_file_location = '.'
 
 def do_one_clustering(input_fasta_file):
     '''
-    We appreciate the contribution from MMseq2, which offers people an ultra fast sequence database schema
+    We appreciate the contribution from MMseq2, which offers people an ultra fast sequence database scheme
     for more information , please visit their github page.
 
     https://github.com/soedinglab/mmseqs2

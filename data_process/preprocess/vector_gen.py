@@ -3,14 +3,15 @@ __author__= 'wy'
 #TODO Add comments to make people understand
 #TODO This shall be refractored with autodock part so that logic will not be too nasty
 
-import prody as pd
-import numpy as np
-import os,re
-import logging
-from mapping import *
-from native_contact import native_contact
 import collections
-from Config import result_PREFIX
+import logging
+
+import numpy as np
+import prody as pd
+
+from Config import result_PREFIX,temp_pdb_PREFIX
+from data_process.preprocess.utility.autodock_utility import *
+from native_contact import native_contact
 
 '''
 Core part for generating vectors and split source pdb files with

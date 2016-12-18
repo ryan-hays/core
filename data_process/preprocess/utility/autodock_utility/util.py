@@ -1,7 +1,5 @@
 '''
-Writing external shells here.
-This time the factory mode is changed to file-initiated.
-I.e. all functions receive input as files
+This script is used to generate docking result (electronic map) and calculating docking scores
 '''
 
 import sys,io,os
@@ -15,7 +13,7 @@ temp_pdb_PREFIX = '/tmp'
 import gzip
 
 WORK_DIR = os.getcwd()
-CURRENT_DIR = os.getcwd()+'/mapping'
+CURRENT_DIR = os.getcwd()+'/autodock_utility'
 #os.chdir(CURRENT_DIR)
 
 BUFSIZE = 1024 * 8

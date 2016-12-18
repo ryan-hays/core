@@ -61,7 +61,7 @@ fake_hetero_PREFIX = '/media/wy/data/set/set/'
 fake_result_PREFIX = '/media/wy/data/result/'
 #name of fake pdb files
 fake_pdb_name = 'fake-ligand.pdb'
-# Where to store autodock mapping results
+# Where to store autodock autodock_utility results
 #autodock_store_dir = '/n/scratch2/yw174/structure_data/'
 autodock_store_dir = '/tmp'
 

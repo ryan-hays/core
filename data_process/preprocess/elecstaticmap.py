@@ -1,11 +1,12 @@
 '''
 Generate autovina score and elecgrid files. The record will be sotred in specific file.
 '''
-from mapping import *
-from Config import *
-import os
-from vector_gen import pdb_container
 import csv
+import os
+
+from Config import *
+from data_process.preprocess.utility.autodock_utility import *
+from vector_gen import pdb_container
 
 #Which content does the result includes
 SUMMARY_COLUMN = ['PDB name','PDB type', 'ligand NAME', 'ligand index in PDB', 'vina score(kcal/mol)', 'box_scale', 'pure_protein_gridmap_filename',
@@ -22,7 +23,7 @@ RESERVE_NAME = ['fake-ligand.pdb']
 
 
 def generate_one_map(PDBname, PDBpos, BOX=20):
-    # mapping files will be generated in this folder (for each pdb file)
+    # autodock_utility files will be generated in this folder (for each pdb file)
     set_new_folder(PDBname,result_PREFIX)
 
     PDBIndex = pdb_container(PDBname,filepos=PDBpos)

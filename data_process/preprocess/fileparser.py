@@ -1,15 +1,15 @@
 __author__ = 'wy'
 
-from prody import *
-import os
 import csv
-from vector_gen import pdb_container
-import time
-from functools import wraps
 import logging
-from Config import *
+import os
+import time
 import urllib
-from mapping import repair_pdbfile
+from functools import wraps
+
+from Config import *
+from data_process.preprocess.utility.autodock_utility import repair_pdbfile
+from vector_gen import pdb_container
 
 '''
 The main program to extract molecules in .sdf files and compare with ligands on PDB files.
