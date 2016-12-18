@@ -72,13 +72,16 @@ class Receptor_container:
             print 'Warning, the temporary file path is not configured!'
         return self.__temp_filefolder
 
-    def write_file(self,format='pdb'):
+    def write_file(self,format='pdb',location=None):
         '''
         Write atoms into temporary filelocation
-        For future
+        For future implementation, it should support different type of format, e.g. mol2
         :param format:
+        :param location: Someplace other than designated temporary file location
         :return:
         '''
+        if location is None:
+            pass
 
 
 

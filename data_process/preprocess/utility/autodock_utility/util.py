@@ -7,7 +7,7 @@ from functools import wraps
 import time
 import re
 import commands
-from Autodock_Config import autodock_store_dir,pythonsh_dir
+from data_process.preprocess.Config import pythonsh_dir
 temp_pdb_PREFIX = '/tmp'
 #temp_pdb_PREFIX = '/home/wy/Documents/BCH_coding/pdb_data_extracter/data'
 import gzip
