@@ -38,6 +38,7 @@ def parsePDB(pdbname,filename=None,dir=None,header=False):
     :param file:
     :return: parse:atomgroup header:information in header of the .pdb file
     '''
+
     try:
         if filename is not None:
             if dir is None:

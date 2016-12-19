@@ -6,6 +6,7 @@ import os.listdir as oslistdir
 import os.rmdir as osrmdir
 import os.urandom as osurandom
 from data_process.preprocess.Config import temp_pdb_PREFIX
+from atomgroupIO import writePDB
 
 class Receptor_container:
     '''
@@ -15,11 +16,12 @@ class Receptor_container:
     '''
     __receptor_type = None
     __receptor = None
+    __name = None
     __temp_file_list = []
     __temp_filefolder = '.'
     instance_index = 0
 
-    def __init__(self,parser,pdbname="None"):
+    def __init__(self,parser,pdbname=None):
         '''
         receive input from parser
         '''
@@ -36,13 +38,13 @@ class Receptor_container:
                 self.__receptor_type = 'Protein_Nucleic_Complex'
         pass
 
-        assert isinstance(pdbname,str)
-
         if pdbname is None:
             self.__temp_filefolder= ospath.join(temp_pdb_PREFIX,''.join(map(lambda xx:(hex(ord(xx))[2:]),osurandom(16))))
+            self.__name = 'Receptor_%s' % str(self.instance_index)
         else:
+            assert isinstance(pdbname,str)
             self.__temp_filefolder= ospath.join(temp_pdb_PREFIX,pdbname+'_'.join(map(lambda xx:(hex(ord(xx))[2:]),osurandom(16))))
-
+            self.__name = '%s' % (pdbname)
 
 
 
@@ -52,10 +54,26 @@ class Receptor_container:
         return cls.instance_index
 
     @property
+    def receptor_name(self):
+        '''
+        This is to make sure this variable is read-only. The same to the other
+        :return:
+        '''
+        if self.__name is None:
+            raise AttributeError('No receptor is allocated to this container!')
+        return self.__name
+
+    @property
     def receptor_type(self):
         if self.__receptor_type is None:
             raise AttributeError('No receptor is allocated to this container!')
         return self.__receptor_type
+
+    @property
+    def temp_file_dir(self):
+        if self.__temp_filefolder is '.':
+            print 'Warning, the temporary file path is not configured! It will share the directory with this script.'
+        return self.__temp_filefolder
 
     def Is_pure_protein(self):
         return self.__receptor_type == 'Protein'
@@ -66,23 +84,24 @@ class Receptor_container:
     def Is_protein_nucleic_complex(self):
         return self.__receptor_type == 'Protein_Nucleic_Complex'
 
-    @property
-    def temp_file_dir(self):
-        if self.__temp_filefolder is '.':
-            print 'Warning, the temporary file path is not configured!'
-        return self.__temp_filefolder
+
 
     def write_file(self,format='pdb',location=None):
         '''
         Write atoms into temporary filelocation
-        For future implementation, it should support different type of format, e.g. mol2
+        For future implementation, it might be able to support different type of format, e.g. mol2
         :param format:
         :param location: Someplace other than designated temporary file location
         :return:
         '''
-        if location is None:
-            pass
+        pass
 
+    def prepare_autodock_receptor(self):
+        '''
+
+        :return: filename for autodock (pdbqt file)
+        '''
+        pass
 
 
     def __del__(self):
