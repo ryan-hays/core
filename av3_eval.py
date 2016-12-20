@@ -205,7 +205,10 @@ class store_predictions:
         # the form is:
         # Protein1, Ligand3 Ligand4 Ligand2
         # Protein2, Ligand5 Ligand9 Ligand7
-        
+
+        raw_database_array = np.genfromtxt(FLAGS.test_set_file_path, delimiter=',', dtype=str)
+        receptor = raw_database_array[:,2]
+        receptor = list(set(map(lambda x:x.split('.')[0].split('/')[-1],receptor)))
         submission = {}
         for i in range(num_examples):
             # get the name of the ligand and protein
@@ -222,14 +225,19 @@ class store_predictions:
                 submission[receptor]['score'].append(prediction_averages[i])
         
         # write and save submisison to file
-        with open(file_path+'_submission.txt','w') as f:
+        # if failed to predict any liagnd for a receptor
+        # use placeholder 'L' as predict result
+        # e.g. P1234,L
+        with open(file_path+'_submission.csv','w') as f:
             f.write('Id,Prediction\n')
-            for key in submission.keys():
-                ligands = np.array(submission[key]['ligands'])
-                scores = np.array(submission[key]['score'])
-                ligands = ligands[np.flipud(scores.argsort())]
-                f.write(key+','+' '.join(ligands)+'\n')
-
+            for key in receptor:
+                if key in submission.keys():
+                    ligands = np.array(submission[key]['ligands'])
+                    scores = np.array(submission[key]['score'])
+                    ligands = ligands[np.flipud(scores.argsort())]
+                    f.write(key+','+' '.join(ligands)+'\n')
+                else:
+                    f.write(key+','+'L'+'\n')
 
 def evaluate_on_train_set():
     "train a network"
