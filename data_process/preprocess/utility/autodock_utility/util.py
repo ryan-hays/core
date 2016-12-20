@@ -7,10 +7,9 @@ from functools import wraps
 import time
 import re
 import commands
-from data_process.preprocess.Config import pythonsh_dir
-temp_pdb_PREFIX = '/tmp'
-#temp_pdb_PREFIX = '/home/wy/Documents/BCH_coding/pdb_data_extracter/data'
+from data_process.preprocess.Config import pythonsh_dir,temp_pdb_PREFIX
 import gzip
+
 
 WORK_DIR = os.getcwd()
 CURRENT_DIR = os.getcwd()+'/autodock_utility'
@@ -460,16 +459,4 @@ def fetch_gridmaps(filedir, map_prefix ,BOX=21):
 if __name__=='__main__':
     #Example on how to finish auto docking process
 
-    set_new_folder('1j8q','/home/wy/Documents/BCH_coding/pdb_data_extracter/result')
-
-    #protein only
-    do_auto_dock('/home/wy/Documents/BCH_coding/pdb_data_extracter/data/1j8q_147_pure.pdb',
-                 '/home/wy/Documents/BCH_coding/pdb_data_extracter/data/fake-ligand.pdb',center=[21.36,10.47,81.86])
-
-    #ligand only
-    do_auto_dock('/home/wy/Documents/BCH_coding/pdb_data_extracter/data/1j8q_147_ligand.pdb',
-                 '/home/wy/Documents/BCH_coding/pdb_data_extracter/data/fake-ligand.pdb', center=[21.36, 10.47, 81.86])
-
-    #protein-ligand complex
-    do_auto_dock('/home/wy/Documents/BCH_coding/pdb_data_extracter/data/1j8q_147_complex.pdb',
-                 '/home/wy/Documents/BCH_coding/pdb_data_extracter/data/fake-ligand.pdb', center=[21.36, 10.47, 81.86])
+    WORK_DIR = os.getcwd()

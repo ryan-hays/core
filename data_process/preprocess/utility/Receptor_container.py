@@ -96,11 +96,10 @@ class Receptor_container:
         '''
         pass
 
-    def prepare_autodock_receptor(self):
-        '''
+    def get_sequence_by_chains(self):
+        pass
 
-        :return: filename for autodock (pdbqt file)
-        '''
+    def get_sequence_as_whole(self):
         pass
 
 

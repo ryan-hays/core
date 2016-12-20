@@ -16,6 +16,7 @@ class Ligand_container:
     __ligand = None
     __name = None
     __ligand_type = None
+    __bench_coord= None
     __temp_file_list = []
     __temp_filefolder = '.'
 
@@ -107,12 +108,22 @@ class Ligand_container:
         pass
 
 
-    def prepare_autodock_ligand(self):
+    def get_RMSD_with_ligand(self,ligand,bench=None):
+        '''
+
+        :param ligand: target ligand container
+        :param bench(optional): benchmark ligand container, the reason to use this is because smina will break the
+         order of its input molecules.
+        :return:
+        '''
         pass
 
-    def prepare_autodock_receptor(self):
+    def get_native_contact_with_ligand(self,ligand,receptor,bench=None):
         '''
-        For auto grid
+
+        :param ligand:
+        :param receptor:
+        :param bench:
         :return:
         '''
         pass
