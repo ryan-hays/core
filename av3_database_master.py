@@ -64,29 +64,32 @@ def preprocess_PDB_to_npy(database_path):
 
 
 
-def assign_label(ligand_file_path):                                                                         # todo
-    """assigns label to be used for training. Returns "NONE" when the molecule should not be used for training"""
+def assign_label_from_path(ligand_file_path):                                                                         # todo
+    """assigns label to be used for training."""
     # 1 for the crystal structure
     # 0 for bad fast docking
     # NONE for good fast docking
     label = None
-    if re.search('crystal_ligands', ligand_file_path):
+    if re.search('/crystal_ligands/', ligand_file_path):
         if label == None:
             label = 1
         else:
-            raise Exception('can not assign two labels to one example')
+            raise Exception('can not assign two labels to one example:')
 
-    if re.search('docked_ligands',ligand_file_path):
+    if re.search('/docked_ligands/',ligand_file_path):
         if label == None:
             label = 0
         else:
-            raise Exception('can not assign two labels to one example')
+            raise Exception('can not assign two labels to one example:')
 
     if re.search('/ligands/',ligand_file_path):
         if label == None:
             label = random.randint(0,1)
+        else:
+            raise Exception('can not assign two labels to one example:')
+
     if label == None:
-        raise Exception("can not assign label")
+        raise Exception("can not assign any labels to:",ligand_file_path)
     else:
         return label
 
@@ -98,32 +101,38 @@ def assign_label(ligand_file_path):                                             
     #return random_label
 
 
-
-def write_database_index_file(database_path,database_index_path):
+def write_database_index_file(database_path,database_index_path,lig_dirs,label_gen_func=assign_label_from_path,rec_dir="receptors"):
     """crowls the database of the structure we are using and indexes it"""
     database_index_file = open(database_index_path + "/database_index.csv", "w")
     step = 0
 
     # walking across the ligand folders
-    for dirpath, dirnames, filenames in chain(os.walk(database_path +"/crystal_ligands"),os.walk(database_path +"/docked_ligands")):
+    #for dirpath, dirnames, filenames in chain(os.walk(database_path + "/" + lig_dirs[0]),os.walk(database_path + "/" + lig_dirs[1])):
+    for lig_dir in lig_dirs:
+        for dirpath, dirnames, filenames in os.walk(database_index_path + "/" + lig_dir):
 
-        for filename in filenames:
-            # first look if what we found is a ligand
-            pdb_name = dirpath.split("/")[-1]
+            for filename in filenames:
+                # first look if what we found is a ligand
+                pdb_name = dirpath.split("/")[-1]
 
-            if re.search('.npy$',filename):
-                # second see if we can find a corresponding protein
-                ligand_file_path = str(os.path.abspath(dirpath) + "/" + filename)
-                label = assign_label(ligand_file_path)
-                if label is not None:
-                    print "added to database",step,"label:",label
-                    step +=1
-                    receptor_file_path = os.path.abspath(str(database_path + "/receptors/" + pdb_name + ".npy"))
-                
-                    if os.path.exists(receptor_file_path):
-                        database_index_file.write(str(label) + "," + ligand_file_path + "," + receptor_file_path + "\n")
-                    else:
-                        print "WARNING: missing receptor"
+                if re.search('.npy$', filename):
+                    # second see if we can find a corresponding protein
+                    ligand_file_path = str(os.path.abspath(dirpath) + "/" + filename)
+                    label = label_gen_func(ligand_file_path)
+                    if label is not None:
+                        print "added to database", step, "label:", label
+                        step += 1
+                        receptor_file_path = os.path.abspath(str(database_path + "/" + rec_dir + "/" + pdb_name + ".npy"))
+
+                        if os.path.exists(receptor_file_path):
+                            database_index_file.write(
+                                str(label) + "," + ligand_file_path + "," + receptor_file_path + "\n")
+                        else:
+                            print "WARNING: missing receptor"
+
+
+
+
 
     database_index_file.close()
 
@@ -156,20 +165,30 @@ def split_into_train_and_test_sets(database_index_path,train_set_div):
 
     map(randomly_assign_and_retrieve_example,unique_pdb_names)
 
-    random.shuffle(train_set)
-    open(database_index_path + "/test_set.csv", "w").writelines(train_set)
-    random.shuffle(test_set)
-    open(database_index_path + "/train_set.csv", "w").writelines(test_set)
 
-def prepare_database_for_av3(database_path,train_set_div,convert_to_npy,write_index,split):
-    if convert_to_npy:
-        preprocess_PDB_to_npy(database_path)
-    if write_index:
-        write_database_index_file(database_path,database_path)
-    if split:
-        split_into_train_and_test_sets(database_path,train_set_div)
+    if not (train_set_div==1):
+        random.shuffle(train_set)
+        open(database_index_path + "/test_set.csv", "w").writelines(train_set)
+    if not (train_set_div==0):
+        random.shuffle(test_set)
+        open(database_index_path + "/train_set.csv", "w").writelines(test_set)
 
-prepare_database_for_av3(database_path='../datasets/labeled_npy',train_set_div=0.8,convert_to_npy=False,write_index=True,split=True)
 
-# Index test_set with out lab
-prepare_database_for_av3(database_path='../datasets/unlabeled_npy',train_set_div=1.0,convert_to_npy=False,write_index=False,split=False)
+
+def prepare_labeled_pdb():
+    preprocess_PDB_to_npy(database_path='../datasets/labeled_pdb')
+    write_database_index_file(database_path='../datasets/labeled_pdb',database_index_path='../datasets/labeled_pdb',lig_dirs=["crystal_ligands","docked_ligands"])
+    split_into_train_and_test_sets(database_index_path='../datasets/labeled_pdb',train_set_div=0.8)
+
+
+def prepare_labeled_npy():
+    write_database_index_file(database_path='../datasets/labeled_npy',database_index_path='../datasets/labeled_npy',lig_dirs=["crystal_ligands","docked_ligands"])
+    split_into_train_and_test_sets(database_index_path='../datasets/labeled_npy',train_set_div=0.8)
+
+
+def prepare_unlabeled_npy():
+    write_database_index_file(database_path='../datasets/unlabeled_npy',database_index_path='../datasets/unlabeled_npy',lig_dirs=["ligands"])
+    split_into_train_and_test_sets(database_index_path='../datasets/unlabeled_npy',train_set_div=0)
+
+prepare_labeled_npy()
+prepare_unlabeled_npy()
