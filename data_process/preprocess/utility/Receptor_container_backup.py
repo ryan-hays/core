@@ -9,9 +9,9 @@ import logging
 import numpy as np
 import prody as pd
 
-from data_process.preprocess.Config import result_PREFIX,temp_pdb_PREFIX
+from data_process.preprocess.Config import result_PREFIX
 from data_process.preprocess.utility.autodock_utility import *
-from data_process.preprocess.native_contact import native_contact
+from data_process.preprocess.utility.native_contact import native_contact
 
 '''
 Core part for generating vectors and split source pdb files with

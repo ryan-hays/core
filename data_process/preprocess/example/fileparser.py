@@ -7,7 +7,7 @@ import time
 import urllib
 from functools import wraps
 
-from Config import *
+from data_process.preprocess.Config import *
 from data_process.preprocess.utility.autodock_utility import repair_pdbfile
 from data_process.preprocess.utility.Receptor_container_backup import pdb_container
 

@@ -1,4 +1,4 @@
-from Config import result_PREFIX,merged_Filename
+from data_process.preprocess.Config import result_PREFIX,merged_Filename
 import os,io
 import csv
 

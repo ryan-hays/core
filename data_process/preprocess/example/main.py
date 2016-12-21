@@ -5,7 +5,7 @@ import os
 import time
 from functools import wraps
 
-from Config import *
+from data_process.preprocess.Config import *
 from data_process.preprocess.utility.Receptor_container_backup import pdb_container
 
 #This part is used to set debug log

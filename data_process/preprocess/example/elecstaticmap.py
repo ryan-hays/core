@@ -3,7 +3,7 @@ Generate autovina score and elecgrid files. The record will be sotred in specifi
 '''
 import csv
 
-from Config import *
+from data_process.preprocess.Config import *
 from data_process.preprocess.utility.autodock_utility import *
 from data_process.preprocess.utility.Receptor_container_backup import pdb_container
 
