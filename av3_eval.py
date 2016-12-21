@@ -246,7 +246,7 @@ def evaluate_on_train_set():
     sess = tf.Session()
     train_image_queue,filename_coordinator = launch_enqueue_workers(sess=sess,pixel_size=FLAGS.pixel_size,side_pixels=FLAGS.side_pixels,
                                                                     num_workers=FLAGS.num_workers, batch_size=FLAGS.batch_size,
-                                                                    database_index_file_path=FLAGS.test_set_file_path,num_epochs=5)
+                                                                    database_index_file_path=FLAGS.test_set_file_path,num_epochs=2)
     y_, x_image_batch,ligand_filename,receptor_filename = train_image_queue.dequeue_many(FLAGS.batch_size)
     keep_prob = tf.placeholder(tf.float32)
     y_conv = max_net(x_image_batch, keep_prob)
