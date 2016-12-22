@@ -207,8 +207,8 @@ class store_predictions:
         # Protein2, Ligand5 Ligand9 Ligand7
 
         raw_database_array = np.genfromtxt(FLAGS.test_set_file_path, delimiter=',', dtype=str)
-        receptor = raw_database_array[:,2]
-        receptor = list(set(map(lambda x:x.split('.')[0].split('/')[-1],receptor)))
+        receptor_set = raw_database_array[:,2]
+        receptor_set = list(set(map(lambda x:x.split('.')[0].split('/')[-1],receptor_set)))
         submission = {}
         for i in range(num_examples):
             # get the name of the ligand and protein
@@ -230,7 +230,7 @@ class store_predictions:
         # e.g. P1234,L
         with open(file_path+'_submission.csv','w') as f:
             f.write('Id,Prediction\n')
-            for key in receptor:
+            for key in receptor_set:
                 if key in submission.keys():
                     ligands = np.array(submission[key]['ligands'])
                     scores = np.array(submission[key]['score'])
