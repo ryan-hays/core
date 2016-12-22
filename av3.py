@@ -174,16 +174,23 @@ def unbalanced_sparse_softmax_cross_entropy_with_logits(logits,labels,class_weig
 
 
     # convert labels to targets first
+    # example for 3 classes
+    # labels [1, 1, 1, 3, 2]
+    # targets [1 0 0]
+    # [1 0 0]
+    # [1 0 0]
+    # [0 0 1]
+    # [0 1 0]
     batch_size = int(logits.get_shape()[0])
     num_classes = int(logits.get_shape()[1])
-    # because the default format of labels is float32, it needs to be converted to int64
+
     labels = tf.cast(labels,dtype=tf.int32)
 
     indices = tf.cast(tf.pack((tf.range(0,batch_size),labels),axis=1),dtype=tf.int64)
 
-
     sparse_targets = tf.SparseTensor(indices=indices, values=tf.ones(batch_size,dtype=tf.float32),shape=[batch_size,num_classes])
     targets = tf.sparse_tensor_to_dense(sparse_targets)
+    # now we have targets instead of labels
 
     # formula:
     # ent = targets * -log(softmax(logits)) = targets * -log(softmax(x))
@@ -191,22 +198,29 @@ def unbalanced_sparse_softmax_cross_entropy_with_logits(logits,labels,class_weig
     # ent = targets * -(x - log(sum(e**x))
     # ent = targets * -(x - soft_maximum_x)
 
-    # stable way of soft_maximum_x = log(sum e**x))
+    # soft maximum formula is: soft_maximum_x = log(sum e**x))
+    # is numerically unstable because: e**x easily goes to infinity and causes overflow
+    # stable way to compute
     # if we shift by some constant K
     # log(e**x1 + e**x2 + e**x3...) = K + log((e**x1)/K + (e**x2)/K + (e**x3)/K)
     # K + log (e**(x1-K) + e**(x2-K) + e**(x3-K)+...)
+    # now is we substitute K to the maximum of all terms
     # if K = max(x), there is no overflow since all (x-K) are negative
+    # and e** of negative number is small and will not overflow
     # log(sum(e**x)) = max + log(e**(x1-max) + e**(x2-max) + e**..)
 
+    # find maximum for every row and make it K
     max_logits = tf.reduce_max(logits, reduction_indices=1)
+    # compute soft maximum
     soft_maximum_x = max_logits + tf.log(tf.reduce_sum(tf.exp(logits - tf.tile(tf.reshape(max_logits,shape=[batch_size,1]),multiples=[1,num_classes])),1))
-
+    # compute simple cross entropy entropy
     simple_entropy = targets * -(logits - tf.tile(tf.reshape(soft_maximum_x,shape=[batch_size,1]),multiples=[1,num_classes]))
+    # multiply one of the columns by a certain number to make misclassification of that class more expensive
     unbalanced_entropy = tf.reduce_sum(class_weights * simple_entropy,reduction_indices=1)
 
     return unbalanced_entropy
 
-
+#def sparse_softmax_cross_entropy_with_logits(logits,labels):
 
 
 
@@ -288,7 +302,7 @@ class FLAGS:
     side_pixels = 20
     # weights for each class for the scoring function
     # weights of [1 10] would mean that errors in a positive class are weighted 10 times more
-    class_weights = [1,50]
+    class_weights = [1,1]
     # number of times each example in the dataset will be read
     num_epochs = 20
 
