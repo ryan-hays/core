@@ -127,7 +127,7 @@ def bindingDB_pdb_tar_generator(src,filepos,statistic_csv=None,CLEAN=False,filef
     '''
 
     # combine as file direction
-    sdfone = filedir_PREFIX + src.upper() + '.sdf'
+    sdfone = sdf_PREFIX + src.upper() + '.sdf'
 
     # open the source molecule files
     # Naming format [PDB name].sdf all lowercase

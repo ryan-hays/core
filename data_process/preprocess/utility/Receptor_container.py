@@ -64,6 +64,12 @@ class Receptor_container:
         return self.__name
 
     @property
+    def receptor(self):
+        if self.__receptor is None:
+            raise AttributeError('No receptor is allocated to this container!')
+        return self.__receptor
+
+    @property
     def receptor_type(self):
         if self.__receptor_type is None:
             raise AttributeError('No receptor is allocated to this container!')
@@ -74,6 +80,8 @@ class Receptor_container:
         if self.__temp_filefolder is '.':
             print 'Warning, the temporary file path is not configured! It will share the directory with this script.'
         return self.__temp_filefolder
+
+
 
     def Is_pure_protein(self):
         return self.__receptor_type == 'Protein'

@@ -79,9 +79,15 @@ class Ligand_container:
         return self.__temp_filefolder
 
     @property
+    def ligand(self):
+        if self.__ligand is None:
+            raise AttributeError('No ligand is allocated!')
+        return self.__ligand
+
+    @property
     def ligand_name(self):
         if self.__name is None:
-            raise AttributeError('No liangd is allocated!')
+            raise AttributeError('No ligand is allocated!')
         return self.__name
 
     @property
@@ -145,10 +151,17 @@ class Ligand_container:
 
 
 
-class Ligands_container:
+class Ligands_container(Ligand_container):
     '''
     This is for multiple ligands which might share similar features (like results in one docking process,
-    evaluation results for MD analysis)
+    evaluation results for MD analysis) with one ligand
     '''
-    #TODO implement this
-    pass
+    __length = 0
+    __ligand_stacks = None
+
+
+    def register_a_ligand(self,parser,pdbname,ligand_type='Artificial',**kwargs):
+        pass
+
+    def register_ligands_from_file(self,filename,filedir=None,format='pdb'):
+        pass

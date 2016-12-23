@@ -2,6 +2,8 @@
 This script is used to generate docking result (electronic map) and calculating docking scores
 '''
 
+#TODO This is too ugly, ready to rewrite this
+
 import sys,io,os
 from functools import wraps
 import time

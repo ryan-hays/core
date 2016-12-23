@@ -3,6 +3,9 @@ __author__ = 'wy'
 from Ligand_container import Ligand_container
 from Receptor_container import Receptor_container
 from atomgroupIO import writePDB,parsePDB,writeMOL2,parseMOL2
+from data_process.preprocess.Config import *
+
+
 
 class PDB_container:
     '''
@@ -35,6 +38,9 @@ class PDB_container:
         cls.instance_index += 1
         return cls.instance_index
 
+    def mount_a_ligand(self):
+        pass
+
     def get_pdb_info_dict(self):
         pass
 
@@ -59,6 +65,9 @@ class PDB_container:
     def get_ligand_similarity(self,ligand_id, src_file, src_filedir=None):
         pass
 
+    def get_similarity_idlist(self,src_file,src_filedir=None,method='tanimoto',threshold=0.85):
+        pass
+
     def get_ligand_autovina_score(self,ligand_id):
         pass
 
@@ -70,5 +79,17 @@ class Docking_Analyzer(PDB_container):
     '''
     Inherit from PDB_container, but specialized with docking remark generation
     '''
-    pass
+
+    def __set_coord_benchmark(self,ligand_id,bench_file,bench_dir=None):
+        pass
+
+    def mount_ligands_from_docking(self,src_file,src_dir=None):
+        pass
+
+    def get_ligand_info_dict(self,ligand_id):
+        pass
+
+
+
+
 

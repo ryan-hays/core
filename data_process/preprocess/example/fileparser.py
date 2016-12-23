@@ -107,7 +107,7 @@ def mol_ligand_tar_generator(src,filepos,statistic_csv=None,CLEAN=False,fileforb
     print len(experiment_part+PDB_part)
 
     # combine as file direction
-    sdfone = filedir_PREFIX + src.upper() + '.sdf'
+    sdfone = sdf_PREFIX + src.upper() + '.sdf'
 
     #open the source molecule files
     #Naming format [PDB name].sdf all lowercase
