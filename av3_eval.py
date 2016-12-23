@@ -227,7 +227,7 @@ class store_predictions:
         # use placeholder 'L' as predict result
         # e.g. P1234,L
         with open(file_path+'_submission.csv','w') as f:
-            f.write('Id,Prediction\n')
+            f.write('Id,Expected\n')
             for key in receptor_set:
                 if key in submission.keys():
                     ligands = np.array(submission[key]['ligands'])
