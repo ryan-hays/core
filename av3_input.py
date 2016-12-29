@@ -170,7 +170,7 @@ def launch_enqueue_workers(sess,pixel_size,side_pixels,num_workers,batch_size,da
     image_queue = tf.FIFOQueue(100 + num_workers * batch_size, [tf.float32,tf.float32,tf.string,tf.string], shapes=[[],[side_pixels,side_pixels,side_pixels],[],[]])
 
     enqueue_image_op = image_queue.enqueue([feed_label,feed_image,feed_ligand_filename,feed_receptor_filename])
-
+    #enqueue_image_op = unbalanced_enqueue(image_queue,[feed_label,feed_image,feed_ligand_filename,feed_receptor_filename] )
 
     def image_queue_worker(filename_coordinator,pixel_size=pixel_size, side_pixels=side_pixels,num_attempts=1000):
         """1) makes random affine transform matrix
@@ -181,56 +181,57 @@ def launch_enqueue_workers(sess,pixel_size,side_pixels,num_workers,batch_size,da
         while True:
 
             label, ligand_filename, receptor_filename = filename_coordinator.iterate_one()
+	    #if True:
+	    if label != 0 or random.random()<0.02:
+            	# loading ligand molecule
+            	ligand_molecule = molecule_class()
+           	ligand_molecule.load_npy(ligand_filename)
+            	# shifting to the new center of mass
+            	ligand_center_of_mass = np.average(ligand_molecule.coords,axis=0)
+            	ligand_molecule.coords = ligand_molecule.coords - ligand_center_of_mass
 
-            # loading ligand molecule
-            ligand_molecule = molecule_class()
-            ligand_molecule.load_npy(ligand_filename)
-            # shifting to the new center of mass
-            ligand_center_of_mass = np.average(ligand_molecule.coords,axis=0)
-            ligand_molecule.coords = ligand_molecule.coords - ligand_center_of_mass
+            	# find transition matrix that could fit all the ligand atoms
+            	final_transition_matrix = False
+            	for attempt in range(num_attempts):
+                    # make a random transition matrix
+                    random_transition_matrix = generate_random_transition_matrix()
+                    # affine transform
+                    transformed_ligand_coord = affine_transform(ligand_molecule.coords, random_transition_matrix)
 
-            # find transition matrix that could fit all the ligand atoms
-            final_transition_matrix = False
-            for attempt in range(num_attempts):
-                # make a random transition matrix
-                random_transition_matrix = generate_random_transition_matrix()
-                # affine transform
-                transformed_ligand_coord = affine_transform(ligand_molecule.coords, random_transition_matrix)
+                    # see if all ligand atoms are in the box
 
-                # see if all ligand atoms are in the box
+                    if all(if_in_the_box(transformed_ligand_coord)):
+                    	final_transition_matrix = random_transition_matrix
+                    	break
 
-                if all(if_in_the_box(transformed_ligand_coord)):
-                    final_transition_matrix = random_transition_matrix
-                    break
+            	# check if attempt to generate the transition matrix was successful
+            	# if not, exit procedure
+            	if isinstance(final_transition_matrix, bool):
+                    print "reached maximum number of attempts and failed", num_attempts                                     #TODO write this into log
+                    # "pass" rewinds loop to the beginning without enqueing image
+                    pass
 
-            # check if attempt to generate the transition matrix was successful
-            # if not, exit procedure
-            if isinstance(final_transition_matrix, bool):
-                print "reached maximum number of attempts and failed", num_attempts                                     #TODO write this into log
-                # "pass" rewinds loop to the beginning without enqueing image
-                pass
+            	# if the script goes past this point it means that transition matrix was successfully generated
+            	# transform ligand to the new coordinate system (only do it once)
+            	ligand_molecule.coords = affine_transform(ligand_molecule.coords,final_transition_matrix)
 
-            # if the script goes past this point it means that transition matrix was successfully generated
-            # transform ligand to the new coordinate system (only do it once)
-            ligand_molecule.coords = affine_transform(ligand_molecule.coords,final_transition_matrix)
+            	# parse the protein (receptor)
+            	receptor_molecule = molecule_class()
+            	receptor_molecule.load_npy(receptor_filename)
+            	# transform the protein in the same way as the ligand
+            	receptor_molecule.coords = receptor_molecule.coords - ligand_center_of_mass
+           	receptor_molecule.coords = affine_transform(receptor_molecule.coords,final_transition_matrix)
+            	# now merge the molecule coordinates and atom names
+            	molecule_complex = molecule_class()
+            	molecule_complex.coords = np.vstack((ligand_molecule.coords,receptor_molecule.coords))
+            	molecule_complex.atom_tags = np.hstack((ligand_molecule.atom_tags,receptor_molecule.atom_tags))
 
-            # parse the protein (receptor)
-            receptor_molecule = molecule_class()
-            receptor_molecule.load_npy(receptor_filename)
-            # transform the protein in the same way as the ligand
-            receptor_molecule.coords = receptor_molecule.coords - ligand_center_of_mass
-            receptor_molecule.coords = affine_transform(receptor_molecule.coords,final_transition_matrix)
-            # now merge the molecule coordinates and atom names
-            molecule_complex = molecule_class()
-            molecule_complex.coords = np.vstack((ligand_molecule.coords,receptor_molecule.coords))
-            molecule_complex.atom_tags = np.hstack((ligand_molecule.atom_tags,receptor_molecule.atom_tags))
+            	# moving coordinates of a complex to an integer number so as to put every atom on a grid
+            	# ceiled coords is an integer number out of real coordinates that corresponds to the index on the cell
+            	molecule_complex.ceiled_coords = np.asarray(np.round(molecule_complex.coords / pixel_size - 0.5 + side_pixels / 2), dtype=int)
+            	molecule_complex.filter = if_in_the_box(atom_coord_array=molecule_complex.coords)
 
-            # moving coordinates of a complex to an integer number so as to put every atom on a grid
-            # ceiled coords is an integer number out of real coordinates that corresponds to the index on the cell
-            molecule_complex.ceiled_coords = np.asarray(np.round(molecule_complex.coords / pixel_size - 0.5 + side_pixels / 2), dtype=int)
-            molecule_complex.filter = if_in_the_box(atom_coord_array=molecule_complex.coords)
-
-            sess.run([enqueue_image_op], feed_dict={feed_label:label, ceiled_coords: molecule_complex.ceiled_coords, atom_tags: molecule_complex.atom_tags,
+            	sess.run([enqueue_image_op], feed_dict={feed_label:label, ceiled_coords: molecule_complex.ceiled_coords, atom_tags: molecule_complex.atom_tags,
                                      final_filter: molecule_complex.filter,feed_ligand_filename:ligand_filename,feed_receptor_filename:receptor_filename})
 
 
