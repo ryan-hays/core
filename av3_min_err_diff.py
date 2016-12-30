@@ -166,9 +166,7 @@ def unbalanced_sparse_softmax_cross_entropy_with_logits(logits,labels,class_weig
     # convert labels to targets first
     batch_size = int(logits.get_shape()[0])
     num_classes = int(logits.get_shape()[1])
-    # because the default format of labels is float32, it needs to be converted to int64
     labels = tf.cast(labels,dtype=tf.int32)
-
     print("calc softmax")
     indices = tf.cast(tf.pack((tf.range(0,batch_size),labels),axis=1),dtype=tf.int64)
 
@@ -191,7 +189,14 @@ def unbalanced_sparse_softmax_cross_entropy_with_logits(logits,labels,class_weig
     max_logits = tf.reduce_max(logits, reduction_indices=1)
     soft_maximum_x = max_logits + tf.log(tf.reduce_sum(tf.exp(logits - tf.tile(tf.reshape(max_logits,shape=[batch_size,1]),multiples=[1,num_classes])),1))
     simple_entropy = targets * -(logits - tf.tile(tf.reshape(soft_maximum_x,shape=[batch_size,1]),multiples=[1,num_classes]))
-    unbalanced_entropy = tf.reduce_sum(class_weights * simple_entropy,reduction_indices=1)
+   
+    opp_targets = -targets+tf.ones(num_classes) #adding along zero or ones dimension?
+    opp_simple_entropy = opp_targets * -(logits - tf.tile(tf.reshape(soft_maximum_x,shape=[batch_size,1]),multiples=[1,num_classes]))
+    
+    diff = simple_entropy - opp_simple_entropy
+
+
+    unbalanced_entropy = tf.reduce_sum(class_weights * diff,reduction_indices=1)
     return unbalanced_entropy
 
 #def imbalanced_dequeue(queue, keepprob):
@@ -229,16 +234,13 @@ def train():
 
     # todo
     #cross_entropy_mean = compute_weighted_cross_entropy_mean(y_conv, y_, FLAGS.batch_size) 
-    cross_entropy = unbalanced_sparse_softmax_cross_entropy_with_logits(y_conv,y_,[1,50])
+    cross_entropy = unbalanced_sparse_softmax_cross_entropy_with_logits(y_conv,y_,[1,1])
     
     cross_entropy_mean = tf.reduce_sum(cross_entropy) / FLAGS.batch_size
-    y_opp = tf.reverse_sequence(y_,1,0)
-    cross_entropy_mean_opp = tf.reduce_sum(unbalanced_sparse_softmax_cross_entropy_with_logits(y_conv,y_opp,[1,50]))
-    cross_entropy_mean_diff = tf.sub(cross_entropy_mean - cross_entropy_mean_opp)
 
     with tf.name_scope('train'):
         tf.scalar_summary('unbalanced cross entropy mean', cross_entropy_mean)
-        train_step_run = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy_mean_diff)
+        train_step_run = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy_mean)
 
 
     with tf.name_scope('evaluate_predictions'):
