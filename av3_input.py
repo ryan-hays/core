@@ -22,7 +22,7 @@ def generate_random_transition_matrix(shift_range=10,rotation_range=np.pi*2):
                                [0, np.sin(rand_x), np.cos(rand_x), 0],
                                 [0, 0, 0, 1]])
 
-    ## randomly rotate along Y
+    ## randomly rotate along YX
     rand_y = random.random()*rotation_range
     y_rotate_matrix = np.matrix([[np.cos(rand_y), 0, np.sin(rand_y), 0],
                                 [0, 1, 0, 0],
@@ -160,14 +160,14 @@ def launch_enqueue_workers(sess,pixel_size,side_pixels,num_workers,batch_size,da
     feed_image = tf.sparse_tensor_to_dense(filtered_prot, validate_indices=False)                    # TODO when two atoms go into one cell
 
     # label should be fed separately
-    feed_label = tf.placeholder(tf.float32)
+    feed_label = tf.placeholder(tf.int64)
 
     # ligand and filename are fed for universality to be used in evaluations
     feed_ligand_filename = tf.placeholder(tf.string)
     feed_receptor_filename = tf.placeholder(tf.string)
 
     # a simple custom queue that will be used to store images
-    image_queue = tf.FIFOQueue(100 + num_workers * batch_size, [tf.float32,tf.float32,tf.string,tf.string], shapes=[[],[side_pixels,side_pixels,side_pixels],[],[]])
+    image_queue = tf.FIFOQueue(100 + num_workers * batch_size, [tf.int64,tf.float32,tf.string,tf.string], shapes=[[],[side_pixels,side_pixels,side_pixels],[],[]])
 
     enqueue_image_op = image_queue.enqueue([feed_label,feed_image,feed_ligand_filename,feed_receptor_filename])
 
