@@ -1,11 +1,11 @@
 import time,re
 import tensorflow as tf
 import numpy as np
-from av3 import FLAGS,max_net,unbalanced_sparse_softmax_cross_entropy_with_logits
+from av3 import FLAGS,max_net#,weighted_cross_entropy_mean_with_labels
 from av3_input import launch_enqueue_workers
 
 # set up global parameters
-FLAGS.saved_session = './summaries/66_netstate/saved_state-9999'
+FLAGS.saved_session = './summaries/134_netstate/saved_state-62999'
 
 FLAGS.predictions_file_path = re.sub("netstate","logs",FLAGS.saved_session)
 
@@ -251,7 +251,8 @@ def evaluate_on_train_set():
     keep_prob = tf.placeholder(tf.float32)
     y_conv = max_net(x_image_batch, keep_prob)
 
-    cross_entropy_mean = tf.reduce_sum(unbalanced_sparse_softmax_cross_entropy_with_logits(y_conv,y_) / FLAGS.batch_size)
+    cross_entropy_mean = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(y_conv,y_))
+    #(weighted_cross_entropy_mean_with_labels(y_conv,y_))
 
     # compute softmax over raw predictions
     predictions = tf.nn.softmax(y_conv)[:,1]
@@ -266,8 +267,9 @@ def evaluate_on_train_set():
 
     while not filename_coordinator.stop:
         start = time.time()
-
-        my_ligand_filename,my_receptor_filename,my_predictions,labels,my_cross_entropy = sess.run([ligand_filename,receptor_filename,predictions,y_,cross_entropy_mean],feed_dict={keep_prob:1})
+	if (batch_num % 100 == 99):
+            time.sleep(1)        
+	my_ligand_filename,my_receptor_filename,my_predictions,labels,my_cross_entropy = sess.run([ligand_filename,receptor_filename,predictions,y_,cross_entropy_mean],feed_dict={keep_prob:1})
         all_predictions.add_batch(my_ligand_filename,my_receptor_filename,my_predictions,labels)
         print "step:", batch_num, "test error:", my_cross_entropy, "examples per second:", "%.2f" % (FLAGS.batch_size / (time.time() - start))
 

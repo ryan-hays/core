@@ -6,11 +6,11 @@ from av3_input import launch_enqueue_workers
 
 # telling tensorflow how we want to randomly initialize weights
 def weight_variable(shape):
-    initial = tf.truncated_normal(shape, stddev=0.1)
+    initial = tf.truncated_normal(shape, stddev=0.005)
     return tf.Variable(initial)
 
 def bias_variable(shape):
-    initial = tf.constant(0.1, shape=shape)
+    initial = tf.constant(0.01, shape=shape)
     return tf.Variable(initial)
 
 def variable_summaries(var, name):
@@ -86,11 +86,11 @@ def max_net(x_image_batch,keep_prob):
         x_image_with_depth = tf.reshape(x_image_batch, [-1, 20, 20, 20, 1])
         print "input to the first layer dimensions", x_image_with_depth.get_shape()
 
-    h_conv1 = conv_layer(layer_name='conv1_2x2x2', input_tensor=x_image_with_depth, filter_size=[2, 2, 2, 1, 30])
+    h_conv1 = conv_layer(layer_name='conv1_5x5x5', input_tensor=x_image_with_depth, filter_size=[5, 5, 5, 1, 30])
     h_relu1 = relu_layer(layer_name='relu1', input_tensor=h_conv1)
     h_pool1 = pool_layer(layer_name='pool1_2x2x2', input_tensor=h_relu1, ksize=[1, 2, 2, 2, 1], strides=[1, 2, 2, 2, 1])
 
-    h_conv2 = conv_layer(layer_name="conv2_2x2x2", input_tensor=h_pool1, filter_size=[2, 2, 2, 30, 45])
+    h_conv2 = conv_layer(layer_name="conv2_3x3x3", input_tensor=h_pool1, filter_size=[2, 2, 2, 30, 45])
     h_relu2 = relu_layer(layer_name="relu2", input_tensor=h_conv2)
     h_pool2 = pool_layer(layer_name="pool2_2x2x2", input_tensor=h_relu2, ksize=[1, 2, 2, 2, 1], strides=[1, 1, 1, 1, 1])
 
@@ -124,53 +124,40 @@ def max_net(x_image_batch,keep_prob):
     return y_conv
 
 
-#def compute_weighted_cross_entropy_mean(logits, labels,batch_size):
-#    """computes weighted cross entropy mean for a two class classification.
-#    Applies tf.nn.weighted_cross_entropy_with_logits
-#    accepts "labels" instead of "targets" as in
-#    tf.nn.sparse_softmax_cross_entropy_with_logits"""
-#
-#    with tf.name_scope('weighted_cross_entropy_mean'):  #
-#
-#        # first column is inverted labels, second column is labels
-#        # batch_class_zero = tf.reshape(-labels + 1, [batch_size, 1])
-#        batch_class_one = tf.reshape(labels, [batch_size, 1])
-#        print "shape of logits", logits.get_shape()
-#        # logits_class_one = tf.reshape(logits, [batch_size, 1])
-#        # batch_y = tf.concat(1, (batch_class_zero, batch_class_one))
-#
-#        weighted_cross_entropy = tf.nn.weighted_cross_entropy_with_logits(logits, batch_class_one, pos_weight=50, name=None)
-#
-#        cross_entropy_mean = tf.reduce_mean(weighted_cross_entropy, name='cross_entropy')
-#        return cross_entropy_mean
+
+"""def weighted_cross_entropy_mean_with_labels(logits,labels,pos_weight=1):
+    computes weighted cross entropy mean for a multi class classification.
+    Applies tf.nn.weighted_cross_entropy_with_logits
+    accepts "labels" instead of "targets" as in
+    tf.nn.sparse_softmax_cross_entropy_with_logits
+
+    Note: classes are independent
+
+    with tf.name_scope('weighted_cross_entropy_mean'):
+        # convert labels to targets first
+        # example for 3 classes
+        # labels [1, 1, 1, 3, 2]
+        # targets [1 0 0]
+        # [1 0 0]
+        # [1 0 0]
+        # [0 0 1]
+        # [0 1 0]
+
+        batch_size = int(logits.get_shape()[0])
+        num_classes = int(logits.get_shape()[1])
+        labels = tf.cast(labels, dtype=tf.int32)
+        indices = tf.cast(tf.pack((tf.range(0, batch_size), labels), axis=1), dtype=tf.int64)
+        sparse_targets = tf.SparseTensor(indices=indices, values=tf.ones(batch_size, dtype=tf.float32),shape=[batch_size, num_classes])
+        targets = tf.sparse_tensor_to_dense(sparse_targets)
+
+        # weighted_cross_entropy = tf.nn.weighted_cross_entropy_with_logits(logits,targets, pos_weight=pos_weight, name=None)
+        weighted_cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits,targets)
+
+        cross_entropy_mean = tf.reduce_mean(weighted_cross_entropy, name='cross_entropy')
+        return cross_entropy_mean"""
 
 
-#def unbalanced_sparse_softmax_cross_entropy_with_logits(logits,targets,class_weights=[1,1]):
-#    entropy = tf.reduce_sum(tf.mul(tf.to_float(class_weights),targets) * -tf.log(tf.nn.softmax(logits)),reduction_indices=1)
-#    return entropy
-
-#def unbalanced_sparse_softmax_cross_entropy_with_logits(logits,labels,class_weights=[1,1]):
-##
-#
-#    batch_size = int(logits.get_shape()[0])
-#    num_classes = int(logits.get_shape()[1])
-#    print "batch size:",batch_size
-#    print "num classes",num_classes
-#    left = tf.cast(tf.range(0,batch_size),tf.int64)
-#    right = tf.cast((labels),tf.int64)
-#    indices = tf.pack((left,right),axis=1)
-
-#    sparse_targets = tf.SparseTensor(indices=indices, values=tf.ones(batch_size,dtype=tf.float32),shape=[batch_size,num_classes])
-#    targets = tf.sparse_tensor_to_dense(sparse_targets)
-#    entropy = tf.reduce_sum(tf.mul(tf.to_float(class_weights),tf.to_float(targets)) * -tf.log(tf.nn.softmax(logits)),reduction_indices=1)
-#    print "shape of the entropy", entropy.get_shape()
-#    return entropy,logits
-
-
-
-
-
-def unbalanced_sparse_softmax_cross_entropy_with_logits(logits,labels,class_weights=[1,1]):
+"""def weighted_sparse_softmax_cross_entropy_with_logits(logits,labels,class_weights=[1,1]):
 
 
     # convert labels to targets first
@@ -216,11 +203,9 @@ def unbalanced_sparse_softmax_cross_entropy_with_logits(logits,labels,class_weig
     # compute simple cross entropy entropy
     simple_entropy = targets * -(logits - tf.tile(tf.reshape(soft_maximum_x,shape=[batch_size,1]),multiples=[1,num_classes]))
     # multiply one of the columns by a certain number to make misclassification of that class more expensive
-    unbalanced_entropy = tf.reduce_sum(class_weights * simple_entropy,reduction_indices=1)
+    weighted_entropy_mean = tf.reduce_mean(class_weights * simple_entropy)
 
-    return unbalanced_entropy
-
-#def sparse_softmax_cross_entropy_with_logits(logits,labels):
+    return weighted_entropy_mean"""
 
 
 
@@ -236,28 +221,36 @@ def train():
     keep_prob = tf.placeholder(tf.float32)
     y_conv = max_net(x_image_batch, keep_prob)
 
-
-    cross_entropy = unbalanced_sparse_softmax_cross_entropy_with_logits(y_conv,y_,FLAGS.class_weights)
-    cross_entropy_mean = tf.reduce_sum(cross_entropy) / FLAGS.batch_size
-
+    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(y_conv,y_)
+    cross_entropy_mean = tf.reduce_mean(cross_entropy)
 
     with tf.name_scope('train'):
-        tf.scalar_summary('unbalanced cross entropy mean', cross_entropy_mean)
-        train_step_run = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy_mean)
-
+        tf.scalar_summary('weighted cross entropy mean', cross_entropy_mean)
+        train_step_run = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
 
     with tf.name_scope('evaluate_predictions'):
-
         # first: evaluate error when labels are randomly shuffled
-        # randomly shuffle along one of the dimensions:
+        #  randomly shuffle along one of the dimensions:
         shuffled_y_ = tf.random_shuffle(y_)
-        shuffled_cross_entropy_mean = tf.reduce_sum(unbalanced_sparse_softmax_cross_entropy_with_logits(y_conv,shuffled_y_,[1,50])) / FLAGS.batch_size
+        shuffled_cross_entropy_mean = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(y_conv,shuffled_y_))
+
+
 
 
     # many small subroutines that are needed to save network state,logs, etc.
+    if (FLAGS.saved_session !=0):
+        # Note: new saved states go to a new folder for clarity
+        # restore variables from sleep
+	print " restoring variables from sleep"
+        saver = tf.train.Saver()
+        saver.restore(sess, FLAGS.saved_session)
+    else:
+        # Create a saver.
+        saver = tf.train.Saver(tf.all_variables())
 
-    # Create a saver.
-    saver = tf.train.Saver(tf.all_variables())
+
+
+
     # merge all summaries
     merged_summaries = tf.merge_all_summaries()
     # create a _log writer object
@@ -280,7 +273,7 @@ def train():
         if (batch_num % 1000 == 999):
             # evaluate and print a few things
             print "eval:-------------------------------------------------------------------------------------"
-            shuffled_training_error,training_error,train_summary = sess.run([shuffled_cross_entropy_mean,cross_entropy_mean,merged_summaries],feed_dict={keep_prob:0.5})
+            shuffled_training_error,training_error,train_summary = sess.run([shuffled_cross_entropy_mean,cross_entropy_mean,merged_summaries],feed_dict={keep_prob:1})
             print "step:", batch_num, "run error:",training_error, "shuffled run error:", shuffled_training_error
             train_writer.add_summary(train_summary, batch_num)
 
@@ -310,16 +303,17 @@ class FLAGS:
     # number of vectors(images) in one batch
     batch_size = 50
     # number of background processes to fill the queue with images
-    num_workers = 16
+    num_workers = 32
 
     # data directories
     # path to the csv file with names of images selected for training
     train_set_file_path = '../datasets/labeled_npy/train_set.csv'
     # path to the csv file with names of the images selected for testing
-    test_set_file_path = '../datasets/labeled_npy/test_set.csv'
+    test_set_file_path = '../datasets/unlabeled_npy/database_index.csv'
     # directory where to write variable summaries
     summaries_dir = './summaries'
-
+    # optional saved session: network from which to load variable states
+    saved_session = 0#'./summaries/99_netstate/saved_state-15999'
 
 
 
