@@ -1,4 +1,4 @@
-#cost functions 
+ #cost functions 
 
 #also try different weights
 #try with different labels
