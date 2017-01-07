@@ -1,10 +1,13 @@
- #cost functions 
+#cost functions 
 
 #also try different weights
 #try with different labels
 #try training with different orders of functions
 
 def mce(logits, labels):
+	'''Minimal classification error: cost is the number of classification errors (because we have binary classes, it's either 0 or 1)
+		mce = softmax(true_logits)
+	'''
     batch_size = int(logits.get_shape()[0])
     num_classes = int(logits.get_shape()[1])
     labels = tf.cast(labels, dtype=tf.int32)
@@ -15,6 +18,7 @@ def mce(logits, labels):
     sparse_false_logits = tf.SparseTensor(indices=opp_indices, values=logits,shape=[batch_size, num_classes])
     false_logits = tf.sparse_tensor_to_dense(sparse_false_logits)    
     return tf.pow(1+tf.exp(false_logits-true_logits),-1)
+
 
 
 def lvq2(logits,labels, min_cost):
@@ -57,7 +61,6 @@ def mee(logits,labels):
 
 
 def modified_cosine_difference(logits, labels, alpha=0.1):
-    #otherwise with regular equation cosine_difference is too similar to MCE
     batch_size = int(logits.get_shape()[0])
     num_classes = int(logits.get_shape()[1])
     labels = tf.cast(labels, dtype=tf.int32)
@@ -75,7 +78,7 @@ def modified_cosine_difference(logits, labels, alpha=0.1):
     targets_magnitude = tf.sqrt(tf.reduce_sum(tf.pow(targets,2),1))
     logits_magnitude = tf.sqrt(tf.reduce_sum(tf.pow(logits,2),1))
     total_magnitude = targets_magnitude*logits_magnitude
-    return ((b_targets*b_logits)+(a_targets * a_logits))/total_magnitude
+    return tf.pow(((b_targets*b_logits)+(a_targets * a_logits))/total_magnitude, -1)
 
 #same as cross entropy for us
 '''def log_loss(logits,labels):
@@ -91,12 +94,14 @@ def modified_cosine_difference(logits, labels, alpha=0.1):
     return tf.log(1+tf.reduce_sum(tf.exp(logits_correct_class - logits_incorrect_class),axis=1))
 '''
 
-def with_memory(parameters_array, func, alpha=0.125, prev_cost):
+def with_memory(logits, labels, func, prev_cost,alpha=0.125):
+	#*args
 	'''prev_cost should be initialized to tf.Variable(0)'''
-    unprocessed_cost = func(parameters_array)
+    unprocessed_cost = func(logits, labels)
     return (alpha*unprocessed_cost)+((1-alpha)*prev_cost)
 
-
+#not smooth, loss diverged with NaN
+#used for regression?
 def multiclass_rmse(logits, labels):
     batch_size = int(logits.get_shape()[0])
     num_classes = int(logits.get_shape()[1])
@@ -107,21 +112,23 @@ def multiclass_rmse(logits, labels):
     return tf.sqrt(tf.reduce_mean(tf.square(tf.reduce_sum(logits - targets, 1))))
     #tf.contrib.losses.mean_squared_error(y_conv, y_)
 
-def perceptron_loss(logits, labels):
+def minimum_squared_error(logits, labels):
     batch_size = int(logits.get_shape()[0])
     num_classes = int(logits.get_shape()[1])
     labels = tf.cast(labels, dtype=tf.int32)
     indices = tf.cast(tf.pack((tf.range(0, batch_size), labels), axis=1), dtype=tf.int64)
     sparse_targets = tf.SparseTensor(indices=indices, values=tf.ones(batch_size, dtype=tf.float32),shape=[batch_size, num_classes])
     targets = tf.sparse_tensor_to_dense(sparse_targets)
-    return 0.5*tf.pow(tf.reduce_sum(logits-targets,1),2)
+    return 0.5*tf.pow(tf.reduce_sum(logits - targets,1),2)
 
-#unfinished
-def difference_cost(parameters_array, parameters_array2, func1, func2):
-	return 0
+def perceptron_loss(logits, labels):	
+	'''
+	perceptron loss: old learning optimizer that uses logits - targets as learning rate 
 
-def multiclass_hinge_loss(logits, labels):
-    batch_size = int(logits.get_shape()[0])
+	perceptron_loss = E(correct answer) - minimum E over all classifications
+	where E(correct answer) = targets
+	'''
+	batch_size = int(logits.get_shape()[0])
     num_classes = int(logits.get_shape()[1])
     labels = tf.cast(labels, dtype=tf.int32)
     indices = tf.cast(tf.pack((tf.range(0, batch_size), labels), axis=1), dtype=tf.int64)
@@ -136,9 +143,44 @@ def multiclass_hinge_loss(logits, labels):
     a_targets, b_targets = tf.unpack(targets,axis=1)
     
     return 0.5*tf.maximum(tf.zeros(batch_size), (b_targets*b_logits)-(a_targets * a_logits))
+
+
+#unfinished
+def difference_cost(parameters_array, parameters_array2, func1, func2):
+	return 0
+
+def multiclass_hinge_loss(logits, labels):
+	'''
+	hinge loss: classifies bond as positive or negative with a difference of at least 1 between the most incorrect answer
+	(the incorrect answer with the lowest value) and the correct answer 
+	multiclass_hinge_loss = max(0, m+E(correct answer)-E(incorrect answer))
+		where m is the margin, E(correct answer) = 1*logit of true classification, 
+		and E(incorrect answer) = -1 * logit of false classification
+	'''
+    batch_size = int(logits.get_shape()[0])
+    num_classes = int(logits.get_shape()[1])
+    labels = tf.cast(labels, dtype=tf.int32)
+    indices = tf.cast(tf.pack((tf.range(0, batch_size), labels), axis=1), dtype=tf.int64)
+    sparse_targets = tf.SparseTensor(indices=indices, values=tf.ones(batch_size, dtype=tf.float32),shape=[batch_size, num_classes])
+    targets = tf.sparse_tensor_to_dense(sparse_targets)
+
+    '''turning targets from 0,1 to -1,1'''
+    targets = (2*targets) - tf.ones(num_classes)
+
+    '''splitting 0 and 1 indexes into separate arrays'''
+    a_logits, b_logits = tf.unpack(logits, axis=1)
+    a_targets, b_targets = tf.unpack(targets,axis=1)
+    
+    return 0.5*tf.maximum(tf.zeros(batch_size), tf.ones(batch_size) + (b_targets*b_logits)-(a_targets * a_logits))
     #tf.contrib.losses.smoothed_hinge_loss(y_conv, y_)
 
 def sigmoid_cross_entropy(logits, labels):
+	'''
+	sigmoid cross entropy: similar to softmax cross entropy but allows for an input to be
+	of more than one class 
+
+	sigmoid_cross_entropy = y_i*log(sigmoid(x_i)) + (1-y_i)*log(1-sigmoid(x_i)) for i = 0,1
+	'''
     labels = tf.cast(labels, dtype=tf.int32)
     batch_size = int(logits.get_shape()[0])
     num_classes = int(logits.get_shape()[1])
@@ -147,3 +189,8 @@ def sigmoid_cross_entropy(logits, labels):
     targets = tf.sparse_tensor_to_dense(sparse_targets)
     return tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits, targets))
 
+
+    #max_logits_index = tf.cast(tf.pack((tf.range(0, batch_size), tf.argmax(logits,1)), axis=1), dtype=tf.int64)
+    #sparse_max_logits = tf.SparseTensor(indices=max_logits_index, values=tf.ones(batch_size, dtype=tf.float32),shape=[batch_size, num_classes])
+    #max_logits = tf.reduce_sum(tf.sparse_tensor_to_dense(sparse_max_logits), 1)
+    #return 0.5*tf.reduce_mean(tf.cast(tf.maxium(tf.zeros(batch_size), labels),tf.float32))
