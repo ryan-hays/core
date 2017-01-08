@@ -243,7 +243,7 @@ def prepare_unlabeled_npy():
     write_database_index_file(database_path='../datasets/unlabeled_npy',database_index_path='../datasets/unlabeled_npy',lig_dirs=["ligands"])
     split_into_train_and_test_sets(database_index_path='../datasets/unlabeled_npy',train_set_div=0)
 
-#prepare_labeled_pdb()
-prepare_labeled_npy()
+prepare_labeled_pdb()
+#prepare_labeled_npy()
 #prepare_unlabeled_npy()
 
