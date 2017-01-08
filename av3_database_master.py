@@ -13,9 +13,7 @@ from av2_atomdict import atom_dictionary
 # todo there is a problem with multiframe PDBs that is supposed to be fixed with Xiao's update of the database
 # todo some error handling and loggig
 # todo add time.time
-
-
-
+# FIXME write .npy files for pdb now
 
 def preprocess_PDB_to_npy(database_path):
     """crawls the folder (receptors in this case) and saves every PDB it finds
@@ -33,6 +31,7 @@ def preprocess_PDB_to_npy(database_path):
                         prody_ligand = prody.parsePDB(ligand_file_path)
                     except Exception:
                         pass
+
                     def ligand_atom_to_number(atomname):
                         atomic_tag_number = atom_dictionary.LIG[atomname.lower()]
                         return atomic_tag_number
@@ -40,22 +39,11 @@ def preprocess_PDB_to_npy(database_path):
                     try:
 
                         atom_numbers = map(ligand_atom_to_number, prody_ligand.getElements())
-                        coordinates_and_atoms = np.hstack((prody_ligand.getCoords(), np.reshape(atom_numbers, (-1, 1))))
+                        coordinates_and_atoms = np.hstack(
+                            (prody_ligand.getCoords(), np.reshape(atom_numbers, (-1, 1))))
+                        np.save(re.sub('.pdb$', '', ligand_file_path), coordinates_and_atoms)
                     except Exception:
                         pass
-
-
-                    # FIXME fixing clash @Xiao should update the database
-                    if re.search('/docked_ligands/',ligand_file_path):
-                        if not docked_ligand_overlaps_with_crystal(database_path,ligand_file_path):
-                            statistics.docked_ligands_not_overlap +=1
-                            np.save(re.sub('.pdb$', '', ligand_file_path), coordinates_and_atoms)
-                        else:
-                            statistics.docked_ligands_overlap +=1
-                            print "overlap statistics:", statistics.docked_ligands_overlap,"/",statistics.docked_ligands_not_overlap
-                    else:
-                        np.save(re.sub('.pdb$', '', ligand_file_path), coordinates_and_atoms)
-
 
 
     def preprocess_receptors(folder_path):
@@ -77,7 +65,7 @@ def preprocess_PDB_to_npy(database_path):
 
     preprocess_ligands(database_path + "/docked_ligands/")
     preprocess_ligands(database_path + "/crystal_ligands/")
-    preprocess_receptors(database_path + "/receptors/")
+    #preprocess_receptors(database_path + "/receptors/")
 
 
 
@@ -150,7 +138,6 @@ def split_into_train_and_test_sets(database_index_path,train_set_div,replicate_p
     can replicate positive examples to do oversampling"""
     # create a unique pdb list, and randomly assign every pdb to the training or to the testing set
     database_index_lines = open(database_index_path + "/database_index.csv").readlines()
-
     def return_pdb(string):
         return string.split("/")[-1].strip("\n")
 
@@ -179,18 +166,17 @@ def split_into_train_and_test_sets(database_index_path,train_set_div,replicate_p
 
     map(randomly_assign_and_retrieve_example,unique_pdb_names)
 
-
-    if not (train_set_div==0):
+    if not (train_set_div==1):
         random.shuffle(test_set)
         open(database_index_path + "/test_set.csv", "w").writelines(test_set)
-    if not (train_set_div==1):
+    if not (train_set_div==0):
         random.shuffle(train_set)
         open(database_index_path + "/train_set.csv", "w").writelines(train_set)
 
 
 def docked_ligand_overlaps_with_crystal(database_path,docked_lig_path,tanimoto_cutoff=0.75,clash_cutoff_A=4,clash_size_cutoff=0.3):
-    """sometimes ligand docks correctly into the neighboring pocket of a multimer
-    this script returns true when such an overlap is found"""
+    """This script takes docked ligand, and searches crystal ligands to find if doked position has a chance to be correct
+    (overlaps). And in that case returns one."""
 
     def tanimoto_similarity(cryst_lig_path, docked_lig_path):
         command = os.popen('babel -d {} {} -ofpt -xfFP4'.format(cryst_lig_path, docked_lig_path))
@@ -231,9 +217,9 @@ def docked_ligand_overlaps_with_crystal(database_path,docked_lig_path,tanimoto_c
 
 
 def prepare_labeled_pdb():
-    preprocess_PDB_to_npy(database_path='../datasets/labeled_pdb')
-    write_database_index_file(database_path='../datasets/labeled_pdb',database_index_path='../datasets/labeled_pdb',lig_dirs=["crystal_ligands","docked_ligands"])
-    split_into_train_and_test_sets(database_index_path='../datasets/labeled_pdb',train_set_div=1,replicate_positives=20)
+    preprocess_PDB_to_npy(database_path='../datasets/test_hydro')
+    write_database_index_file(database_path='../datasets/test_hydro',database_index_path='../datasets/test_hydro',lig_dirs=["crystal_ligands","docked_ligands"])
+    split_into_train_and_test_sets(database_index_path='../datasets/test_hydro',train_set_div=0.95,replicate_positives=20)
 
 def prepare_labeled_npy():
     write_database_index_file(database_path='../datasets/labeled_npy',database_index_path='../datasets/labeled_npy',lig_dirs=["crystal_ligands","docked_ligands"])
