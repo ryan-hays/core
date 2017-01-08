@@ -1,10 +1,10 @@
 class atom_dictionary:
     LIG = {}
 
-    LIG["h"] = 1; LIG["h1"] = 1; LIG["h2"] = 1; LIG["h3"] = 1; LIG["h4"] = 1; LIG["h5"] = 1; LIG["h6"] = 1; LIG["h7"] = 1;
-    LIG["h8"] = 1; LIG["h1*"] = 1; LIG["h2*"] = 1; LIG["h3*"] = 1; LIG["h4*"] = 1; LIG["h5*"] = 1; LIG["h6*"] = 1;
-    LIG["h7*"] = 1; LIG["h8*"] = 1; LIG["hg"] = 1; LIG["hxt"] = 1; LIG["hz1"] = 1; LIG["hz2"] = 1; LIG["he2"] = 1;
-    LIG["d"] = 1
+    LIG["h"] = 0; LIG["h1"] = 0; LIG["h2"] = 0; LIG["h3"] = 0; LIG["h4"] = 0; LIG["h5"] = 0; LIG["h6"] = 0; LIG["h7"] = 0;
+    LIG["h8"] = 0; LIG["h1*"] = 0; LIG["h2*"] = 0; LIG["h3*"] = 0; LIG["h4*"] = 0; LIG["h5*"] = 0; LIG["h6*"] = 0;
+    LIG["h7*"] = 0; LIG["h8*"] = 0; LIG["hg"] = 0; LIG["hxt"] = 0; LIG["hz1"] = 0; LIG["hz2"] = 0; LIG["he2"] = 0;
+    LIG["d"] = 0
 
     LIG["b"] = 5
 
@@ -26,12 +26,12 @@ class atom_dictionary:
 
     REC = {}
 
-    REC["h"] = 21 ; REC["h1"] = 21; REC["h2"] = 21; REC["h3"] = 21; REC["h4"] = 21; REC["h5"] = 21; REC["h6"] = 21;
-    REC["h7"] = 21; REC["h8"] = 21; REC["h1*"] = 21; REC["h2*"] = 21; REC["h3*"] = 21; REC["h4*"] = 21; REC["h5*"] = 21;
-    REC["h6*"] = 21; REC["h7*"] = 21; REC["h8*"] = 21; REC["hg"] = 21; REC["hxt"] = 21; REC["hz1"] = 21; REC["hz2"] = 21;
-    REC["he2"] = 21; REC["d"] = 21
+    REC["h"] = 0 ; REC["h1"] = 0; REC["h2"] = 0; REC["h3"] = 0; REC["h4"] = 0; REC["h5"] = 0; REC["h6"] = 0;
+    REC["h7"] = 0; REC["h8"] = 0; REC["h1*"] = 0; REC["h2*"] = 0; REC["h3*"] = 0; REC["h4*"] = 0; REC["h5*"] = 0;
+    REC["h6*"] = 0; REC["h7*"] = 0; REC["h8*"] = 0; REC["hg"] = 0; REC["hxt"] = 0; REC["hz1"] = 0; REC["hz2"] = 0;
+    REC["he2"] = 0; REC["d"] = 0
 
-    REC["b"] = 5
+    REC["b"] = 15
 
     REC["c"] = 26; REC["c1"] = 26; REC["c2"] = 26; REC["c3"] = 26; REC["c4"] = 26; REC["c5"] = 26; REC["c6"] = 26;
     REC["c7"] = 26; REC["c8"] = 26; REC["c1*"] = 26; REC["c2*"] = 26; REC["c3*"] = 26; REC["c4*"] = 26; REC["c5*"] = 26;
