@@ -270,7 +270,14 @@ def evaluate_on_train_set():
 	if (batch_num % 100 == 99):
             time.sleep(1)        
 	my_ligand_filename,my_receptor_filename,my_predictions,labels,my_cross_entropy = sess.run([ligand_filename,receptor_filename,predictions,y_,cross_entropy_mean],feed_dict={keep_prob:1})
-        all_predictions.add_batch(my_ligand_filename,my_receptor_filename,my_predictions,labels)
+	# write done the av3_score
+	av3_score= np.vstack((my_ligand_filename,my_receptor_filename,my_predictions.astype(str),labels.astype(str)))
+        av3_score_list = av3_score.transpose().tolist()
+        with open(FLAGS.predictions_file_path+"_av3_eval_score.csv","a") as fout:
+            for entry in av3_score_list:
+                fout.write(','.join(entry)+'\n')
+        
+	#all_predictions.add_batch(my_ligand_filename,my_receptor_filename,my_predictions,labels)
         print "step:", batch_num, "test error:", my_cross_entropy, "examples per second:", "%.2f" % (FLAGS.batch_size / (time.time() - start))
 
         batch_num +=1
