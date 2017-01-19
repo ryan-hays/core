@@ -21,6 +21,6 @@ class atom_dictionary:
 
     ATM["f"] = 5; ATM["cl"] = 5; ATM["i"] = 5; ATM["br"] = 5;
     
-    ATM["p"] = 6; ATM["s"] = 6; 
+    ATM["p"] = 6; ATM["s"] = 6; # FIXME S is not really equal to P
      
-    ATM["b"] = 7; ATM["xx"] = 7; ATM["mg"] = 7; ATM["zn"] = 7; ATM["fe"] = 7; ATM["se"] = 7; ATM["v"] = 7; ATM["sg"] = 7;
+    ATM["b"] = 7; ATM["xx"] = 7; ATM["mg"] = 7; ATM["zn"] = 7; ATM["fe"] = 7; ATM["se"] = 7; ATM["v"] = 7; ATM["sg"] = 7; ATM["si"] = 7;
