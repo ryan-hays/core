@@ -131,7 +131,7 @@ def train():
     sess = tf.Session()
     # TODO: write atoms in layers of depth
 
-    _,y_,x_image_batch = image_and_label_queue(sess=sess,batch_size=FLAGS.batch_size,
+    lignad_file_name,_,y_,x_image_batch = image_and_label_queue(sess=sess,batch_size=FLAGS.batch_size,
                                                 pixel_size=FLAGS.pixel_size,side_pixels=FLAGS.side_pixels,
                                                 num_threads=FLAGS.num_threads,database_path=FLAGS.database_path)
 

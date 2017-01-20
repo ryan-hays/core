@@ -58,8 +58,6 @@ class store_predictions:
         self.save_predictions()
 
 
-
-
 def evaluate_on_train_set():
     "train a network"
 
