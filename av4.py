@@ -132,7 +132,7 @@ def train():
     sess = tf.Session()
     # TODO: write atoms in layers of depth
 
-    lignad_file_name,_,y_,x_image_batch = image_and_label_queue(sess=sess,batch_size=FLAGS.batch_size,
+    lignad_file_name,(_,y_,x_image_batch) = image_and_label_queue(sess=sess,batch_size=FLAGS.batch_size,
                                                 pixel_size=FLAGS.pixel_size,side_pixels=FLAGS.side_pixels,
                                                 num_threads=FLAGS.num_threads,database_path=FLAGS.database_path)
 
@@ -206,6 +206,8 @@ class FLAGS:
     # data directories
     # path to the csv file with names of images selected for training
     database_path = "/home/ubuntu/common/data/new_kaggle/train_small/labeled_av4/**/"
+    # path for the test set
+    test_set_path = "/home/ubuntu/common/data/new_kaggle/test/unlabeled_av4"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states

@@ -8,7 +8,7 @@ from av4 import FLAGS,max_net
 from collections import defaultdict
 
 
-FLAGS.saved_session = ''
+FLAGS.saved_session = './summaries/1_netstate/saved_state-9000'
 
 FLAGS.predictions_file_path = re.sub("netstate","logs",FLAGS.saved_session)
 
@@ -64,17 +64,22 @@ def evaluate_on_train_set():
     # create session which all the evaluation happens in
     sess = tf.Session()
 
-    ligand_file_name,_,y_,x_image_batch = image_and_label_queue(sess = sess,batch_size=FLAGS.batch_size,
+    ligand_file_name,(_,y_,x_image_batch) = image_and_label_queue(sess = sess,batch_size=FLAGS.batch_size,
                                                pixel_size=FLAGS.pixel_size,side_pixels=FLAGS.side_pixels,
-                                               num_threads=FLAGS.num_threads,database_path=FLAGS.database_path)
+                                               num_threads=FLAGS.num_threads,database_path=FLAGS.test_set_path)
 
-    float_image_batch = tf.cast(x_image_batch)
+    float_image_batch = tf.cast(x_image_batch,tf.float32)
+    batch_size = tf.shape(x_image_batch)
 
     keep_prob = tf.placeholder(tf.float32)
     y_conv = max_net(float_image_batch,keep_prob)
 
     # compute softmax over raw predictions
     predictions = tf.nn.softmax(y_conv)[:,1]
+    # restore variables from sleep
+    saver = tf.train.Saver()
+    saver.restore(sess,FLAGS.saved_session)
+    
 
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess = sess,coord=coord)
@@ -83,12 +88,15 @@ def evaluate_on_train_set():
 
     # create a variable to store all predicitons
     all_predictios = store_predictions()
-    #batch_num = 0
-
-    while not coord.should_stop():
-        test_ligand,test_predictions = sess.run([ligand_file_name,predictions],feed_dict={keep_prob:1})
+    batch_num = 0
+    print "start eval..." 
+    while True or not coord.should_stop():
+        
+        batch_shape,test_ligand,test_predictions = sess.run([batch_size,ligand_file_name,predictions],feed_dict={keep_prob:1})
         all_predictios.add_batch(test_ligand,test_predictions)
-
+        batch_num +=1
+        print "batch num",batch_num,
+        print "\tbatch size",batch_shape[0]
     all_predictios.save()
 
 
