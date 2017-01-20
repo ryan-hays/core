@@ -1,7 +1,7 @@
 import tensorflow as tf
 from glob import glob
 import os,time
-from try106 import random_transition_matrix,affine_transform
+from av4_utils import random_transition_matrix,affine_transform
 
 
 def index_the_database(database_path):
