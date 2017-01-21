@@ -1,7 +1,8 @@
 import tensorflow as tf
 from glob import glob
 import os,time
-from try106 import random_transition_matrix,affine_transform
+from av4_utils import generate_deep_affine_transform,affine_transform
+#from try118 import generate_deep_affine_transform
 
 
 def index_the_database(database_path):
@@ -91,13 +92,14 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     centered_ligand_coords = ligand_coords - ligand_center_of_mass
     centered_receptor_coords = receptor_coords - ligand_center_of_mass
 
-    def generate_transition_matrix(attempt, transition_matrix):
+    def generate_transition_matrix(attempt, transition_matrix,some_huge_matrix):
         """Takes initial coordinates of the ligand, generates a random affine transform matrix and transforms coordinates."""
-        transition_matrix = random_transition_matrix()
+        #transition_matrix = random_transition_matrix()
+        transition_matrix= tf.gather(some_huge_matrix,tf.random_uniform([], minval=0, maxval=10000, dtype=tf.int32))
         attempt += 1
-        return attempt, transition_matrix
+        return attempt, transition_matrix,some_huge_matrix
 
-    def not_all_in_the_box(attempt, transition_matrix, ligand_coords=centered_ligand_coords,box_size=(tf.cast(side_pixels,tf.float32)*pixel_size)):
+    def not_all_in_the_box(attempt, transition_matrix,some_huge_matrix,ligand_coords=centered_ligand_coords,box_size=(tf.cast(side_pixels,tf.float32)*pixel_size)):
         """Takes affine transform matrix and box dimensions, performs the transformation, and checks if all atoms
         are in the box."""
         transformed_coords, transition_matrix = affine_transform(ligand_coords, transition_matrix)
@@ -108,10 +110,16 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
         return tf.logical_and(within_iteration_limit, not_all)
 
     attempt = tf.Variable(tf.constant(0, shape=[1]))
-    transition_matrix = random_transition_matrix()
+    some_huge_matrix = tf.Variable(generate_deep_affine_transform(1000))
+    #transition_matrix = #random_transition_matrix()
+    transition_matrix = tf.gather(some_huge_matrix, tf.random_uniform([], minval=0, maxval=10000, dtype=tf.int32))
 
-    last_attempt,final_transition_matrix = tf.while_loop(not_all_in_the_box, generate_transition_matrix, [attempt, transition_matrix],
-                           parallel_iterations=5)
+
+
+    #some_huge_matrix = tf.Variable(tf.constant(0,shape=[1]))
+
+    last_attempt,final_transition_matrix,_ = tf.while_loop(not_all_in_the_box, generate_transition_matrix, [attempt, transition_matrix,some_huge_matrix],
+                           parallel_iterations=1)
 
     # rotate receptor and ligand using affine transform found
     rotatated_ligand_coords,_ = affine_transform(centered_ligand_coords,final_transition_matrix)
@@ -174,8 +182,8 @@ def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,dat
     init_new_vars_op = tf.initialize_variables(uninitialized_vars)
     sess.run(init_new_vars_op)
 
-    multithread_batch = tf.train.batch([current_frame,label,dense_image],batch_size,num_threads=num_threads,capacity=batch_size*3,shapes=[[],[],[side_pixels,side_pixels,side_pixels]])
-
+    #multithread_batch = tf.train.batch([current_frame,label,dense_image],batch_size,num_threads=num_threads,capacity=batch_size*3,shapes=[[],[],[side_pixels,side_pixels,side_pixels]])
+    multithread_batch = tf.train.batch([current_frame, label, dense_image], batch_size, num_threads=num_threads,capacity=batch_size * 3,shapes=[[], [], [side_pixels, side_pixels, side_pixels]])
 
     return multithread_batch
 

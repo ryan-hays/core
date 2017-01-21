@@ -154,7 +154,7 @@ def train():
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
     # re-initialize all variables (two thread veriables were initialized before)
-    sess.run(tf.initialize_all_variables())
+    sess.run(tf.global_variables_initializer())
 
 
     batch_num = 0
