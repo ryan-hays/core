@@ -84,11 +84,10 @@ def read_receptor_and_ligand(filename_queue):
 
     current_frame = count_frame_from_epoch(epoch_counter,ligand_labels)
     # FIXME: why would gather sometimes return 3d and sometimes 2d array (?)
-    ligand_coords = tf.squeeze(tf.gather(tf.transpose(multiframe_ligand_coords, perm=[2, 0, 1]),current_frame))
+    ligand_coords = tf.gather(tf.transpose(multiframe_ligand_coords, perm=[2, 0, 1]),current_frame)
     label = tf.gather(ligand_labels,current_frame)
-    receptor_coords = tf.squeeze(multiframe_receptor_coords)
 
-    return tf.squeeze(current_frame),tf.squeeze(label),ligand_elements, ligand_coords, receptor_elements, receptor_coords
+    return tf.squeeze(current_frame),tf.squeeze(label),ligand_elements, tf.squeeze(ligand_coords), receptor_elements, tf.squeeze(multiframe_receptor_coords)
 
 
 def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size):
@@ -109,6 +108,8 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     centered_ligand_coords = ligand_coords - ligand_center_of_mass
     centered_receptor_coords = receptor_coords - ligand_center_of_mass
 
+    # use TF while loop to find such an affine transform matrix that can fit the ligand so that no atoms are outside
+
     def generate_transition_matrix(attempt, transition_matrix,batch_of_transition_matrices):
         """Takes initial coordinates of the ligand, generates a random affine transform matrix and transforms coordinates."""
         transition_matrix= tf.gather(batch_of_transition_matrices,tf.random_uniform([], minval=0, maxval=affine_transform_pool_size, dtype=tf.int32))
@@ -128,11 +129,9 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     batch_of_transition_matrices = tf.Variable(generate_deep_affine_transform(affine_transform_pool_size))
     transition_matrix = tf.gather(batch_of_transition_matrices, tf.random_uniform([], minval=0, maxval=affine_transform_pool_size, dtype=tf.int32))
 
+    last_attempt,final_transition_matrix,_ = tf.while_loop(not_all_in_the_box, generate_transition_matrix, [attempt, transition_matrix,batch_of_transition_matrices],parallel_iterations=1)
 
-    last_attempt,final_transition_matrix,_ = tf.while_loop(not_all_in_the_box, generate_transition_matrix, [attempt, transition_matrix,batch_of_transition_matrices],
-                           parallel_iterations=1)
-
-    # rotate receptor and ligand using affine transform found
+    # rotate receptor and ligand using an affine transform matrix found
     rotatated_ligand_coords,_ = affine_transform(centered_ligand_coords,final_transition_matrix)
     rotated_receptor_coords,_ = affine_transform(centered_receptor_coords,final_transition_matrix)
 
@@ -152,6 +151,9 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     complex_coords = tf.concat(0,[ceiled_ligand_coords,cropped_receptor_coords])
     complex_elements = tf.concat(0,[ligand_elements+10,cropped_receptor_elements])
 
+    # in coordinates of a protein rounded to the nearest integer can be represented as indices of a sparse 3D tensor
+    # values from the atom dictionary can be represented as values of a sparse tensor
+    # in this case TF's sparse_tensor_to_dense can be used to generate an image out of rounded coordinates
     sparse_complex = tf.SparseTensor(indices=complex_coords, values=complex_elements,shape=[side_pixels,side_pixels,side_pixels])
     dense_complex = tf.sparse_tensor_to_dense(sparse_complex, validate_indices=False)
     # FIXME: sparse_tensor_to_dense has not been properly tested.
@@ -180,8 +182,6 @@ def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,dat
     # convert coordinates of ligand and protein into an image
     dense_image = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
 
-
-
     # selectively initialize some of the variables
     uninitialized_vars = []
     for var in tf.global_variables():
@@ -197,4 +197,3 @@ def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,dat
     multithread_batch = tf.train.batch([current_frame, label, dense_image], batch_size, num_threads=num_threads,capacity=batch_size * 3,shapes=[[], [], [side_pixels, side_pixels, side_pixels]])
 
     return multithread_batch
-

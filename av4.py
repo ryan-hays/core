@@ -12,70 +12,70 @@ def bias_variable(shape):
     return tf.Variable(initial)
 
 def variable_summaries(var, name):
-  """Attach a lot of summaries to a Tensor."""
-  with tf.name_scope('summaries'):
-    mean = tf.reduce_mean(var)
-    tf.summary.scalar('mean/' + name, mean)
+    """attaches a lot of summaries to a tensor."""
+    with tf.name_scope('summaries'):
+        mean = tf.reduce_mean(var)
+        tf.summary.scalar('mean/' + name, mean)
     with tf.name_scope('stddev'):
-      stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-    tf.summary.scalar('stddev/' + name, stddev)
-    tf.summary.scalar('max/' + name, tf.reduce_max(var))
-    tf.summary.scalar('min/' + name, tf.reduce_min(var))
-    tf.summary.histogram(name, var)
+        stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
+        tf.summary.scalar('stddev/' + name, stddev)
+        tf.summary.scalar('max/' + name, tf.reduce_max(var))
+        tf.summary.scalar('min/' + name, tf.reduce_min(var))
+        tf.summary.histogram(name, var)
 
 def conv_layer(layer_name, input_tensor, filter_size, strides=[1, 1, 1, 1, 1], padding='SAME'):
-  """makes a simple convolutional layer"""
-  input_depth = filter_size[3]
-  output_depth = filter_size[4]
-  with tf.name_scope(layer_name):
-    with tf.name_scope('weights'):
-      W_conv = weight_variable(filter_size)
-      variable_summaries(W_conv, layer_name + '/weights')
-    with tf.name_scope('biases'):
-      b_conv = bias_variable([output_depth])
-      variable_summaries(b_conv, layer_name + '/biases')
-    h_conv = tf.nn.conv3d(input_tensor, W_conv, strides=strides, padding=padding) + b_conv
-    tf.summary.histogram(layer_name + '/pooling_output', h_conv)
+    """makes a simple convolutional layer"""
+    input_depth = filter_size[3]
+    output_depth = filter_size[4]
+    with tf.name_scope(layer_name):
+        with tf.name_scope('weights'):
+            W_conv = weight_variable(filter_size)
+            variable_summaries(W_conv, layer_name + '/weights')
+        with tf.name_scope('biases'):
+            b_conv = bias_variable([output_depth])
+            variable_summaries(b_conv, layer_name + '/biases')
+            h_conv = tf.nn.conv3d(input_tensor, W_conv, strides=strides, padding=padding) + b_conv
+            tf.summary.histogram(layer_name + '/pooling_output', h_conv)
     print layer_name,"output dimensions:", h_conv.get_shape()
     return h_conv
 
 def relu_layer(layer_name,input_tensor,act=tf.nn.relu):
-  """makes a simple relu layer"""
-  with tf.name_scope(layer_name):
-    h_relu = act(input_tensor, name='activation')
-    tf.summary.histogram(layer_name + '/relu_output', h_relu)
-    tf.summary.scalar(layer_name + '/sparsity', tf.nn.zero_fraction(h_relu))
+    """makes a simple relu layer"""
+    with tf.name_scope(layer_name):
+        h_relu = act(input_tensor, name='activation')
+        tf.summary.histogram(layer_name + '/relu_output', h_relu)
+        tf.summary.scalar(layer_name + '/sparsity', tf.nn.zero_fraction(h_relu))
 
-  print layer_name, "output dimensions:", h_relu.get_shape()
-  return h_relu
+    print layer_name, "output dimensions:", h_relu.get_shape()
+    return h_relu
 
 def pool_layer(layer_name,input_tensor,ksize,strides=[1, 1, 1, 1, 1],padding='SAME'):
-  """makes a simple pooling layer"""
-  with tf.name_scope(layer_name):
-    h_pool = tf.nn.max_pool3d(input_tensor,ksize=ksize,strides=strides,padding=padding)
-    tf.summary.histogram(layer_name + '/pooling_output', h_pool)
+    """makes a simple pooling layer"""
+    with tf.name_scope(layer_name):
+        h_pool = tf.nn.max_pool3d(input_tensor,ksize=ksize,strides=strides,padding=padding)
+        tf.summary.histogram(layer_name + '/pooling_output', h_pool)
     print layer_name, "output dimensions:", h_pool.get_shape()
     return h_pool
 
 def fc_layer(layer_name,input_tensor,output_dim):
-  """makes a simple fully connected layer"""
-  input_dim = int((input_tensor.get_shape())[1])
+    """makes a simple fully connected layer"""
+    input_dim = int((input_tensor.get_shape())[1])
 
-  with tf.name_scope(layer_name):
-    weights = weight_variable([input_dim, output_dim])
-    variable_summaries(weights, layer_name + '/weights')
+    with tf.name_scope(layer_name):
+        weights = weight_variable([input_dim, output_dim])
+        variable_summaries(weights, layer_name + '/weights')
     with tf.name_scope('biases'):
-      biases = bias_variable([output_dim])
-      variable_summaries(biases, layer_name + '/biases')
+        biases = bias_variable([output_dim])
+        variable_summaries(biases, layer_name + '/biases')
     with tf.name_scope('Wx_plus_b'):
-      h_fc = tf.matmul(input_tensor, weights) + biases
-      tf.summary.histogram(layer_name + '/fc_output', h_fc)
+        h_fc = tf.matmul(input_tensor, weights) + biases
+        tf.summary.histogram(layer_name + '/fc_output', h_fc)
     print layer_name, "output dimensions:", h_fc.get_shape()
     return h_fc
 
 
 def max_net(x_image_batch,keep_prob):
-    "making a simple network that can receive 20x20x20 input images. And output 2 classes"
+    "makes a simple network that can receive 20x20x20 input images. And output 2 classes"
     with tf.name_scope('input'):
         pass
     with tf.name_scope("input_reshape"):
@@ -122,20 +122,15 @@ def max_net(x_image_batch,keep_prob):
     return y_conv
 
 
-
-
 def train():
     "train a network"
-
-    # create session since everything is happening in one
+    # with the current setup all of the TF's operations are happening in one session
     sess = tf.Session()
     # TODO: write atoms in layers of depth
 
     _,y_,x_image_batch = image_and_label_queue(sess=sess,batch_size=FLAGS.batch_size,
                                                 pixel_size=FLAGS.pixel_size,side_pixels=FLAGS.side_pixels,
                                                 num_threads=FLAGS.num_threads,database_path=FLAGS.database_path)
-
-
 
 
     float_image_batch = tf.cast(x_image_batch,tf.float32)
@@ -156,12 +151,11 @@ def train():
     # re-initialize all variables (two thread veriables were initialized before)
     sess.run(tf.global_variables_initializer())
 
-
     batch_num = 0
     while True:
         start = time.time()
 
-        #sess.run([y_, x_image_batch], feed_dict={keep_prob: 0.5})
+        # sess.run([y_, x_image_batch], feed_dict={keep_prob: 0.5})
         training_error = sess.run([train_step_run], feed_dict={keep_prob: 0.5})
         print "training error:",training_error
         print "examples per second:", "%.2f" % (100 / (time.time() - start))
@@ -169,8 +163,8 @@ def train():
         batch_num+=1
 
 class FLAGS:
-X
-    # important model parameters
+    """important model parameters"""
+
     # size of one pixel generated from protein in Angstroms (float)
     pixel_size = 1
     # size of the box around the ligand in pixels
@@ -190,7 +184,6 @@ X
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states
     saved_session = 0
-
 
 
 def main(_):
