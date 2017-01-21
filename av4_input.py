@@ -47,9 +47,6 @@ def read_receptor_and_ligand(filename_queue):
 
         return labels,elements,multiframe_coords
 
-    # get ligand's path
-    ligand_file_path = filename_queue[1]
-
     # read raw bytes of the ligand and receptor
     idx = filename_queue[0]
     serialized_ligand = tf.read_file(filename_queue[1])
@@ -79,7 +76,7 @@ def read_receptor_and_ligand(filename_queue):
     label = tf.gather(ligand_labels,current_frame)
     receptor_coords = tf.squeeze(multiframe_receptor_coords)
 
-    return ligand_file_path,tf.squeeze(current_frame),tf.squeeze(label),ligand_elements, ligand_coords, receptor_elements, receptor_coords
+    return tf.squeeze(current_frame),tf.squeeze(label),ligand_elements, ligand_coords, receptor_elements, receptor_coords
 
 
 def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size):
@@ -159,7 +156,7 @@ def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,dat
     filename_queue = tf.train.slice_input_producer([index_tensor,ligand_files,receptor_files],num_epochs=None,shuffle=True)
 
     # read one receptor and stack of ligands; choose one of the ligands from the stack according to the epoch
-    ligand_file_name,current_frame,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue)
+    current_frame,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue)
 
     # convert coordinates of ligand and protein into an image
     dense_image = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
@@ -180,5 +177,4 @@ def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,dat
     multithread_batch = tf.train.batch([current_frame,label,dense_image],batch_size,num_threads=num_threads,capacity=batch_size*3,shapes=[[],[],[side_pixels,side_pixels,side_pixels]])
 
 
-    return ligand_file_name,multithread_batch
-
+    return multithread_batch
