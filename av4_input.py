@@ -18,6 +18,11 @@ def index_the_database(database_path):
             receptor_file_list.append(receptor_file)
 
     index_list = range(len(ligand_file_list))
+    if len(index_list) ==0:
+        raise Exception('av4_input: No files found in the database path:',database_path)
+    print "Indexed ligand-protein pairs in the database:",index_list[-1]
+
+
     return index_list,ligand_file_list, receptor_file_list
 
 def read_receptor_and_ligand(filename_queue):
