@@ -1,5 +1,6 @@
 import time,os
 import tensorflow as tf
+import numpy as np
 from av4_input import image_and_label_queue
 
 # telling tensorflow how we want to randomly initialize weights
@@ -153,6 +154,16 @@ def train():
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
+    # create saver
+    saver = tf.train.Saver(tf.all_variables())
+
+    # merge all summaries
+    merged_summaries = tf.merge_all_summaries()
+    # create a _log writer object
+    train_writer = tf.train.SummaryWriter((FLAGS.summaries_dir + '/' + str(FLAGS.run_index) + "_train"), sess.graph)
+    # test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/test' + str(FLAGS.run_index))
+
+
     # re-initialize all variables (two thread veriables were initialized before)
     sess.run(tf.global_variables_initializer())
 
@@ -162,11 +173,20 @@ def train():
         start = time.time()
 
         #sess.run([y_, x_image_batch], feed_dict={keep_prob: 0.5})
-        training_error = sess.run([train_step_run], feed_dict={keep_prob: 0.5})
-        print "training error:",training_error
-        print "examples per second:", "%.2f" % (50 / (time.time() - start))
-
+        training_error,_ = sess.run([cross_entropy_mean,train_step_run], feed_dict={keep_prob: 0.5})
+        print "batch ",batch_num,
+        print "\ttraining error:",training_error,
+        print "\texamples per second:", "%.2f" % (50 / (time.time() - start))
+        
+        assert not np.isnan(training_error), 'Model diverged with loss = NaN'
         batch_num+=1
+
+        # save network status every 1000 batch
+        if batch_num%1000 == 0:
+            train_error,train_summary = sess.run([cross_entropy_mean,merged_summaries],feed_dict={keep_prob:1})
+            train_writer.add_summary(train_summary, batch_num)
+
+            saver.save(sess,FLAGS.summaries_dir + '/' + str(FLAGS.run_index) + "_netstate/saved_state", global_step=batch_num)
 
 class FLAGS:
 
@@ -185,7 +205,9 @@ class FLAGS:
     num_threads = 16
     # data directories
     # path to the csv file with names of images selected for training
-    database_path = "../datasets/labeled_pdb_av4/**/"
+    database_path = "/home/ubuntu/common/data/new_kaggle/train_small/labeled_av4/**/"
+    # path for the test set
+    test_set_path = "/home/ubuntu/common/data/new_kaggle/test/unlabeled_av4"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states
