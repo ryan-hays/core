@@ -164,7 +164,7 @@ def train():
         #sess.run([y_, x_image_batch], feed_dict={keep_prob: 0.5})
         training_error = sess.run([train_step_run], feed_dict={keep_prob: 0.5})
         print "training error:",training_error
-        print "examples per second:", "%.2f" % (50 / (time.time() - start))
+        print "examples per second:", "%.2f" % (100 / (time.time() - start))
 
         batch_num+=1
 
@@ -180,9 +180,9 @@ X
     num_epochs = 20
     # parameters to optimize runs on different machines for speed/performance
     # number of vectors(images) in one batch
-    batch_size = 50
+    batch_size = 100
     # number of background processes to fill the queue with images
-    num_threads = 16
+    num_threads = 512
     # data directories
     # path to the csv file with names of images selected for training
     database_path = "../datasets/labeled_pdb_av4/**/"
