@@ -179,13 +179,13 @@ def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,dat
 
     # selectively initialize some of the variables
     uninitialized_vars = []
-    for var in tf.all_variables():
+    for var in tf.global_variables():
         try:
             sess.run(var)
         except tf.errors.FailedPreconditionError:
             uninitialized_vars.append(var)
 
-    init_new_vars_op = tf.initialize_variables(uninitialized_vars)
+    init_new_vars_op = tf.variables_initializer(uninitialized_vars)
     sess.run(init_new_vars_op)
 
     # create a batch of proteins and ligands to read them together

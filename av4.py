@@ -15,13 +15,13 @@ def variable_summaries(var, name):
   """Attach a lot of summaries to a Tensor."""
   with tf.name_scope('summaries'):
     mean = tf.reduce_mean(var)
-    tf.scalar_summary('mean/' + name, mean)
+    tf.summary.scalar('mean/' + name, mean)
     with tf.name_scope('stddev'):
       stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-    tf.scalar_summary('stddev/' + name, stddev)
-    tf.scalar_summary('max/' + name, tf.reduce_max(var))
-    tf.scalar_summary('min/' + name, tf.reduce_min(var))
-    tf.histogram_summary(name, var)
+    tf.summary.scalar('stddev/' + name, stddev)
+    tf.summary.scalar('max/' + name, tf.reduce_max(var))
+    tf.summary.scalar('min/' + name, tf.reduce_min(var))
+    tf.summary.histogram(name, var)
 
 def conv_layer(layer_name, input_tensor, filter_size, strides=[1, 1, 1, 1, 1], padding='SAME'):
   """makes a simple convolutional layer"""
@@ -35,7 +35,7 @@ def conv_layer(layer_name, input_tensor, filter_size, strides=[1, 1, 1, 1, 1], p
       b_conv = bias_variable([output_depth])
       variable_summaries(b_conv, layer_name + '/biases')
     h_conv = tf.nn.conv3d(input_tensor, W_conv, strides=strides, padding=padding) + b_conv
-    tf.histogram_summary(layer_name + '/pooling_output', h_conv)
+    tf.summary.histogram(layer_name + '/pooling_output', h_conv)
     print layer_name,"output dimensions:", h_conv.get_shape()
     return h_conv
 
@@ -43,8 +43,8 @@ def relu_layer(layer_name,input_tensor,act=tf.nn.relu):
   """makes a simple relu layer"""
   with tf.name_scope(layer_name):
     h_relu = act(input_tensor, name='activation')
-    tf.histogram_summary(layer_name + '/relu_output', h_relu)
-    tf.scalar_summary(layer_name + '/sparsity', tf.nn.zero_fraction(h_relu))
+    tf.summary.histogram(layer_name + '/relu_output', h_relu)
+    tf.summary.scalar(layer_name + '/sparsity', tf.nn.zero_fraction(h_relu))
 
   print layer_name, "output dimensions:", h_relu.get_shape()
   return h_relu
@@ -53,7 +53,7 @@ def pool_layer(layer_name,input_tensor,ksize,strides=[1, 1, 1, 1, 1],padding='SA
   """makes a simple pooling layer"""
   with tf.name_scope(layer_name):
     h_pool = tf.nn.max_pool3d(input_tensor,ksize=ksize,strides=strides,padding=padding)
-    tf.histogram_summary(layer_name + '/pooling_output', h_pool)
+    tf.summary.histogram(layer_name + '/pooling_output', h_pool)
     print layer_name, "output dimensions:", h_pool.get_shape()
     return h_pool
 
@@ -69,7 +69,7 @@ def fc_layer(layer_name,input_tensor,output_dim):
       variable_summaries(biases, layer_name + '/biases')
     with tf.name_scope('Wx_plus_b'):
       h_fc = tf.matmul(input_tensor, weights) + biases
-      tf.histogram_summary(layer_name + '/fc_output', h_fc)
+      tf.summary.histogram(layer_name + '/fc_output', h_fc)
     print layer_name, "output dimensions:", h_fc.get_shape()
     return h_fc
 
@@ -111,7 +111,7 @@ def max_net(x_image_batch,keep_prob):
     h_fc1_relu = relu_layer(layer_name="fc1_relu", input_tensor=h_fc1)
 
     with tf.name_scope("dropout"):
-        tf.scalar_summary('dropout_keep_probability', keep_prob)
+        tf.summary.scalar('dropout_keep_probability', keep_prob)
         h_fc1_drop = tf.nn.dropout(h_fc1_relu, keep_prob)
 
     h_fc2 = fc_layer(layer_name="fc2", input_tensor=h_fc1_drop, output_dim=256)
@@ -147,7 +147,7 @@ def train():
     cross_entropy_mean = tf.reduce_mean(cross_entropy)
 
     with tf.name_scope('train'):
-        tf.scalar_summary('weighted cross entropy mean', cross_entropy_mean)
+        tf.summary.scalar('weighted cross entropy mean', cross_entropy_mean)
         train_step_run = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
 
     coord = tf.train.Coordinator()
@@ -169,7 +169,7 @@ def train():
         batch_num+=1
 
 class FLAGS:
-
+X
     # important model parameters
     # size of one pixel generated from protein in Angstroms (float)
     pixel_size = 1
@@ -190,8 +190,6 @@ class FLAGS:
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states
     saved_session = 0
-
-
 
 
 
