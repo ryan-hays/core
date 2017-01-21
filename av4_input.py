@@ -2,11 +2,13 @@ import tensorflow as tf
 from glob import glob
 import os,time
 from av4_utils import generate_deep_affine_transform,affine_transform
-#from try118 import generate_deep_affine_transform
 
 
 def index_the_database(database_path):
-    """indexes av4 database and returns two tensors of filesystem path: ligand files, and protein files"""
+    """Indexes av4 database and returns two lists of filesystem path: ligand files, and protein files.
+    Ligands are assumed to end with _ligand.av4, proteins should be in the same folders with ligands.
+    Each protein should have its own folder named similarly to the protein name (in the PDB)."""
+
     ligand_file_list = []
     receptor_file_list = []
     for ligand_file in glob(os.path.join(database_path, "*_ligand.av4")):
@@ -19,18 +21,18 @@ def index_the_database(database_path):
     return index_list,ligand_file_list, receptor_file_list
 
 def read_receptor_and_ligand(filename_queue):
-    """Reads ligand and protein from the filename queue. Returns tensors with coordinates
+    """Reads ligand and protein raw bytes based on the names in the filename queue. Returns tensors with coordinates
     and atoms of ligand and protein for future processing.
     Important: by default it does oversampling of the positive examples based on training epoch."""
 
-    # FIXME: epoch counter won't increment unless sess.run() is called on it explicitly
+    # FIXME: epoch counter may not increment unless sess.run() is called on it explicitly
 
     def decode_av4(serialized_record):
         # decode everything into int32
         tmp_decoded_record = tf.decode_raw(serialized_record, tf.int32)
-        # first four bytes determine the number of frames
+        # first four bytes describe the number of frames in a record
         number_of_frames = tf.slice(tmp_decoded_record, [0], [1])
-        # labels are saved as in32 * number of frames in the record
+        # labels are saved as int32 * number of frames in the record
         labels = tf.slice(tmp_decoded_record, [1], number_of_frames)
         # elements are saved as int32 and their number is == to the number of atoms
         number_of_atoms = ((tf.shape(tmp_decoded_record) - number_of_frames - 1) / (3 * number_of_frames + 1))
@@ -54,6 +56,7 @@ def read_receptor_and_ligand(filename_queue):
     serialized_receptor = tf.read_file(filename_queue[2])
 
     # create an epoch counter
+    # TODO: break on certain epoch
     epoch_counter = tf.Variable(0,tf.int32)
     def incr_epoch(): return epoch_counter+1
     def keep_epoch(): return epoch_counter
@@ -63,16 +66,19 @@ def read_receptor_and_ligand(filename_queue):
     ligand_labels, ligand_elements, multiframe_ligand_coords = decode_av4(serialized_ligand)
     receptor_labels, receptor_elements, multiframe_receptor_coords = decode_av4(serialized_receptor)
 
-    # if the index of the examle is even, positive label is taken every even epoch
-    # if the index of the example is odd, positive label is taken every odd epoch
-    # current negative example increments once every two epochs, and slides along all of the negative examples
+    def count_frame_from_epoch(epoch_counter,ligand_labels):
+        """Some simple arithmetics is used to sample all of the available frames
+        if the index of the examle is even, positive label is taken every even epoch
+        if the index of the example is odd, positive label is taken every odd epoch
+        current negative example increments once every two epochs, and slides along all of the negative examples"""
 
-    def select_pos_frame(): return tf.constant(0)
-    def select_neg_frame(): return tf.mod(tf.div(1+epoch_counter,2), tf.shape(ligand_labels) - 1) +1
-    current_frame = tf.cond(tf.equal(tf.mod(epoch_counter+idx+1,2),1),select_pos_frame,select_neg_frame)
+        def select_pos_frame(): return tf.constant(0)
+        def select_neg_frame(): return tf.mod(tf.div(1+epoch_counter,2), tf.shape(ligand_labels) - 1) +1
+        current_frame = tf.cond(tf.equal(tf.mod(epoch_counter+idx+1,2),1),select_pos_frame,select_neg_frame)
+        return current_frame
 
+    current_frame = count_frame_from_epoch(epoch_counter,ligand_labels)
     # FIXME: why would gather sometimes return 3d and sometimes 2d array (?)
-    # TODO: break on certain epoch
     ligand_coords = tf.squeeze(tf.gather(tf.transpose(multiframe_ligand_coords, perm=[2, 0, 1]),current_frame))
     label = tf.gather(ligand_labels,current_frame)
     receptor_coords = tf.squeeze(multiframe_receptor_coords)
@@ -84,41 +90,41 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     """Take coordinates and elements of protein and ligand and convert them into an image.
     Return image with one dimension so far."""
 
-    # FIXME abandon ligand when it does not fit (it's kept now)
+    # FIXME abandon ligand when it does not fit into the box (it's kept now)
     # TODO check if indeed it breaks in the last iteration cycle when a good affine transform is found
+
+    # max_num_attempts - maximum number of affine transforms for the ligand to be tried
+    max_num_attemts = 1000
+    # affine_transform_pool_size is the first(batch) dimension of tensor of transition matrices to be returned
+    # affine tranform pool is only generated once in the beginning of training and randomly sampled afterwards
+    affine_transform_pool_size = 10000
 
     # transform center ligand around zero
     ligand_center_of_mass = tf.reduce_mean(ligand_coords, reduction_indices=0)
     centered_ligand_coords = ligand_coords - ligand_center_of_mass
     centered_receptor_coords = receptor_coords - ligand_center_of_mass
 
-    def generate_transition_matrix(attempt, transition_matrix,some_huge_matrix):
+    def generate_transition_matrix(attempt, transition_matrix,batch_of_transition_matrices):
         """Takes initial coordinates of the ligand, generates a random affine transform matrix and transforms coordinates."""
-        #transition_matrix = random_transition_matrix()
-        transition_matrix= tf.gather(some_huge_matrix,tf.random_uniform([], minval=0, maxval=10000, dtype=tf.int32))
+        transition_matrix= tf.gather(batch_of_transition_matrices,tf.random_uniform([], minval=0, maxval=affine_transform_pool_size, dtype=tf.int32))
         attempt += 1
-        return attempt, transition_matrix,some_huge_matrix
+        return attempt, transition_matrix,batch_of_transition_matrices
 
-    def not_all_in_the_box(attempt, transition_matrix,some_huge_matrix,ligand_coords=centered_ligand_coords,box_size=(tf.cast(side_pixels,tf.float32)*pixel_size)):
+    def not_all_in_the_box(attempt, transition_matrix,batch_of_transition_matrices,ligand_coords=centered_ligand_coords,
+                           box_size=(tf.cast(side_pixels,tf.float32)*pixel_size),max_num_attempts=max_num_attemts):
         """Takes affine transform matrix and box dimensions, performs the transformation, and checks if all atoms
         are in the box."""
         transformed_coords, transition_matrix = affine_transform(ligand_coords, transition_matrix)
-
         not_all = tf.cast(tf.reduce_max(tf.cast(tf.square(box_size*0.5) - tf.square(transformed_coords) < 0,tf.int32)),tf.bool)
-
-        within_iteration_limit = tf.cast(tf.reduce_sum(tf.cast(attempt < 1000, tf.float32)), tf.bool)
+        within_iteration_limit = tf.cast(tf.reduce_sum(tf.cast(attempt < max_num_attemts, tf.float32)), tf.bool)
         return tf.logical_and(within_iteration_limit, not_all)
 
     attempt = tf.Variable(tf.constant(0, shape=[1]))
-    some_huge_matrix = tf.Variable(generate_deep_affine_transform(1000))
-    #transition_matrix = #random_transition_matrix()
-    transition_matrix = tf.gather(some_huge_matrix, tf.random_uniform([], minval=0, maxval=10000, dtype=tf.int32))
+    batch_of_transition_matrices = tf.Variable(generate_deep_affine_transform(affine_transform_pool_size))
+    transition_matrix = tf.gather(batch_of_transition_matrices, tf.random_uniform([], minval=0, maxval=affine_transform_pool_size, dtype=tf.int32))
 
 
-
-    #some_huge_matrix = tf.Variable(tf.constant(0,shape=[1]))
-
-    last_attempt,final_transition_matrix,_ = tf.while_loop(not_all_in_the_box, generate_transition_matrix, [attempt, transition_matrix,some_huge_matrix],
+    last_attempt,final_transition_matrix,_ = tf.while_loop(not_all_in_the_box, generate_transition_matrix, [attempt, transition_matrix,batch_of_transition_matrices],
                            parallel_iterations=1)
 
     # rotate receptor and ligand using affine transform found
@@ -163,14 +169,14 @@ def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,dat
 
     filename_queue = tf.train.slice_input_producer([index_tensor,ligand_files,receptor_files],num_epochs=None,shuffle=True)
 
-    # read one receptor and stack of ligands; choose one of the ligands from the stack according to the epoch
+    # read one receptor and stack of ligands; choose one of the ligands from the stack according to epoch
     current_frame,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue)
 
     # convert coordinates of ligand and protein into an image
     dense_image = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
 
-    # create a batch of proteins and ligands to read them together
-    # FIXME: TF likely a bug in TF - I can't group both init ops
+
+
     # selectively initialize some of the variables
     uninitialized_vars = []
     for var in tf.all_variables():
@@ -182,7 +188,7 @@ def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,dat
     init_new_vars_op = tf.initialize_variables(uninitialized_vars)
     sess.run(init_new_vars_op)
 
-    #multithread_batch = tf.train.batch([current_frame,label,dense_image],batch_size,num_threads=num_threads,capacity=batch_size*3,shapes=[[],[],[side_pixels,side_pixels,side_pixels]])
+    # create a batch of proteins and ligands to read them together
     multithread_batch = tf.train.batch([current_frame, label, dense_image], batch_size, num_threads=num_threads,capacity=batch_size * 3,shapes=[[], [], [side_pixels, side_pixels, side_pixels]])
 
     return multithread_batch

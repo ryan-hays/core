@@ -2,7 +2,6 @@ import tensorflow as tf
 import numpy as np
 import time
 
-# TODO:
 # generate one very large tensor
 # take slices from that tensor
 # use slices to find good affine transform
@@ -10,7 +9,7 @@ import time
 # regenerate it every epoch.
 
 def generate_deep_affine_transform(num_frames):
-    """generates a very big batch of affine transform matrices in 3D. The first dimension is batch, the other two
+    """Generates a very big batch of affine transform matrices in 3D. The first dimension is batch, the other two
     describe typical affine transform matrices. Deep affine transform can be generated once in the beginning
     of training, and later slices can be taken from it randomly to speed up the computation."""
 
