@@ -25,7 +25,7 @@ def index_the_database(database_path):
 
     return index_list,ligand_file_list, receptor_file_list
 
-def read_receptor_and_ligand(filename_queue):
+def read_receptor_and_ligand(filename_queue,num_epochs,examples_in_database):
     """Reads ligand and protein raw bytes based on the names in the filename queue. Returns tensors with coordinates
     and atoms of ligand and protein for future processing.
     Important: by default it does oversampling of the positive examples based on training epoch."""
@@ -63,9 +63,9 @@ def read_receptor_and_ligand(filename_queue):
     # create an epoch counter
     # TODO: break on certain epoch
     epoch_counter = tf.Variable(0,tf.int32)
-    def incr_epoch(): return epoch_counter+1
-    def keep_epoch(): return epoch_counter
-    epoch_counter = epoch_counter.assign(tf.cond(tf.equal(idx,0),incr_epoch,keep_epoch))
+    examples_processed = tf.Variable(0,tf.int32)
+    examples_processed = examples_processed.count_up_to(num_epochs*examples_in_database)
+    epoch_counter = tf.div(examples_processed,examples_in_database)
 
     # decode bytes into meaningful tensors
     ligand_labels, ligand_elements, multiframe_ligand_coords = decode_av4(serialized_ligand)
@@ -87,7 +87,7 @@ def read_receptor_and_ligand(filename_queue):
     ligand_coords = tf.gather(tf.transpose(multiframe_ligand_coords, perm=[2, 0, 1]),current_frame)
     label = tf.gather(ligand_labels,current_frame)
 
-    return tf.squeeze(current_frame),tf.squeeze(label),ligand_elements, tf.squeeze(ligand_coords), receptor_elements, tf.squeeze(multiframe_receptor_coords)
+    return tf.squeeze(epoch_counter),tf.squeeze(label),ligand_elements,tf.squeeze(ligand_coords),receptor_elements,tf.squeeze(multiframe_receptor_coords)
 
 
 def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size):
@@ -163,7 +163,7 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     return dense_complex
 
 
-def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,database_path):
+def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,database_path,num_epochs):
 
     # TODO: add epoch counter
     # create a list of files in the database
@@ -177,7 +177,7 @@ def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,dat
     filename_queue = tf.train.slice_input_producer([index_tensor,ligand_files,receptor_files],num_epochs=None,shuffle=True)
 
     # read one receptor and stack of ligands; choose one of the ligands from the stack according to epoch
-    current_frame,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue)
+    current_epoch,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue,num_epochs,index_list[-1])
 
     # convert coordinates of ligand and protein into an image
     dense_image = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
@@ -194,6 +194,6 @@ def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,dat
     sess.run(init_new_vars_op)
 
     # create a batch of proteins and ligands to read them together
-    multithread_batch = tf.train.batch([current_frame, label, dense_image], batch_size, num_threads=num_threads,capacity=batch_size * 3,shapes=[[], [], [side_pixels, side_pixels, side_pixels]])
+    multithread_batch = tf.train.batch([current_epoch, label, dense_image], batch_size, num_threads=num_threads,capacity=batch_size * 3,shapes=[[], [], [side_pixels, side_pixels, side_pixels]])
 
     return multithread_batch
