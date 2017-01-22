@@ -154,7 +154,6 @@ def train():
     # merge all summaries and create a file writer object
     merged_summaries = tf.summary.merge_all()
     train_writer = tf.summary.FileWriter((FLAGS.summaries_dir + '/' + str(FLAGS.run_index) + "_train"), sess.graph)
-    # TODO add shuffled batch error to summaries
 
     # create saver to save and load the network state
     saver = tf.train.Saver()
@@ -175,16 +174,18 @@ def train():
     while True:
         start = time.time()
 
-        my_epoch,my_cross_entropy_mean,_ = sess.run([current_epoch[0],cross_entropy_mean,train_step_run], feed_dict={keep_prob: 0.5})
-        print "epoch:",my_epoch,"step:", batch_num, "\tcross entropy mean:", my_cross_entropy_mean,\
-            "\texamples per second:", "%.2f" % (FLAGS.batch_size / (time.time() - start))
+        epo,c_entropy_mean,_ = sess.run([current_epoch[0],cross_entropy_mean,train_step_run], feed_dict={keep_prob: 0.5})
+        print "epoch:",epo,"global step:", batch_num, "\tcross entropy mean:", c_entropy_mean,
+        print "\texamples per second:", "%.2f" % (FLAGS.batch_size / (time.time() - start))
 
         if (batch_num % 100 == 99):
-            my_shuffled_cross_entropy_mean,my_cross_entropy_mean, train_summary = sess.run(
-                [shuffled_cross_entropy_mean, cross_entropy_mean, merged_summaries], feed_dict={keep_prob: 1})
-            print "step:", batch_num, "cross_entropy_mean:", my_cross_entropy_mean, "shuffled cross entropy mean:", my_shuffled_cross_entropy_mean
-            train_writer.add_summary(train_summary, batch_num)
-            saver.save(sess, FLAGS.summaries_dir + '/' + str(FLAGS.run_index) + "_netstate/saved_state",global_step=batch_num)
+            # once in a while save the network state and write variable summaries to disk
+            c_entropy_mean,sc_entropy_mean,summaries = sess.run(
+                [cross_entropy_mean, shuffled_cross_entropy_mean, merged_summaries], feed_dict={keep_prob: 1})
+            print "cross entropy mean:",c_entropy_mean, "shuffled cross entropy mean:", sc_entropy_mean
+            train_writer.add_summary(summaries, batch_num)
+            saver.save(sess, FLAGS.summaries_dir + '/' + str(FLAGS.run_index) + "_netstate/saved_state", global_step=batch_num)
+
         batch_num += 1
     assert not np.isnan(cross_entropy_mean), 'Model diverged with loss = NaN'
 
