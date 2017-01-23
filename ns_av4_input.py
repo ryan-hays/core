@@ -56,9 +56,9 @@ def read_receptor_and_ligand(filename_queue,num_epochs,examples_in_database):
         return labels,elements,multiframe_coords
 
     # read raw bytes of the ligand and receptor
-    idx = filename_queue[0]
-    filename = filename_queue[1]
-    serialized_ligand = tf.read_file(filename)
+    idx = tf.constant(0,dtype=tf.int32)
+    filename = filename_queue[0]
+    serialized_ligand = tf.read_file(filename_queue[1])
     serialized_receptor = tf.read_file(filename_queue[2])
 
     # create an epoch counter
@@ -71,25 +71,26 @@ def read_receptor_and_ligand(filename_queue,num_epochs,examples_in_database):
     ligand_labels, ligand_elements, multiframe_ligand_coords = decode_av4(serialized_ligand)
     receptor_labels, receptor_elements, multiframe_receptor_coords = decode_av4(serialized_receptor)
 
-    def count_frame_from_epoch(epoch_counter,ligand_labels):
-        """Some simple arithmetics is used to sample all of the available frames
-        if the index of the examle is even, positive label is taken every even epoch
-        if the index of the example is odd, positive label is taken every odd epoch
-        current negative example increments once every two epochs, and slides along all of the negative examples"""
+    #def count_frame_from_epoch(epoch_counter,ligand_labels):
+    #    """Some simple arithmetics is used to sample all of the available frames
+    #    if the index of the examle is even, positive label is taken every even epoch
+    #    if the index of the example is odd, positive label is taken every odd epoch
+    #    current negative example increments once every two epochs, and slides along all of the negative examples"""
+    #
+    #    def select_pos_frame(): return tf.constant(0)
+    #    def select_neg_frame(): return tf.mod(tf.div(1+epoch_counter,2), tf.shape(ligand_labels) - 1) +1
+    #    current_frame = tf.cond(tf.equal(tf.mod(epoch_counter+idx+1,2),1),select_pos_frame,select_neg_frame)
+    #    return current_frame
 
-        def select_pos_frame(): return tf.constant(0)
-        def select_neg_frame(): return tf.mod(tf.div(1+epoch_counter,2), tf.shape(ligand_labels) - 1) +1
-        current_frame = tf.cond(tf.equal(tf.mod(epoch_counter+idx+1,2),1),select_pos_frame,select_neg_frame)
-        return current_frame
-
-    current_frame = count_frame_from_epoch(epoch_counter,ligand_labels)
+    current_frame=tf.constant(0)
+    #current_frame = count_frame_from_epoch(epoch_counter,ligand_labels)
     ligand_coords = tf.gather(tf.transpose(multiframe_ligand_coords, perm=[2, 0, 1]),current_frame)
     label = tf.gather(ligand_labels,current_frame)
 
     return filename,idx,tf.squeeze(label),ligand_elements,tf.squeeze(ligand_coords),receptor_elements,tf.squeeze(multiframe_receptor_coords)
 
 
-def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size):
+def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size,questioned_filename):
     """Take coordinates and elements of protein and ligand and convert them into an image.
     Return image with one dimension so far."""
 
@@ -159,7 +160,7 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     # FIXME: I may need to sort indices according to TF's manual on the function
     # FIXME: try to save an image and see how it looks like
 
-    return dense_complex,final_transition_matrix,ligand_center_of_mass
+    return dense_complex,final_transition_matrix,ligand_center_of_mass,questioned_filename
 
 
 def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,database_path,num_epochs):
@@ -168,17 +169,17 @@ def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,dat
     index_list,ligand_file_list,receptor_file_list = index_the_database(database_path)
 
     # create a filename queue (tensor) with the names of the ligand and receptors
-    index_tensor = tf.convert_to_tensor(index_list,dtype=tf.int32)
+    index_tensor = tf.convert_to_tensor(ligand_file_list,dtype=tf.string)
     ligand_files = tf.convert_to_tensor(ligand_file_list,dtype=tf.string)
     receptor_files = tf.convert_to_tensor(receptor_file_list,dtype=tf.string)
 
     filename_queue = tf.train.slice_input_producer([index_tensor,ligand_files,receptor_files],num_epochs=None,shuffle=True)
 
     # read one receptor and stack of ligands; choose one of the ligands from the stack according to epoch
-    current_filename,current_epoch,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue,num_epochs,index_list[-1])
+    questioned_filename,current_idx,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue,num_epochs,index_list[-1])
 
     # convert coordinates of ligand and protein into an image
-    dense_image,final_transition_matrix,ligand_com = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
+    dense_image,final_transition_matrix,ligand_com,current_filename = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size,questioned_filename)
 
     # selectively initialize some of the variables
     uninitialized_vars = []
@@ -194,4 +195,4 @@ def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,dat
     # create a batch of proteins and ligands to read them together
     #multithread_batch = tf.train.batch([current_epoch, label, dense_image], batch_size, num_threads=num_threads,capacity=batch_size * 3,shapes=[[], [], [side_pixels, side_pixels, side_pixels]])
 
-    return current_filename,current_epoch,dense_image,final_transition_matrix,ligand_com
+    return current_filename,current_idx,dense_image,final_transition_matrix,ligand_com

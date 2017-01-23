@@ -7,15 +7,15 @@ from ns_av4_utils import affine_transform
 
 inv_ATM = {v: k for k, v in atom_dictionary.ATM.iteritems()}
 
-def read_array(input_tensor):
+def split_dense_image(dense_image):
     ligand_names,ligand_coords = [],[]
     receptor_names,receptor_coords = [],[]
-    a = input_tensor.shape
+    a = dense_image.shape
     x,y,z = a[0],a[1],a[2]
     for i in range(x):
         for j in range(y):
             for k in range(z):
-                val = input_tensor[i][j][k]
+                val = dense_image[i][j][k]
                 if val != 0 and val < 10:
                     atom_type = inv_ATM[val]
                     pos = [float(i),float(j),float(k)]
@@ -93,53 +93,54 @@ def train():
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
     batch_num = 0
-    while True:
-        #start = time.time()
-        my_filename,my_idx,my_dense_image,my_final_matrix,my_com = sess.run([current_filename,current_idx,dense_image,final_transition_matrix,ligand_com])
-        print "filename",my_filename
-        print "idx:",my_idx
-        print "affine_matrix:",my_final_matrix
+    #while True:
+    #start = time.time()
+    my_filename,my_idx,my_dense_image,my_final_matrix,my_com = sess.run([current_filename,current_idx,dense_image,final_transition_matrix,ligand_com])
+    print "filename",my_filename
+    print "idx:",my_idx
+    print "affine_matrix:",my_final_matrix
+    print "center of mass", my_com
 
-        rot_matrix = np.array([a[:3] for a in my_final_matrix[:3]])
-        trans_matrix = np.array([a[3] for a in my_final_matrix[:3]])
+#    rot_matrix = np.array([a[:3] for a in my_final_matrix[:3]])
+#    trans_matrix = np.array([a[3] for a in my_final_matrix[:3]])
         
-        invert = np.zeros((4,4))
-        for i in range(4):
-            for j in range(4):
-                if i < 3 and j < 3:
-                    invert[i][j] = np.linalg.inv(rot_matrix)[i][j]
-                elif i == 3 and j == 3:
-                    invert[i][j] = 1
-                elif i < 3 and j == 3:
-                    invert[i][j] = -np.dot(np.linalg.inv(rot_matrix),trans_matrix)[i]
+#    invert = np.zeros((4,4))
+#    for i in range(4):
+#        for j in range(4):
+#            if i < 3 and j < 3:
+#                invert[i][j] = np.linalg.inv(rot_matrix)[i][j]
+#            elif i == 3 and j == 3:
+#                invert[i][j] = 1
+#            elif i < 3 and j == 3:
+#                invert[i][j] = -np.dot(np.linalg.inv(rot_matrix),trans_matrix)[i]
+#
+#    invert = invert.astype('float32')
+#    inverted_matrix = np.linalg.inv(my_final_matrix).astype('float32')
 
-        invert = invert.astype('float32')
-        inverted_matrix = np.linalg.inv(my_final_matrix).astype('float32')
+    #print "inv",np.dot(invert,my_final_matrix)
+    #print "inv2",np.dot(inverted_matrix,my_final_matrix)
 
-        print "inv",np.dot(invert,my_final_matrix)
-        print "inv2",np.dot(inverted_matrix,my_final_matrix)
+    _,l_coords,_,r_coords = split_dense_image(my_dense_image)
+    #print l_coords,r_coords
+    #l_coords_,_ = affine_transform(l_coords,inverted_matrix)
+    #r_coords_,_ = affine_transform(r_coords,inverted_matrix)
+    #l_coords_inv = sess.run(l_coords_)
+    #r_coords_inv = sess.run(r_coords_)
 
-        _,l_coords,_,r_coords = read_array(my_dense_image)
-        #print l_coords,r_coords
-        l_coords_,_ = affine_transform(l_coords,inverted_matrix)
-        r_coords_,_ = affine_transform(r_coords,inverted_matrix)
-        l_coords_inv = sess.run(l_coords_)
-        r_coords_inv = sess.run(r_coords_)
-        print my_com
-        for line in l_coords_inv:
-            print line
-        #r_coords = sess.run(r_coords)
-        #my_com = [0,0,0]
-        for i in range(len(l_coords_inv)):
-            for j in range(3):
-                l_coords_inv[i][j] += my_com[j]
-        for i in range(len(r_coords_inv)):                                                                                                                                        
-            for j in range(3):                                                                                                                                                      
-                r_coords_inv[i][j] += my_com[j] 
+    for line in l_coords:
+        print line
+    #r_coords = sess.run(r_coords)
+    #my_com = [0,0,0]
+    for i in range(len(l_coords)):
+        for j in range(3):
+            l_coords[i][j] = (l_coords[i][j] - (FLAGS.side_pixels *0.5) + 0.5) + my_com[j]
+    for i in range(len(r_coords)):
+        for j in range(3):                                                                                                                                                      
+            r_coords[i][j] = (r_coords[i][j] - (FLAGS.side_pixels *0.5) + 0.5) + my_com[j]
 
-        convert_to_vmd('./complexes/'+my_filename[24:28],r_coords_inv,l_coords_inv,my_idx)
+    convert_to_vmd('./complexes/test',r_coords,l_coords,my_idx)
 
-        time.sleep(5)
+    time.sleep(5)
 
 
         
@@ -155,7 +156,7 @@ def train():
     #        train_writer.add_summary(summaries, batch_num)
     #        saver.save(sess, FLAGS.summaries_dir + '/' + str(FLAGS.run_index) + "_netstate/saved_state", global_step=batch_num)
     #
-        batch_num += 1
+    batch_num += 1
     #assert not np.isnan(cross_entropy_mean), 'Model diverged with loss = NaN'
 
 
@@ -176,11 +177,11 @@ class FLAGS:
 
     # parameters to optimize runs on different machines for speed/performance
     # number of vectors(images) in one batch
-    batch_size = 200  # number of background processes to fill the queue with images
-    num_threads = 512
+    batch_size = 1  # number of background processes to fill the queue with images
+    num_threads = 1
     # data directories
     # path to the csv file with names of images selected for training
-    database_path = "../datasets/labeled_av4/**/"
+    database_path = "../../datasets/labeled_av4/**/"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states
