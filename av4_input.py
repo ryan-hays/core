@@ -57,7 +57,8 @@ def read_receptor_and_ligand(filename_queue,num_epochs,examples_in_database):
 
     # read raw bytes of the ligand and receptor
     idx = filename_queue[0]
-    serialized_ligand = tf.read_file(filename_queue[1])
+    ligand_file = filename_queue[1]
+    serialized_ligand = tf.read_file(ligand_file)
     serialized_receptor = tf.read_file(filename_queue[2])
 
     # create an epoch counter
@@ -87,7 +88,7 @@ def read_receptor_and_ligand(filename_queue,num_epochs,examples_in_database):
     ligand_coords = tf.gather(tf.transpose(multiframe_ligand_coords, perm=[2, 0, 1]),current_frame)
     label = tf.gather(ligand_labels,current_frame)
 
-    return tf.squeeze(epoch_counter),tf.squeeze(label),ligand_elements,tf.squeeze(ligand_coords),receptor_elements,tf.squeeze(multiframe_receptor_coords)
+    return ligand_file,tf.squeeze(epoch_counter),tf.squeeze(label),ligand_elements,tf.squeeze(ligand_coords),receptor_elements,tf.squeeze(multiframe_receptor_coords)
 
 
 def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size):
@@ -95,7 +96,6 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     Return image with one dimension so far."""
 
     # FIXME abandon ligand when it does not fit into the box (it's kept now)
-    # TODO check if indeed it breaks in the last iteration cycle when a good affine transform is found
 
     # max_num_attempts - maximum number of affine transforms for the ligand to be tried
     max_num_attemts = 1000
@@ -110,7 +110,7 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
 
     # use TF while loop to find such an affine transform matrix that can fit the ligand so that no atoms are outside
 
-    def generate_transition_matrix(attempt, transition_matrix,batch_of_transition_matrices):
+    def generate_transition_matrix(attempt,transition_matrix,batch_of_transition_matrices):
         """Takes initial coordinates of the ligand, generates a random affine transform matrix and transforms coordinates."""
         transition_matrix= tf.gather(batch_of_transition_matrices,tf.random_uniform([], minval=0, maxval=affine_transform_pool_size, dtype=tf.int32))
         attempt += 1
@@ -137,8 +137,8 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
 
     # move coordinates of a complex to an integer number so as to put every atom on a grid
     # ceiled coords is an integer number out of real coordinates that corresponds to the index on the cell
-    ceiled_ligand_coords = tf.cast(tf.round(-0.5 + (tf.cast(side_pixels,tf.float32)*0.5) + rotatated_ligand_coords),tf.int64)
-    ceiled_receptor_coords = tf.cast(tf.round(-0.5 + (tf.cast(side_pixels, tf.float32) * 0.5) + rotated_receptor_coords),tf.int64)
+    ceiled_ligand_coords = tf.cast(tf.round(-0.5 + (tf.cast(side_pixels,tf.float32)*0.5) + (rotatated_ligand_coords/pixel_size)),tf.int64)
+    ceiled_receptor_coords = tf.cast(tf.round(-0.5 + (tf.cast(side_pixels, tf.float32) * 0.5) + (rotated_receptor_coords/pixel_size)),tf.int64)
 
     # crop atoms of the protein that do not fit inside the box
     top_filter = tf.reduce_max(ceiled_receptor_coords,reduction_indices=1)<side_pixels
@@ -149,6 +149,7 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
 
     # merge protein and ligand together. In this case an arbitrary value of 10 is added to the ligand
     complex_coords = tf.concat(0,[ceiled_ligand_coords,cropped_receptor_coords])
+
     complex_elements = tf.concat(0,[ligand_elements+10,cropped_receptor_elements])
 
     # in coordinates of a protein rounded to the nearest integer can be represented as indices of a sparse 3D tensor
@@ -160,12 +161,13 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     # FIXME: I may need to sort indices according to TF's manual on the function
     # FIXME: try to save an image and see how it looks like
 
-    return dense_complex
+    return dense_complex,ligand_center_of_mass,final_transition_matrix
 
 
-def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,database_path,num_epochs):
+def image_and_label_shuffle_queue(sess,batch_size,pixel_size,side_pixels,num_threads,database_path,num_epochs):
+    """Creates shuffle queue for training the network"""
 
-    # TODO: add epoch counter
+
     # create a list of files in the database
     index_list,ligand_file_list,receptor_file_list = index_the_database(database_path)
 
@@ -177,10 +179,10 @@ def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,dat
     filename_queue = tf.train.slice_input_producer([index_tensor,ligand_files,receptor_files],num_epochs=None,shuffle=True)
 
     # read one receptor and stack of ligands; choose one of the ligands from the stack according to epoch
-    current_epoch,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue,num_epochs,index_list[-1])
+    _,current_epoch,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue,num_epochs,index_list[-1])
 
     # convert coordinates of ligand and protein into an image
-    dense_image = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
+    dense_complex,_,_ = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
 
     # selectively initialize some of the variables
     uninitialized_vars = []
@@ -194,6 +196,77 @@ def image_and_label_queue(sess,batch_size,pixel_size,side_pixels,num_threads,dat
     sess.run(init_new_vars_op)
 
     # create a batch of proteins and ligands to read them together
-    multithread_batch = tf.train.batch([current_epoch, label, dense_image], batch_size, num_threads=num_threads,capacity=batch_size * 3,shapes=[[], [], [side_pixels, side_pixels, side_pixels]])
+    multithread_batch = tf.train.batch([current_epoch, label, dense_complex], batch_size, num_threads=num_threads,capacity=batch_size * 3,shapes=[[], [], [side_pixels, side_pixels, side_pixels]])
 
     return multithread_batch
+
+
+def single_dense_image_example(sess,batch_size,pixel_size,side_pixels,num_threads,database_path,num_epochs):
+    """Reads the database and returns a single dense image example for visualization and other purposes."""
+
+    # create a list of files in the database
+    index_list,ligand_file_list,receptor_file_list = index_the_database(database_path)
+
+    # create a filename queue (tensor) with the names of the ligand and receptors
+    index_tensor = tf.convert_to_tensor(index_list,dtype=tf.int32)
+    ligand_files = tf.convert_to_tensor(ligand_file_list,dtype=tf.string)
+    receptor_files = tf.convert_to_tensor(receptor_file_list,dtype=tf.string)
+
+    filename_queue = tf.train.slice_input_producer([index_tensor,ligand_files,receptor_files],num_epochs=None,shuffle=False)
+
+    # read one receptor and stack of ligands; choose one of the ligands from the stack according to epoch #TODO read sequentially
+    ligand_file,current_epoch,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue,num_epochs,index_list[-1])
+
+    # convert coordinates of ligand and protein into an image
+    dense_complex,ligand_center_of_mass,final_transition_matrix = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
+
+    # selectively initialize some of the variables
+    uninitialized_vars = []
+    for var in tf.global_variables():
+        try:
+            sess.run(var)
+        except tf.errors.FailedPreconditionError:
+            uninitialized_vars.append(var)
+
+    init_new_vars_op = tf.variables_initializer(uninitialized_vars)
+    sess.run(init_new_vars_op)
+
+    # return all the information about a single image
+    return ligand_file,ligand_center_of_mass,final_transition_matrix,current_epoch,label,dense_complex
+
+"""def image_and_label_stable_queue(sess,batch_size,pixel_size,side_pixels,num_threads,database_path,num_epochs):
+    Creates shuffle queue for training the network
+
+
+    # TODO: add epoch counter
+    # create a list of files in the database
+    index_list,ligand_file_list,receptor_file_list = index_the_database(database_path)
+
+    # create a filename queue (tensor) with the names of the ligand and receptors
+    index_tensor = tf.convert_to_tensor(index_list,dtype=tf.int32)
+    ligand_files = tf.convert_to_tensor(ligand_file_list,dtype=tf.string)
+    receptor_files = tf.convert_to_tensor(receptor_file_list,dtype=tf.string)
+
+    filename_queue = tf.train.slice_input_producer([index_tensor,ligand_files,receptor_files],num_epochs=None,shuffle=True)
+
+    # read one receptor and stack of ligands; choose one of the ligands from the stack according to epoch
+    ligand_file,current_epoch,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue,num_epochs,index_list[-1])
+
+    # convert coordinates of ligand and protein into an image
+    dense_complex,ligand_center_of_mass,final_transition_matrix = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
+
+    # selectively initialize some of the variables
+    uninitialized_vars = []
+    for var in tf.global_variables():
+        try:
+            sess.run(var)
+        except tf.errors.FailedPreconditionError:
+            uninitialized_vars.append(var)
+
+    init_new_vars_op = tf.variables_initializer(uninitialized_vars)
+    sess.run(init_new_vars_op)
+
+    # create a batch of proteins and ligands to read them together
+    multithread_batch = tf.train.batch([current_epoch, label, dense_complex], batch_size, num_threads=num_threads,capacity=batch_size * 3,shapes=[[], [], [side_pixels, side_pixels, side_pixels]])
+
+    return multithread_batch"""

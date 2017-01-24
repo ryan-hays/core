@@ -1,7 +1,7 @@
 import time,os
 import tensorflow as tf
 import numpy as np
-from av4_input import image_and_label_queue
+from av4_input import image_and_label_shuffle_queue
 
 # telling tensorflow how we want to randomly initialize weights
 def weight_variable(shape):
@@ -128,7 +128,7 @@ def train():
     # with the current setup all of the TF's operations are happening in one session
     sess = tf.Session()
 
-    current_epoch,label_batch,image_batch = image_and_label_queue(sess=sess,batch_size=FLAGS.batch_size,
+    current_epoch,label_batch,image_batch = image_and_label_shuffle_queue(sess=sess,batch_size=FLAGS.batch_size,
                                                 pixel_size=FLAGS.pixel_size,side_pixels=FLAGS.side_pixels,
                                                 num_threads=FLAGS.num_threads,database_path=FLAGS.database_path,
                                                                   num_epochs=FLAGS.num_epochs)
@@ -212,7 +212,7 @@ class FLAGS:
     num_threads = 512
     # data directories
     # path to the csv file with names of images selected for training
-    database_path = "../datasets/labeled_pdb_av4/**/"
+    database_path = "../datasets/labeled_av4/**/"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states
