@@ -22,11 +22,11 @@ class store_predictions:
     raw_predictions = defaultdict(list)
     processed_predictions = defaultdict(list)
 
-    def add_batch(self, in_the_range,ligand_file_paths, frame_ids , batch_predictions):
+    def add_batch(self, batch_in_the_range, ligand_file_paths, batch_current_epoch, batch_predictions):
         ligand_file_name = map(lambda filename:os.path.basename(filename).split('.')[0],ligand_file_paths)
 
-        for mark,ligand,frame_id,prediction in zip(in_the_range,ligand_file_name,frame_ids,batch_predictions):
-            if mark:
+        for in_the_range,ligand,current_epoch,prediction in zip(batch_in_the_range, ligand_file_name, batch_current_epoch, batch_predictions):
+            if in_the_range:
                 self.raw_predictions[ligand].append(prediction)
 
     def reduce(self):
@@ -58,17 +58,46 @@ class store_predictions:
                     self.raw_predictions[key]
 
 
-    def save_predictions(self):
+    def save_multiframe_predictions(self):
         records = []
         for key, value in self.raw_predictions.items():
-            records.append([key]+ value)
+            value_len = len(self.raw_predictions[key])
+            if value_len>FLAGS.top_k:
+                print "{} have more predictions than expected, {} reuqired {} found.".format(key,FLAGS.top_k,value_len)
+                records.append([key]+value[:FLAGS.top_k])
+            else:
+                records.append( [key]+value )
+
+
 
         submission_csv = pd.DataFrame(records, columns=['Id']+[ 'Predicted_%d'%i for i in range(1,len(records[0]))])
-        submission_csv.to_csv(FLAGS.predictions_file_path + '_submission.csv', index=False)
+        submission_csv.to_csv(FLAGS.predictions_file_path + '_multiframe_submission.csv', index=False)
+
+    def save_average(self):
+        '''
+        take average of multiple predcition
+        :return:
+        '''
+        records = []
+        for key,value in self.raw_predictions.items():
+            records.append([key,np.mean(np.array(value))])
+
+        submission_csv = pd.DataFrame(records,columns=['ID','Predicted'])
+        submission_csv.to_csv(FLAGS.predictions_file_path+'_average_submission.csv',index=False)
+
+    def save_max(self):
+
+        records = []
+        for key,value in self.raw_predictions.items():
+            records.append([key, np.max(np.array(value))])
+
+        submission_csv = pd.DataFrame(records, columns=['ID', 'Predicted'])
+        submission_csv.to_csv(FLAGS.predictions_file_path + '_max_submission.csv', index=False)
 
     def save(self):
-        self.fill_na()
-        self.save_predictions()
+        self.save_average()
+        self.save_max()
+        self.save_multiframe_predictions()
 
 def evaluate_on_train_set():
     sess = tf.Session()
