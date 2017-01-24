@@ -8,7 +8,8 @@ First application of deep convolutional neural networks for drug-protein interac
 ![alt tag](https://github.com/mitaffinity/core/blob/master/misc/netvision_cool.jpg)
 **Fig2:** Network Vision. To represent input to the network, coordinates of atoms determined by crystallographers have to be converted to an image made of cubic pixels. Since on a small scale the world is very sparse, approximately 1 real-valued pixel in 10^7 zeros, an approximation has to be made. In our case every atom is assigned a numeric tag that fills the value of the cubic pixel with the size of 0.5A. This picture depicts the structure of an aminoglycoside nucleotidyltransferase - an enzyme important for nucleic acids metabolism with the substrate in it's binding site. Image of protein have been rendered in VMD in a form common for scientific literature. Small differently colored spheres represent an approximation of atomic coordinates that the network sees. 
 
-
+![alt_tag](https://github.com/mitaffinity/core/blob/master/misc/AlexNet3d.png)
+**Fig3** The structure of the network that performed very well on our previous Kaggle competition. Significant improvements comapred have been achieved by the smaller pixel size and very wide first layer convolutions. 
 
 Here we provide a working example of the code that distinguishes correct docked positions of ligands from incorrect with an AUC of 0.934. 
 
