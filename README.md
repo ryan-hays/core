@@ -2,7 +2,7 @@
 
 First application of deep convolutional neural networks for drug-protein interaction prediction has appeared [in the paper of AtomWise](https://arxiv.org/abs/1510.02855) when the small 3D AlexNets have been trained on atoms of drug-protein complexes. We have experimented with the network structure and obtained predictions of a very high accuracy.
 
-https://github.com/mitaffinity/core/blob/master/misc/alexnet.jpg
+![alt tag](https://github.com/mitaffinity/core/blob/master/misc/alexnet.jpg)
 
 
 
