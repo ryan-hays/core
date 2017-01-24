@@ -5,6 +5,9 @@ First application of deep convolutional neural networks for drug-protein interac
 ![alt tag](https://github.com/mitaffinity/core/blob/master/misc/alexnet.jpg)
 Fig1: AlexNet as it was described in: [Krizhevsky et al.](http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks)  
 
+![alt tag](https://github.com/mitaffinity/core/blob/master/misc/netvision_cool.jpg)
+Fig2: Network Vision. To represent input to the network atomic common for crystallographers format PDB is converted to 
+
 Here we provide a working example of the code that distinguishes correct docked positions of ligands from incorrect with an AUC of 0.934. 
 
 After a few hours of training network visualization in tensorboard might look [like this](http://ec2-54-244-199-10.us-west-2.compute.amazonaws.com/)
