@@ -3,10 +3,8 @@
 First application of deep convolutional neural networks for drug-protein interaction prediction has appeared [in the paper of AtomWise](https://arxiv.org/abs/1510.02855) when the small 3D AlexNets have been trained on atoms of drug-protein complexes. We have experimented with the network structure and obtained predictions of a very high accuracy.
 
 ![alt tag](https://github.com/mitaffinity/core/blob/master/misc/alexnet.jpg)
-
-
-
-Affinity core is a starting code for training deep convolutional neural networks on crystallographic images of proteins to predict drug binding. In the simplest case, training set consists of two sets of structures of complexes of proteins together with small molecules labeled either 1 or 0 (binders and decoys). Networks can be used to classify and rank unlabeled complexes.
+Fig1: AlexNet as it was described in: [Krizhevsky et al.](http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks)
+Here we provide a working example of the code that distinguishes correct docked positions of ligands from incorrect with an AUC of 0.934. 
 
 After a few hours of training network visualization in tensorboard might look [like this](http://ec2-54-244-199-10.us-west-2.compute.amazonaws.com/)
 (in google chrome browser)
