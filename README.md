@@ -1,4 +1,4 @@
-# AtomNet in TensorFlow
+# AlexNet on crystallographic images of proteins (AtomNet)
 
 Affinity core is a starting code for training deep convolutional neural networks on crystallographic images of proteins to predict drug binding. In the simplest case, training set consists of two sets of structures of complexes of proteins together with small molecules labeled either 1 or 0 (binders and decoys). Networks can be used to classify and rank unlabeled complexes.
 
