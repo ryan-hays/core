@@ -16,8 +16,8 @@ Here we provide a working example of the code that distinguishes correct docked 
 **Usage:**
 <pre>git clone https://github.com/mitaffinity/core.git</pre>
 Navigate your browser to https://inclass.kaggle.com/c/affinity4, and follow the registration steps to get the data.
-Afterwards, change the path in FLAGS.train_set_path to the location on your local machine, and type
+Afterwards, change the path in FLAGS.database_path to the location on your local machine, and type
 <pre>python av4.py</pre>
-this script will automatically index the database and start training.
+this script should automatically index folders in your database and start training.
 
 Our old [Kaggle competition](https://inclass.kaggle.com/c/affinity), and software can be found [here](https://github.com/mitaffinity/core/releases). Enjoy!
