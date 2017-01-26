@@ -199,7 +199,7 @@ class FLAGS:
     side_pixels = 20
     # weights for each class for the scoring function
     # number of times each example in the dataset will be read
-    num_epochs = 5000 # epochs are counted based on the number of the protein examples
+    num_epochs = 50000 # epochs are counted based on the number of the protein examples
     # usually the dataset would have multiples frames of ligand binding to the same protein
     # av4_input also has an oversampling algorithm.
     # Example: if the dataset has 50 frames with 0 labels and 1 frame with 1 label, and we want to run it for 50 epochs,

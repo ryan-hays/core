@@ -30,8 +30,6 @@ def read_receptor_and_ligand(filename_queue,num_epochs,examples_in_database):
     and atoms of ligand and protein for future processing.
     Important: by default it does oversampling of the positive examples based on training epoch."""
 
-    # FIXME: epoch counter may not increment unless sess.run() is called on it explicitly
-
     def decode_av4(serialized_record):
         # decode everything into int32
         tmp_decoded_record = tf.decode_raw(serialized_record, tf.int32)
@@ -62,8 +60,6 @@ def read_receptor_and_ligand(filename_queue,num_epochs,examples_in_database):
     serialized_receptor = tf.read_file(filename_queue[2])
 
     # create an epoch counter
-    # TODO: break on certain epoch
-    epoch_counter = tf.Variable(0,tf.int32)
     examples_processed = tf.Variable(0,tf.int32)
     examples_processed = examples_processed.count_up_to(num_epochs*examples_in_database)
     epoch_counter = tf.div(examples_processed,examples_in_database)
@@ -109,6 +105,7 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     centered_receptor_coords = receptor_coords - ligand_center_of_mass
 
     # use TF while loop to find such an affine transform matrix that can fit the ligand so that no atoms are outside
+    box_size = (tf.cast(side_pixels, tf.float32) * pixel_size)
 
     def generate_transition_matrix(attempt,transition_matrix,batch_of_transition_matrices):
         """Takes initial coordinates of the ligand, generates a random affine transform matrix and transforms coordinates."""
@@ -116,8 +113,7 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
         attempt += 1
         return attempt, transition_matrix,batch_of_transition_matrices
 
-    def not_all_in_the_box(attempt, transition_matrix,batch_of_transition_matrices,ligand_coords=centered_ligand_coords,
-                           box_size=(tf.cast(side_pixels,tf.float32)*pixel_size),max_num_attempts=max_num_attemts):
+    def not_all_in_the_box(attempt, transition_matrix,batch_of_transition_matrices,ligand_coords=centered_ligand_coords,box_size=box_size,max_num_attempts=max_num_attemts):
         """Takes affine transform matrix and box dimensions, performs the transformation, and checks if all atoms
         are in the box."""
         transformed_coords, transition_matrix = affine_transform(ligand_coords, transition_matrix)
@@ -125,15 +121,22 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
         within_iteration_limit = tf.cast(tf.reduce_sum(tf.cast(attempt < max_num_attemts, tf.float32)), tf.bool)
         return tf.logical_and(within_iteration_limit, not_all)
 
+
     attempt = tf.Variable(tf.constant(0, shape=[1]))
     batch_of_transition_matrices = tf.Variable(generate_deep_affine_transform(affine_transform_pool_size))
-    transition_matrix = tf.gather(batch_of_transition_matrices, tf.random_uniform([], minval=0, maxval=affine_transform_pool_size, dtype=tf.int32))
+    transition_matrix = tf.gather(batch_of_transition_matrices, tf.random_uniform([], minval=0, maxval=affine_transform_pool_size, dtype=tf.int64))
 
     last_attempt,final_transition_matrix,_ = tf.while_loop(not_all_in_the_box, generate_transition_matrix, [attempt, transition_matrix,batch_of_transition_matrices],parallel_iterations=1)
 
     # rotate receptor and ligand using an affine transform matrix found
     rotatated_ligand_coords,_ = affine_transform(centered_ligand_coords,final_transition_matrix)
     rotated_receptor_coords,_ = affine_transform(centered_receptor_coords,final_transition_matrix)
+
+    # check if all of the atoms are in the box, if not set the ligand to 0, but do not raise an error
+    def set_elements_coords_zero(): return tf.constant([0],dtype=tf.int32),tf.constant([[0,0,0]],dtype=tf.float32)
+    def keep_elements_coords(): return ligand_elements,rotatated_ligand_coords
+    not_all = tf.cast(tf.reduce_max(tf.cast(tf.square(box_size * 0.5) - tf.square(rotatated_ligand_coords) < 0, tf.int32)),tf.bool)
+    ligand_elements,rotatated_ligand_coords = tf.case({tf.equal(not_all,tf.constant(True)): set_elements_coords_zero},keep_elements_coords)
 
     # move coordinates of a complex to an integer number so as to put every atom on a grid
     # ceiled coords is an integer number out of real coordinates that corresponds to the index on the cell
@@ -157,6 +160,10 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     # in this case TF's sparse_tensor_to_dense can be used to generate an image out of rounded coordinates
     sparse_complex = tf.SparseTensor(indices=complex_coords, values=complex_elements,shape=[side_pixels,side_pixels,side_pixels])
     dense_complex = tf.sparse_tensor_to_dense(sparse_complex, validate_indices=False)
+
+
+
+
     # FIXME: sparse_tensor_to_dense has not been properly tested.
     # FIXME: I may need to sort indices according to TF's manual on the function
     # FIXME: try to save an image and see how it looks like
@@ -166,7 +173,6 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
 
 def image_and_label_shuffle_queue(sess,batch_size,pixel_size,side_pixels,num_threads,database_path,num_epochs):
     """Creates shuffle queue for training the network"""
-
 
     # create a list of files in the database
     index_list,ligand_file_list,receptor_file_list = index_the_database(database_path)
@@ -197,6 +203,7 @@ def image_and_label_shuffle_queue(sess,batch_size,pixel_size,side_pixels,num_thr
 
     # create a batch of proteins and ligands to read them together
     multithread_batch = tf.train.batch([current_epoch, label, dense_complex], batch_size, num_threads=num_threads,capacity=batch_size * 3,shapes=[[], [], [side_pixels, side_pixels, side_pixels]])
+    
 
     return multithread_batch
 
