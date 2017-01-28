@@ -68,7 +68,7 @@ def read_receptor_and_ligand(filename_queue,num_epochs,examples_in_database):
     serialized_receptor = tf.read_file(filename_queue[2])
 
     # create an epoch counter
-    examples_processed = tf.Variable(0,tf.int32)
+    examples_processed = tf.Variable(0,tf.int64)
     examples_processed = examples_processed.count_up_to(num_epochs*examples_in_database)
     epoch_counter = tf.div(examples_processed,examples_in_database)
 
