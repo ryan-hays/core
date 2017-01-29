@@ -137,15 +137,16 @@ def evaluate_on_train_set():
 
     # create a variable to store all predicitons
     all_predictios = store_predictions()
-    batch_num = 0
+    counter = 0
     print "start eval..."
     while True or not coord.should_stop():
+        counter +=1
         batch_num = sess.run(batch_counter_increment)
         test_current_epoch,test_ligand,test_in_the_range ,test_predictions = sess.run([current_epoch,batch_ligand_filename,batch_in_the_range ,predictions],
                                                               feed_dict={keep_prob: 1})
         all_predictios.add_batch(test_in_the_range,test_ligand, test_predictions)
 
-
+        print "counter ",counter
         print "batch num", batch_num,
         print "current epoch"
         print test_current_epoch
