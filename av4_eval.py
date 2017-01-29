@@ -108,6 +108,7 @@ def evaluate_on_train_set():
 
     # create an epoch counter
     batch_counter = tf.Variable(0)
+    batch_counter_to_zero = tf.assign(batch_counter,0)
     batch_counter_increment = tf.assign(batch_counter, tf.Variable(0).count_up_to(
         np.round((examples_in_database * FLAGS.num_epochs) / FLAGS.batch_size)))
     epoch_counter = tf.div(batch_counter * FLAGS.batch_size, examples_in_database)
@@ -131,6 +132,7 @@ def evaluate_on_train_set():
     # restore variables from sleep
     saver = tf.train.Saver()
     saver.restore(sess, FLAGS.saved_session)
+    sess.run(batch_counter_to_zero)
 
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
@@ -140,13 +142,12 @@ def evaluate_on_train_set():
     counter = 0
     print "start eval..."
     while True or not coord.should_stop():
-        counter +=1
         batch_num = sess.run(batch_counter_increment)
         test_current_epoch,test_ligand,test_in_the_range ,test_predictions = sess.run([current_epoch,batch_ligand_filename,batch_in_the_range ,predictions],
                                                               feed_dict={keep_prob: 1})
         all_predictios.add_batch(test_in_the_range,test_ligand, test_predictions)
 
-        print "counter ",counter
+
         print "batch num", batch_num,
         print "current epoch"
         print test_current_epoch
