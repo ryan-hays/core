@@ -360,6 +360,7 @@ def evaluate_on_train_set():
 
     epoch_counter = tf.div(batch_counter*FLAGS.batch_size,examples_in_database)
 
+
     # create a custom shuffle queue
     ligand_files,current_epoch,label_batch,sparse_image_batch = image_and_label_queue(batch_size=FLAGS.batch_size, pixel_size=FLAGS.pixel_size,
                                                                           side_pixels=FLAGS.side_pixels, num_threads=FLAGS.num_threads,
@@ -379,7 +380,6 @@ def evaluate_on_train_set():
 
     # use
     sess.run(tf.contrib.framework.get_variables_by_name(batch_counter_var_name[0])[0].initializer)
-
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess = sess,coord=coord)
 
@@ -387,6 +387,7 @@ def evaluate_on_train_set():
     # create an instance of a class to store predictions
     all_predictios = store_predictions()
     all_predictions_av3 = store_predictions_av3()
+
 
 
     # add_batch(self, ligand_file_path, batch_predictions, batch_labels)
