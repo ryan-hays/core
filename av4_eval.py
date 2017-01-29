@@ -21,11 +21,11 @@ class store_predictions:
     raw_predictions = defaultdict(list)
     processed_predictions = defaultdict(list)
 
-    def add_batch(self, batch_in_the_range, ligand_file_paths, batch_predictions):
+    def add_batch(self, batch_in_the_range, batch_current_epoch, ligand_file_paths, batch_predictions):
         ligand_file_name = map(lambda filename:os.path.basename(filename).split('.')[0],ligand_file_paths)
 
-        for in_the_range,ligand,prediction in zip(batch_in_the_range, ligand_file_name, batch_predictions):
-            if in_the_range:
+        for in_the_range,current_epoch,ligand,prediction in zip(batch_in_the_range, batch_current_epoch,ligand_file_name, batch_predictions):
+            if in_the_range and len(self.raw_predictions[ligand])<current_epoch:
                 self.raw_predictions[ligand].append(prediction)
 
     def reduce(self):
@@ -142,11 +142,12 @@ def evaluate_on_train_set():
     all_predictios = store_predictions()
     counter = 0
     print "start eval..."
+    break_flag = False
     while True or not coord.should_stop():
         batch_num = sess.run(batch_counter_increment)
         test_current_epoch,test_ligand,test_in_the_range ,test_predictions = sess.run([current_epoch,batch_ligand_filename,batch_in_the_range ,predictions],
                                                               feed_dict={keep_prob: 1})
-        all_predictios.add_batch(test_in_the_range,test_ligand, test_predictions)
+        all_predictios.add_batch(test_in_the_range,test_current_epoch,test_ligand, test_predictions)
 
 
         print "batch num", batch_num,
@@ -154,7 +155,10 @@ def evaluate_on_train_set():
         print test_current_epoch
 
         if min(test_current_epoch)>FLAGS.top_k:
-            break;
+            if break_flag:
+                break
+            else:
+                break_flag = True
 
     coord.request_stop()
     coord.join(threads, stop_grace_period_secs=5)
