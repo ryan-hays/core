@@ -108,8 +108,9 @@ def evaluate_on_train_set():
 
     # create an epoch counter
     batch_counter = tf.Variable(0)
-    batch_counter_to_zero = tf.assign(batch_counter,0)
-    batch_counter_increment = tf.assign(batch_counter, tf.Variable(0).count_up_to(
+    batch_counter_inc = tf.Variable(0)
+    batch_counter_inc_reset = tf.assign(batch_counter_inc,0)
+    batch_counter_increment = tf.assign(batch_counter, batch_counter_inc.count_up_to(
         np.round((examples_in_database * FLAGS.num_epochs) / FLAGS.batch_size)))
     epoch_counter = tf.div(batch_counter * FLAGS.batch_size, examples_in_database)
 
@@ -132,7 +133,7 @@ def evaluate_on_train_set():
     # restore variables from sleep
     saver = tf.train.Saver()
     saver.restore(sess, FLAGS.saved_session)
-    sess.run(batch_counter_to_zero)
+    sess.run(batch_counter_inc_reset)
 
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
