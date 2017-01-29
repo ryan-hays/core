@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 import re
-from av4_eval_input import image_and_label_queue
+from av4_eval_input import image_and_label_shuffle_queue,index_the_database_into_queue
 from av4 import FLAGS, max_net
 from collections import defaultdict
 FLAGS.test_set_path = '/home/ubuntu/common/data/new_kaggle/test/unlabeled_av4'
@@ -103,12 +103,22 @@ def evaluate_on_train_set():
     # create session which all the evaluation happens in
     sess = tf.Session()
 
-    current_epoch, batch_ligand_filename,batch_in_the_range, y_, x_image_batch = image_and_label_queue(sess=sess, batch_size=FLAGS.batch_size,
+    # create a filename queue first
+    filename_queue, examples_in_database = index_the_database_into_queue(FLAGS.database_path, shuffle=False)
+
+    # create an epoch counter
+    batch_counter = tf.Variable(0)
+    batch_counter_increment = tf.assign(batch_counter, tf.Variable(0).count_up_to(
+        np.round((examples_in_database * FLAGS.num_epochs) / FLAGS.batch_size)))
+    epoch_counter = tf.div(batch_counter * FLAGS.batch_size, examples_in_database)
+
+    current_epoch, batch_ligand_filename,batch_in_the_range, y_, x_image_batch = image_and_label_shuffle_queue(batch_size=FLAGS.batch_size,
                                                                      pixel_size=FLAGS.pixel_size,
                                                                      side_pixels=FLAGS.side_pixels,
                                                                      num_threads=FLAGS.num_threads,
-                                                                     database_path=FLAGS.test_set_path,
-                                                                     num_epochs=FLAGS.num_epochs)
+                                                                     filename_queue=filename_queue,
+                                                                     epoch_counter=epoch_counter,
+                                                                     evaluation=True)
 
     float_image_batch = tf.cast(x_image_batch, tf.float32)
     batch_size = tf.shape(x_image_batch)
@@ -130,10 +140,11 @@ def evaluate_on_train_set():
     batch_num = 0
     print "start eval..."
     while True or not coord.should_stop():
+        batch_num = sess.run(batch_counter_increment)
         test_current_epoch,test_ligand,test_in_the_range ,test_predictions = sess.run([current_epoch,batch_ligand_filename,batch_in_the_range ,predictions],
                                                               feed_dict={keep_prob: 1})
         all_predictios.add_batch(test_in_the_range,test_ligand, test_predictions)
-        batch_num += 1
+
 
         print "batch num", batch_num,
         print "current epoch"
