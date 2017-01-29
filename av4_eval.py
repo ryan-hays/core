@@ -343,6 +343,7 @@ def evaluate_on_train_set():
     sess = tf.Session()
 
 
+
     # create a filename queue first
     filename_queue, examples_in_database = index_the_database_into_queue(FLAGS.database_path, shuffle=True)
 
@@ -385,6 +386,7 @@ def evaluate_on_train_set():
     all_predictions_av3 = store_predictions_av3()
 
     # add_batch(self, ligand_file_path, batch_predictions, batch_labels)
+
 
     print "starting evalution..."
 
