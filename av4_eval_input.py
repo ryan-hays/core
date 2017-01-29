@@ -6,7 +6,7 @@ from av4 import FLAGS
 
 FLAGS.top_k = 10
 
-def index_the_database_into_queue(database_path,shuffle):
+def index_the_database_into_queue(database_path,shuffle,size = None):
     """Indexes av4 database and returns two lists of filesystem path: ligand files, and protein files.
     Ligands are assumed to end with _ligand.av4, proteins should be in the same folders with ligands.
     Each protein should have its own folder named similarly to the protein name (in the PDB)."""
@@ -26,6 +26,13 @@ def index_the_database_into_queue(database_path,shuffle):
     if examples_in_database ==0:
         raise Exception('av4_input: No files found in the database path:',database_path)
     print "Indexed ligand-protein pairs in the database:",examples_in_database
+
+    if size:
+        size = min(size,examples_in_database)
+        index_list = index_list[:size]
+        ligand_file_list = ligand_file_list[:size]
+        receptor_file_list = receptor_file_list[:size]
+        examples_in_database = size
 
     # create a filename queue (tensor) with the names of the ligand and receptors
     index_tensor = tf.convert_to_tensor(index_list,dtype=tf.int32)
