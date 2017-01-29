@@ -57,7 +57,6 @@ class store_predictions:
                 for i in range(FLAGS.top_k-value_len):
                     self.raw_predictions[key]
 
-
     def save_multiframe_predictions(self):
         records = []
         for key, value in self.raw_predictions.items():
@@ -67,7 +66,6 @@ class store_predictions:
                 records.append([key]+value[:FLAGS.top_k])
             else:
                 records.append( [key]+value )
-
 
 
         submission_csv = pd.DataFrame(records, columns=['Id']+[ 'Predicted_%d'%i for i in range(1,len(records[0]))])
