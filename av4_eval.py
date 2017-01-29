@@ -6,9 +6,9 @@ import re
 from av4_eval_input import image_and_label_queue
 from av4 import FLAGS, max_net
 from collections import defaultdict
-
-FLAGS.saved_session = './summaries/1_netstate/saved_state-9000'
-
+FLAGS.test_set_path = '/home/ubuntu/common/data/new_kaggle/test/unlabeled_av4'
+FLAGS.saved_session = './summaries/3_netstate/saved_state-1199'
+FLAGS.top_k=10
 FLAGS.predictions_file_path = re.sub("netstate", "logs", FLAGS.saved_session)
 
 
@@ -107,7 +107,8 @@ def evaluate_on_train_set():
                                                                      pixel_size=FLAGS.pixel_size,
                                                                      side_pixels=FLAGS.side_pixels,
                                                                      num_threads=FLAGS.num_threads,
-                                                                     database_path=FLAGS.test_set_path)
+                                                                     database_path=FLAGS.test_set_path,
+                                                                     num_epochs=FLAGS.num_epochs)
 
     float_image_batch = tf.cast(x_image_batch, tf.float32)
     batch_size = tf.shape(x_image_batch)

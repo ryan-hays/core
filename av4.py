@@ -217,12 +217,12 @@ class FLAGS:
 
     # parameters to optimize runs on different machines for speed/performance
     # number of vectors(images) in one batch
-    batch_size = 100
+    batch_size = 10
     # number of background processes to fill the queue with images
     num_threads = 512
     # data directories
     # path to the csv file with names of images selected for training
-    database_path = "../datasets/labeled_av4"
+    database_path = "/home/ubuntu/common/data/new_kaggle/train_small/labeled_av4/"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states

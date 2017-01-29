@@ -18,7 +18,7 @@ def index_the_database(database_path):
         receptor_file_list.append(receptor_file)
         range_list = range(len(ligand_file_list))
 
-    return range_list,ligand_file_list,receptor_file_list
+    return range_list[:400],ligand_file_list[:400],receptor_file_list[:400]
 
 def read_receptor_and_ligand(filename_queue,num_epochs,examples_in_database):
     """Reads ligand and protein raw bytes based on the names in the filename queue. Returns tensors with coordinates
