@@ -3,14 +3,13 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 import re
-from av4_eval_input import image_and_label_queue,index_the_database,read_receptor_and_ligand
+from av4_eval_input import image_and_label_queue
 from av4 import FLAGS, max_net
 from collections import defaultdict
 
-FLAGS.saved_session = '/home/ubuntu/xiao/code/core/summaries/5_netstate/saved_state-2299'
+FLAGS.saved_session = './summaries/1_netstate/saved_state-9000'
 
 FLAGS.predictions_file_path = re.sub("netstate", "logs", FLAGS.saved_session)
-
 
 
 class store_predictions:
@@ -22,10 +21,10 @@ class store_predictions:
     raw_predictions = defaultdict(list)
     processed_predictions = defaultdict(list)
 
-    def add_batch(self, batch_in_the_range, ligand_file_paths, batch_current_epoch, batch_predictions):
+    def add_batch(self, batch_in_the_range, ligand_file_paths, batch_predictions):
         ligand_file_name = map(lambda filename:os.path.basename(filename).split('.')[0],ligand_file_paths)
 
-        for in_the_range,ligand,current_epoch,prediction in zip(batch_in_the_range, ligand_file_name, batch_current_epoch, batch_predictions):
+        for in_the_range,ligand,prediction in zip(batch_in_the_range, ligand_file_name, batch_predictions):
             if in_the_range:
                 self.raw_predictions[ligand].append(prediction)
 
@@ -97,61 +96,48 @@ class store_predictions:
         self.save_max()
         self.save_multiframe_predictions()
 
+
 def evaluate_on_train_set():
+    "train a network"
+
+    # create session which all the evaluation happens in
     sess = tf.Session()
 
-    current_epoch,filename_batch,in_the_ranges ,label_batch, image_batch = image_and_label_queue(sess=sess, batch_size=FLAGS.batch_size,
-                                                                    pixel_size=FLAGS.pixel_size,
-                                                                    side_pixels=FLAGS.side_pixels,
-                                                                    num_threads=FLAGS.num_threads,
-                                                                    database_path=FLAGS.test_set_path,
-                                                                    num_epochs=FLAGS.num_epochs)
+    _, batch_ligand_filename,batch_in_the_range, y_, x_image_batch = image_and_label_queue(sess=sess, batch_size=FLAGS.batch_size,
+                                                                     pixel_size=FLAGS.pixel_size,
+                                                                     side_pixels=FLAGS.side_pixels,
+                                                                     num_threads=FLAGS.num_threads,
+                                                                     database_path=FLAGS.test_set_path)
 
-    float_image_batch = tf.cast(image_batch,tf.float32)
+    float_image_batch = tf.cast(x_image_batch, tf.float32)
+    batch_size = tf.shape(x_image_batch)
 
     keep_prob = tf.placeholder(tf.float32)
-    predicted_labels = max_net(float_image_batch,keep_prob)
+    y_conv = max_net(float_image_batch, keep_prob)
 
-    positive_labels = tf.nn.softmax(predicted_labels)[:,1]
-
-    batch_size = tf.shape(label_batch)
-
+    # compute softmax over raw predictions
+    predictions = tf.nn.softmax(y_conv)[:, 1]
+    # restore variables from sleep
     saver = tf.train.Saver()
-    saver.restore(sess,FLAGS.saved_session)
-
-    sess.run(tf.global_variables_initializer())
-    #sess.run(tf.initialize_local_variables())
+    saver.restore(sess, FLAGS.saved_session)
 
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
     # create a variable to store all predicitons
-    all_predictions = store_predictions()
+    all_predictios = store_predictions()
     batch_num = 0
     print "start eval..."
-
-    while not coord.should_stop():
-        batch_shape, mark,test_ligands, test_frame_ids, test_predictions = sess.run(
-            [batch_size, in_the_ranges,filename_batch, current_epoch, positive_labels], feed_dict={keep_prob: 1})
-        all_predictions.add_batch(mark,test_ligands, test_frame_ids, test_predictions)
+    while True or not coord.should_stop():
+        test_ligand,test_in_the_range ,test_predictions = sess.run([batch_ligand_filename,batch_in_the_range ,predictions],
+                                                              feed_dict={keep_prob: 1})
+        all_predictios.add_batch(test_ligand, test_predictions)
         batch_num += 1
         print "batch num", batch_num,
         print "\tbatch size", batch_shape[0]
-        print test_ligands[0], test_frame_ids[0], test_predictions[0]
-        print test_frame_ids
-        print mark
-        print "min epoch",min(test_frame_ids)
-        if min(test_frame_ids)>FLAGS.top_k:
-            break;
-
-    print "+++++++++++++++++++++++++++++++++++over++++++++++++++++++++++++"
-    coord.request_stop()
-    coord.join(threads, stop_grace_period_secs=5)
-
-    all_predictions.save()
+    all_predictios.save()
 
 
 evaluate_on_train_set()
 print "All Done"
-
 
