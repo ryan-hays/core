@@ -39,7 +39,7 @@ def index_the_database_into_queue(database_path,shuffle,size = None):
     ligand_files = tf.convert_to_tensor(ligand_file_list,dtype=tf.string)
     receptor_files = tf.convert_to_tensor(receptor_file_list,dtype=tf.string)
 
-    filename_queue = tf.train.slice_input_producer([index_tensor,ligand_files,receptor_files],num_epochs=None,shuffle=shuffle)
+    filename_queue = tf.train.slice_input_producer([index_tensor,ligand_files,receptor_files],shuffle=shuffle)
     return filename_queue,examples_in_database
 
 
@@ -97,7 +97,7 @@ def read_receptor_and_ligand(filename_queue,epoch_counter):
     in_the_range_raw = tf.less(epoch_counter, tf.minimum(FLAGS.top_k, tf.shape(ligand_labels)))
     in_the_range = tf.squeeze(in_the_range_raw)
 
-    current_frame = epoch_counter
+    current_frame = tf.cond(in_the_range,lambda :epoch_counter,lambda :tf.constant(0))
     # FIXME: why would gather sometimes return 3d and sometimes 2d array (?)
     ligand_coords = tf.gather(tf.transpose(multiframe_ligand_coords, perm=[2, 0, 1]),current_frame)
     label = tf.gather(ligand_labels,current_frame)

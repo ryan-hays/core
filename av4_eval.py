@@ -253,9 +253,7 @@ class store_predictions_av3:
 
 class store_predictions:
     '''
-    store add of the prediction results
-    :return:
-    '''
+    store add of the prediction results :return: '''
 
     raw_predictions = defaultdict(list)
     processed_predictions = defaultdict(list)
@@ -309,9 +307,8 @@ class store_predictions:
         submission_csv = pd.DataFrame(records, columns=['Id']+[ 'Predicted_%d'%i for i in range(1,len(records[0]))])
         submission_csv.to_csv(FLAGS.predictions_file_path + '_multiframe_submission.csv', index=False)
 
-    def save_average(self):
-        '''
-        take average of multiple predcition
+    def save_average(self): 
+        ''' take average of multiple predcition
         :return:
         '''
         records = []
@@ -349,9 +346,11 @@ def evaluate_on_train_set():
     # create a filename queue first
     filename_queue, examples_in_database = index_the_database_into_queue(FLAGS.database_path, shuffle=True)
 
+
     # create an epoch counter
     # there is an additional step with variable initialization in order to get the name of "count up to" in the graph
     batch_counter = tf.Variable(0)
+
     sess.run(tf.global_variables_initializer())
     batch_counter_increment = tf.assign(batch_counter,tf.Variable(0).count_up_to(np.round((examples_in_database*FLAGS.num_epochs)/FLAGS.batch_size)))
 
