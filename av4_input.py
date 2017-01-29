@@ -91,8 +91,8 @@ def read_receptor_and_ligand(filename_queue,epoch_counter):
 def image_walk(coords, elements, dense_shape):
     """returns a sparse tensor of shape [num, dense_shape[0], dense_shape[1]...] containing only the positions 
     corresponding to the occurrences of the atom num in elements at each num slice"""
-    dense_shape = [14,dense_shape[0],dense_shape[1],dense_shape[2]]    
-    coords = tf.concat(1, [tf.reshape(tf.cast(elements-1, dtype=tf.int64), [-1,1]), coords])
+    dense_shape = [dense_shape[0],dense_shape[1],dense_shape[2],14]    
+    coords = tf.concat(1, [coords,tf.reshape(tf.cast(elements-1, dtype=tf.int64), [-1,1])])
 
     #num_atoms = tf.shape(coords)[0]
     #coords_transpose = tf.transpose(coords)
