@@ -14,9 +14,7 @@ FLAGS.predictions_file_path = re.sub("netstate", "logs", FLAGS.saved_session)
 
 class store_predictions:
     '''
-    store add of the prediction results
-    :return:
-    '''
+    store add of the prediction results :return: '''
 
     raw_predictions = defaultdict(list)
     processed_predictions = defaultdict(list)
@@ -70,9 +68,8 @@ class store_predictions:
         submission_csv = pd.DataFrame(records, columns=['Id']+[ 'Predicted_%d'%i for i in range(1,len(records[0]))])
         submission_csv.to_csv(FLAGS.predictions_file_path + '_multiframe_submission.csv', index=False)
 
-    def save_average(self):
-        '''
-        take average of multiple predcition
+    def save_average(self): 
+        ''' take average of multiple predcition
         :return:
         '''
         records = []
@@ -104,16 +101,16 @@ def evaluate_on_train_set():
     sess = tf.Session()
 
     # create a filename queue first
-    filename_queue, examples_in_database = index_the_database_into_queue(FLAGS.database_path, shuffle=False)
+    filename_queue, examples_in_database = index_the_database_into_queue(FLAGS.database_path, shuffle=False,size=100)
 
     # create an epoch counter
     batch_counter = tf.Variable(0)
     batch_counter_inc = tf.Variable(0)
-    batch_counter_inc_reset = tf.assign(batch_counter_inc,0)
+    batch_counter_inc_reset = tf.assign(batch_counter_inc,-1)
     batch_counter_increment = tf.assign(batch_counter, batch_counter_inc.count_up_to(
         np.round((examples_in_database * FLAGS.num_epochs) / FLAGS.batch_size)))
     epoch_counter = tf.div(batch_counter * FLAGS.batch_size, examples_in_database)
-
+    
     current_epoch, batch_ligand_filename,batch_in_the_range, y_, x_image_batch = image_and_label_shuffle_queue(batch_size=FLAGS.batch_size,
                                                                      pixel_size=FLAGS.pixel_size,
                                                                      side_pixels=FLAGS.side_pixels,
@@ -133,32 +130,34 @@ def evaluate_on_train_set():
     # restore variables from sleep
     saver = tf.train.Saver()
     saver.restore(sess, FLAGS.saved_session)
+    
+    
+    
     sess.run(batch_counter_inc_reset)
-
+    sess.run(batch_counter_increment)
+    #new_epoch_counter= sess.run(epoch_counter)
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
     # create a variable to store all predicitons
     all_predictios = store_predictions()
-    counter = 0
+    print examples_in_database    
     print "start eval..."
-    break_flag = False
+   
     while True or not coord.should_stop():
         batch_num = sess.run(batch_counter_increment)
         test_current_epoch,test_ligand,test_in_the_range ,test_predictions = sess.run([current_epoch,batch_ligand_filename,batch_in_the_range ,predictions],
                                                               feed_dict={keep_prob: 1})
         all_predictios.add_batch(test_in_the_range,test_current_epoch,test_ligand, test_predictions)
-
-
+        
+        
         print "batch num", batch_num,
         print "current epoch"
         print test_current_epoch
 
         if min(test_current_epoch)>FLAGS.top_k:
-            if break_flag:
-                break
-            else:
-                break_flag = True
+            break
+            
 
     coord.request_stop()
     coord.join(threads, stop_grace_period_secs=5)
