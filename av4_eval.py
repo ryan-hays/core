@@ -103,7 +103,7 @@ def evaluate_on_train_set():
     # create session which all the evaluation happens in
     sess = tf.Session()
 
-    _, batch_ligand_filename,batch_in_the_range, y_, x_image_batch = image_and_label_queue(sess=sess, batch_size=FLAGS.batch_size,
+    current_epoch, batch_ligand_filename,batch_in_the_range, y_, x_image_batch = image_and_label_queue(sess=sess, batch_size=FLAGS.batch_size,
                                                                      pixel_size=FLAGS.pixel_size,
                                                                      side_pixels=FLAGS.side_pixels,
                                                                      num_threads=FLAGS.num_threads,
@@ -129,12 +129,22 @@ def evaluate_on_train_set():
     batch_num = 0
     print "start eval..."
     while True or not coord.should_stop():
-        test_ligand,test_in_the_range ,test_predictions = sess.run([batch_ligand_filename,batch_in_the_range ,predictions],
+        test_current_epoch,test_ligand,test_in_the_range ,test_predictions = sess.run([current_epoch,batch_ligand_filename,batch_in_the_range ,predictions],
                                                               feed_dict={keep_prob: 1})
-        all_predictios.add_batch(test_ligand, test_predictions)
+        all_predictios.add_batch(test_in_the_range,test_ligand, test_predictions)
         batch_num += 1
+
         print "batch num", batch_num,
-        print "\tbatch size", batch_shape[0]
+        print "current epoch"
+        print test_current_epoch
+
+        if min(test_current_epoch)>FLAGS.top_k:
+            break;
+
+    coord.request_stop()
+    coord.join(threads, stop_grace_period_secs=5)
+
+
     all_predictios.save()
 
 
