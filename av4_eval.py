@@ -346,6 +346,7 @@ def evaluate_on_train_set():
 
 
 
+
     # create a filename queue first
     filename_queue, examples_in_database = index_the_database_into_queue(FLAGS.database_path, shuffle=True)
 
@@ -386,6 +387,7 @@ def evaluate_on_train_set():
     # create an instance of a class to store predictions
     all_predictios = store_predictions()
     all_predictions_av3 = store_predictions_av3()
+
 
     # add_batch(self, ligand_file_path, batch_predictions, batch_labels)
 
