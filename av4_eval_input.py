@@ -90,7 +90,7 @@ def read_receptor_and_ligand(filename_queue,epoch_counter):
     in_the_range_raw = tf.less(epoch_counter, tf.minimum(FLAGS.top_k, tf.shape(ligand_labels)))
     in_the_range = tf.squeeze(in_the_range_raw)
 
-    current_frame = count_frame_from_epoch(epoch_counter,ligand_labels)
+    current_frame = epoch_counter
     # FIXME: why would gather sometimes return 3d and sometimes 2d array (?)
     ligand_coords = tf.gather(tf.transpose(multiframe_ligand_coords, perm=[2, 0, 1]),current_frame)
     label = tf.gather(ligand_labels,current_frame)
