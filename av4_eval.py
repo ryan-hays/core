@@ -9,6 +9,7 @@ from av4_networks import intuit_net
 from collections import defaultdict
 
 
+
 FLAGS.saved_session = './summaries/39_netstate/saved_state-37999'
 FLAGS.predictions_file_path = re.sub("netstate","logs",FLAGS.saved_session)
 FLAGS.database_path = '../datasets/unlabeled_av4'
@@ -341,6 +342,7 @@ def evaluate_on_train_set():
 
     # create session which all the evaluation happens in
     sess = tf.Session()
+
 
 
 
