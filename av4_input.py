@@ -21,12 +21,14 @@ def index_the_database_into_queue(database_path, shuffle):
             receptor_file_list.append(receptor_file)
         else:
 
+
             # TODO: remove another naming system from Xiao's scripts                #
             receptor_file = os.path.join(os.path.dirname(ligand_file),
                                          os.path.basename(ligand_file).split("_")[0] + '.av4')
             if os.path.exists(receptor_file):  # remove later
                 ligand_file_list.append(ligand_file)  #
                 receptor_file_list.append(receptor_file)  #
+
 
     index_list = range(len(ligand_file_list))
     examples_in_database = len(index_list)
@@ -46,6 +48,7 @@ def index_the_database_into_queue(database_path, shuffle):
 
 
 def read_receptor_and_ligand(filename_queue, epoch_counter):
+
     """Reads ligand and protein raw bytes based on the names in the filename queue. Returns tensors with coordinates
     and atoms of ligand and protein for future processing.
     Important: by default it does oversampling of the positive examples based on training epoch."""
@@ -91,6 +94,7 @@ def read_receptor_and_ligand(filename_queue, epoch_counter):
 
         def select_pos_frame(): return tf.constant(0)
 
+
         def select_neg_frame(): return tf.mod(tf.div(1 + epoch_counter, 2), tf.shape(ligand_labels) - 1) + 1
 
         current_frame = tf.cond(tf.equal(tf.mod(epoch_counter + idx + 1, 2), 1), select_pos_frame, select_neg_frame)
@@ -99,6 +103,7 @@ def read_receptor_and_ligand(filename_queue, epoch_counter):
     current_frame = count_frame_from_epoch(epoch_counter, ligand_labels)
     ligand_coords = tf.gather(tf.transpose(multiframe_ligand_coords, perm=[2, 0, 1]), current_frame)
     label = tf.gather(ligand_labels, current_frame)
+
 
     return ligand_file, tf.squeeze(epoch_counter), tf.squeeze(label), ligand_elements, tf.squeeze(
         ligand_coords), receptor_elements, tf.squeeze(multiframe_receptor_coords)
@@ -145,6 +150,7 @@ def convert_protein_and_ligand_to_image(ligand_elements, ligand_coords, receptor
 
     attempt = tf.Variable(tf.constant(0, shape=[1]))
     batch_of_transition_matrices = tf.Variable(generate_deep_affine_transform(affine_transform_pool_size))
+
     transition_matrix = tf.gather(batch_of_transition_matrices,
                                   tf.random_uniform([], minval=0, maxval=affine_transform_pool_size, dtype=tf.int64))
 
@@ -155,6 +161,7 @@ def convert_protein_and_ligand_to_image(ligand_elements, ligand_coords, receptor
     # rotate receptor and ligand using an affine transform matrix found
     rotatated_ligand_coords, _ = affine_transform(centered_ligand_coords, final_transition_matrix)
     rotated_receptor_coords, _ = affine_transform(centered_receptor_coords, final_transition_matrix)
+
 
     # check if all of the atoms are in the box, if not set the ligand to 0, but do not raise an error
     def set_elements_coords_zero(): return tf.constant([0], dtype=tf.int32), tf.constant([[0, 0, 0]], dtype=tf.float32)
@@ -191,6 +198,7 @@ def convert_protein_and_ligand_to_image(ligand_elements, ligand_coords, receptor
     # in coordinates of a protein rounded to the nearest integer can be represented as indices of a sparse 3D tensor
     # values from the atom dictionary can be represented as values of a sparse tensor
     # in this case TF's sparse_tensor_to_dense can be used to generate an image out of rounded coordinates
+
 
     # move elemets to the dimension of depth
     complex_coords_4d = tf.concat(1,
@@ -268,9 +276,11 @@ def image_and_label_stable_queue(sess,batch_size,pixel_size,side_pixels,num_thre
 
     # convert coordinates of ligand and protein into an image
 
+
     sparse_images_by_element = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
 
     # dense_complex,ligand_center_of_mass,final_transition_matrix = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
+
 
     # selectively initialize some of the variables
     uninitialized_vars = []
@@ -279,11 +289,14 @@ def image_and_label_stable_queue(sess,batch_size,pixel_size,side_pixels,num_thre
             sess.run(var)
         except tf.errors.FailedPreconditionError:
             uninitialized_vars.append(var)
+
     sess.run(tf.local_variables_initializer())
+
     init_new_vars_op = tf.variables_initializer(uninitialized_vars)
     sess.run(init_new_vars_op)
 
     # create a batch of proteins and ligands to read them together
+
 
     multithread_batch = tf.train.batch([current_epoch, label,
                         sparse_images_by_element], batch_size,

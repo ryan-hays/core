@@ -16,6 +16,7 @@ FLAGS.num_epochs = 10
 FLAGS.top_k = FLAGS.num_epochs
 
 
+
 class store_predictions_av3:
     """stores all of the predictions
     unique and sorted by protein-ligand pairs"""
@@ -248,6 +249,7 @@ class store_predictions_av3:
 #                    f.write(key + ',' + 'L' + '\n')
 
 
+
 class store_predictions:
     '''
     store add of the prediction results
@@ -257,12 +259,14 @@ class store_predictions:
     raw_predictions = defaultdict(list)
     processed_predictions = defaultdict(list)
 
+
     def add_batch(self, ligand_file_paths, batch_current_epoch, batch_predictions):
         ligand_file_name = map(lambda filename:os.path.basename(filename).split('.')[0],ligand_file_paths)
 
         for ligand,current_epoch,prediction in zip(ligand_file_name, batch_current_epoch, batch_predictions):
             #   if in_the_range:
             self.raw_predictions[ligand].append(prediction)
+
 
     def reduce(self):
         '''
@@ -338,6 +342,7 @@ def evaluate_on_train_set():
     # create session which all the evaluation happens in
     sess = tf.Session()
 
+
     # create a filename queue first
     filename_queue, examples_in_database = index_the_database_into_queue(FLAGS.database_path, shuffle=True)
 
@@ -374,6 +379,7 @@ def evaluate_on_train_set():
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess = sess,coord=coord)
 
+
     # create an instance of a class to store predictions
     all_predictios = store_predictions()
     all_predictions_av3 = store_predictions_av3()
@@ -381,6 +387,7 @@ def evaluate_on_train_set():
     # add_batch(self, ligand_file_path, batch_predictions, batch_labels)
 
     print "starting evalution..."
+
 
     try:
         while True or not coord.should_stop():
@@ -407,3 +414,4 @@ def evaluate_on_train_set():
 
 evaluate_on_train_set()
 print "All Done"
+
