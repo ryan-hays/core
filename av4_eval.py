@@ -376,7 +376,12 @@ def evaluate_on_train_set():
 
     # restore variables from sleep
     saver = tf.train.Saver()
+<<<<<<< HEAD
     saver.restore(sess,FLAGS.saved_session)
+=======
+    saver.restore(sess, FLAGS.saved_session)
+    sess.run(batch_counter_inc_reset)
+>>>>>>> add batch_counter_inc used to reset batch_counter
 
     # use
     sess.run(tf.contrib.framework.get_variables_by_name(batch_counter_var_name[0])[0].initializer)
