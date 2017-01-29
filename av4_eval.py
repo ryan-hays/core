@@ -260,7 +260,6 @@ class store_predictions:
     raw_predictions = defaultdict(list)
     processed_predictions = defaultdict(list)
 
-
     def add_batch(self, ligand_file_paths, batch_current_epoch, batch_predictions):
         ligand_file_name = map(lambda filename:os.path.basename(filename).split('.')[0],ligand_file_paths)
 
@@ -376,12 +375,8 @@ def evaluate_on_train_set():
 
     # restore variables from sleep
     saver = tf.train.Saver()
-<<<<<<< HEAD
     saver.restore(sess,FLAGS.saved_session)
-=======
-    saver.restore(sess, FLAGS.saved_session)
-    sess.run(batch_counter_inc_reset)
->>>>>>> add batch_counter_inc used to reset batch_counter
+
 
     # use
     sess.run(tf.contrib.framework.get_variables_by_name(batch_counter_var_name[0])[0].initializer)
@@ -395,7 +390,9 @@ def evaluate_on_train_set():
 
 
 
+
     # add_batch(self, ligand_file_path, batch_predictions, batch_labels)
+
 
 
 
