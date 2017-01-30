@@ -82,7 +82,7 @@ def max_net(x_image_batch,keep_prob):
     with tf.name_scope("input_reshape"):
         print "image batch dimensions", x_image_batch.get_shape()
         # formally adding one depth dimension to the input
-        x_image_with_depth = tf.reshape(x_image_batch, [-1, 20, 20, 20, 14])
+        x_image_with_depth = tf.reshape(x_image_batch, [FLAGS.batch_size, 40, 40, 40, 14])
         print "input to the first layer dimensions", x_image_with_depth.get_shape()
 
     h_conv1 = conv_layer(layer_name='conv1_5x5x5', input_tensor=x_image_with_depth, filter_size=[5, 5, 5, 14, 20])
@@ -106,7 +106,7 @@ def max_net(x_image_batch,keep_prob):
     h_pool5 = pool_layer(layer_name="pool5_2x2x2", input_tensor=h_relu5, ksize=[1, 2, 2, 2, 1], strides=[1, 1, 1, 1, 1])
 
     with tf.name_scope("flatten_layer"):
-        h_pool2_flat = tf.reshape(h_pool5, [-1, 5 * 5 * 5 * 60])
+        h_pool2_flat = tf.reshape(h_pool5, [-1, 10 * 10 * 10 * 60])
 
     h_fc1 = fc_layer(layer_name="fc1", input_tensor=h_pool2_flat, output_dim=1024)
     h_fc1_relu = relu_layer(layer_name="fc1_relu", input_tensor=h_fc1)
@@ -145,10 +145,10 @@ def train():
     # TODO: write atoms in layers of depth
 
     # floating is temporary
-    float_image_batch = tf.cast(dense_image_batch,tf.float32)
+    #float_image_batch = tf.cast(dense_image_batch,tf.float32)
 
     keep_prob = tf.placeholder(tf.float32)
-    predicted_labels= max_net(float_image_batch,keep_prob)
+    predicted_labels= max_net(dense_image_batch,keep_prob)
     
     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predicted_labels,labels=label_batch)
     cross_entropy_mean = tf.reduce_mean(cross_entropy)
@@ -208,7 +208,7 @@ class FLAGS:
     # size of one pixel generated from protein in Angstroms (float)
     pixel_size = 0.5
     # size of the box around the ligand in pixels
-    side_pixels = 20
+    side_pixels = 40
     # weights for each class for the scoring function
     # number of times each example in the dataset will be read
     num_epochs = 50000 # epochs are counted based on the number of the protein examples
@@ -219,7 +219,7 @@ class FLAGS:
     num_classes = 2
     # parameters to optimize runs on different machines for speed/performance
     # number of vectors(images) in one batch
-    batch_size = 100
+    batch_size = 180
     # number of background processes to fill the queue with images
     num_threads = 512
     # data directories
