@@ -88,33 +88,6 @@ def read_receptor_and_ligand(filename_queue,epoch_counter):
     return ligand_file,tf.squeeze(epoch_counter),tf.squeeze(label),ligand_elements,tf.squeeze(ligand_coords),receptor_elements,tf.squeeze(multiframe_receptor_coords)
 
 
-def image_walk(coords, elements, dense_shape):
-    """returns a sparse tensor of shape [num, dense_shape[0], dense_shape[1]...] containing only the positions 
-    corresponding to the occurrences of the atom num in elements at each num slice"""
-    dense_shape = [dense_shape[0],dense_shape[1],dense_shape[2],14]    
-    coords = tf.concat(1, [coords,tf.reshape(tf.cast(elements-1, dtype=tf.int64), [-1,1])])
-
-    #num_atoms = tf.shape(coords)[0]
-    #coords_transpose = tf.transpose(coords)
-    #_, ind_sort_z = tf.nn.top_k(-coords_transpose, k = num_atoms)
-    #coords_sort_z = tf.gather(coords, ind_sort_z[3])
-    #coords_transpose_z = tf.transpose(coords_sort_z)
-    #_, ind_sort_y = tf.nn.top_k(-coords_transpose_z, k = num_atoms)
-    #coords_sort_y = tf.gather(coords_sort_z, ind_sort_y[2])
-    #coords_transpose_y = tf.transpose(coords_sort_y)
-    #_, ind_sort_x = tf.nn.top_k(-coords_transpose_y, k=num_atoms)
-    #coords_sort_x = tf.gather(coords_sort_y, ind_sort_x[1])
-    #coords_transpose_x = tf.transpose(coords_sort_x)
-    #_, ind_sort_elements = tf.nn.top_k(-coords_transpose_x, k=num_atoms)
-    #coords_sort_elements = tf.gather(coords_sort_x, ind_sort_elements[0])
-    #coords_transpose_elements = tf.transpose(coords_sort_elements)
-
-    #sparse_tensors_by_element = tf.SparseTensor(indices=coords_sort_elements, values=coords_transpose_elements[0]+1, shape=dense_shape)
-    sparse_tensors_by_element = tf.SparseTensor(indices=coords, values=tf.cast(elements,tf.float32), shape=dense_shape)
-    # TODO reshape by reference without having to write out explicitly 
-    return sparse_tensors_by_element
-
-
 def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size):
     """Take coordinates and elements of protein and ligand and convert them into an image.
     Return image with one dimension so far."""
@@ -185,12 +158,12 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     # values from the atom dictionary can be represented as values of a sparse tensor
     # in this case TF's sparse_tensor_to_dense can be used to generate an image out of rounded coordinates
 
-    all_sparse_elements = image_walk(complex_coords, complex_elements, [side_pixels,side_pixels,side_pixels])
-    
-    # FIXME: sparse_tensor_to_dense has not been properly tested.
-    # FIXME: I may need to sort indices according to TF's manual on the function
+    # move elemets to the dimension of depth
+    complex_coords_4d = tf.concat(1, [complex_coords, tf.reshape(tf.cast(complex_elements - 1, dtype=tf.int64), [-1, 1])])
+    sparse_tensor_4d = tf.SparseTensor(indices=complex_coords_4d, values=tf.ones(tf.shape(complex_elements)), shape=[side_pixels,side_pixels,side_pixels,14])
+
     # FIXME: try to save an image and see how it looks like
-    return all_sparse_elements, ligand_center_of_mass,final_transition_matrix
+    return sparse_tensor_4d, ligand_center_of_mass,final_transition_matrix
 
 def image_and_label_shuffle_queue(batch_size,pixel_size,side_pixels,num_threads,filename_queue,epoch_counter):
     """Creates shuffle queue for training the network"""

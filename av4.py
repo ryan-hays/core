@@ -219,7 +219,7 @@ class FLAGS:
     num_classes = 2
     # parameters to optimize runs on different machines for speed/performance
     # number of vectors(images) in one batch
-    batch_size = 180
+    batch_size = 160
     # number of background processes to fill the queue with images
     num_threads = 512
     # data directories
