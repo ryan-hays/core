@@ -94,7 +94,7 @@ def read_receptor_and_ligand(filename_queue,epoch_counter):
 
     # After scanning all the epoch, batch join will raise outOfRange error.
     # so we used in_the_range to mark if current frame is still the one we need
-    in_the_range_raw = tf.less(epoch_counter, tf.minimum(FLAGS.top_k, tf.shape(ligand_labels)))
+    in_the_range_raw = tf.less(epoch_counter, tf.minimum(FLAGS.top_k+1, tf.shape(ligand_labels)))
     in_the_range = tf.squeeze(in_the_range_raw)
 
     current_frame = tf.cond(in_the_range,lambda :epoch_counter,lambda :tf.constant(0))

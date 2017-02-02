@@ -132,10 +132,7 @@ def evaluate_on_train_set():
     saver.restore(sess, FLAGS.saved_session)
     
     
-    
-    sess.run(batch_counter_inc_reset)
-    sess.run(batch_counter_increment)
-    #new_epoch_counter= sess.run(epoch_counter)
+    sess.run(tf.global_variables_initializer())
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
