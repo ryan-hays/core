@@ -10,11 +10,21 @@ def index_the_database_into_queue(database_path,shuffle):
     # TODO controls epochs here
     ligand_file_list = []
     receptor_file_list = []
-    for ligand_file in glob(os.path.join(database_path+'/**/', "*_ligand.av4")):
+    # for the ligand it's necessary and sufficient to have an underscore in it's name
+    print "number of ligands:", len(glob(os.path.join(database_path+'/**/',"*[_]*.av4")))
+
+    for ligand_file in glob(os.path.join(database_path+'/**/',"*[_]*.av4")):
         receptor_file = "/".join(ligand_file.split("/")[:-1]) + "/" + ligand_file.split("/")[-1][:4] + '.av4'
         if os.path.exists(receptor_file):
             ligand_file_list.append(ligand_file)
             receptor_file_list.append(receptor_file)
+        else:
+
+            # TODO: remove another naming system from Xiao's scripts                #
+            receptor_file = os.path.join(os.path.dirname(ligand_file),os.path.basename(ligand_file).split("_")[0]+'.av4')
+            if os.path.exists(receptor_file):                                       # remove later
+                ligand_file_list.append(ligand_file)                                #
+                receptor_file_list.append(receptor_file)                            #
 
     index_list = range(len(ligand_file_list))
     examples_in_database = len(index_list)
@@ -140,8 +150,10 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
 
     # move coordinates of a complex to an integer number so as to put every atom on a grid
     # ceiled coords is an integer number out of real coordinates that corresponds to the index on the cell
-    ceiled_ligand_coords = tf.cast(tf.round(-0.5 + (tf.cast(side_pixels,tf.float32)*0.5) + (rotatated_ligand_coords/pixel_size)),tf.int64)
-    ceiled_receptor_coords = tf.cast(tf.round(-0.5 + (tf.cast(side_pixels, tf.float32) * 0.5) + (rotated_receptor_coords/pixel_size)),tf.int64)
+    # epsilon - potentially, there might be very small rounding errors leading to additional indexes
+    epsilon = tf.constant(0.999,dtype=tf.float32)
+    ceiled_ligand_coords = tf.cast(tf.round((-0.5 + (tf.cast(side_pixels,tf.float32)*0.5) + (rotatated_ligand_coords/pixel_size))*epsilon),tf.int64)
+    ceiled_receptor_coords = tf.cast(tf.round((-0.5 + (tf.cast(side_pixels, tf.float32) * 0.5) + (rotated_receptor_coords/pixel_size))*epsilon),tf.int64)
 
     # crop atoms of the protein that do not fit inside the box
     top_filter = tf.reduce_max(ceiled_receptor_coords,reduction_indices=1)<side_pixels
@@ -160,23 +172,23 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
 
     # move elemets to the dimension of depth
     complex_coords_4d = tf.concat(1, [complex_coords, tf.reshape(tf.cast(complex_elements - 1, dtype=tf.int64), [-1, 1])])
-    sparse_tensor_4d = tf.SparseTensor(indices=complex_coords_4d, values=tf.ones(tf.shape(complex_elements)), shape=[side_pixels,side_pixels,side_pixels,14])
+    sparse_image_4d = tf.SparseTensor(indices=complex_coords_4d, values=tf.ones(tf.shape(complex_elements)), shape=[side_pixels,side_pixels,side_pixels,14])
 
     # FIXME: try to save an image and see how it looks like
-    return sparse_tensor_4d, ligand_center_of_mass,final_transition_matrix
+    return sparse_image_4d,ligand_center_of_mass,final_transition_matrix
 
-def image_and_label_shuffle_queue(batch_size,pixel_size,side_pixels,num_threads,filename_queue,epoch_counter):
+def image_and_label_queue(batch_size,pixel_size,side_pixels,num_threads,filename_queue,epoch_counter):
     """Creates shuffle queue for training the network"""
 
     # read one receptor and stack of ligands; choose one of the ligands from the stack according to epoch
-    _,current_epoch,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue,epoch_counter=epoch_counter)
+    ligand_file,current_epoch,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue,epoch_counter=epoch_counter)
 
     # convert coordinates of ligand and protein into an image
-    sparse_images_div_element,_,_ = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
+    sparse_image_4d,_,_ = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
 
     # create a batch of proteins and ligands to read them together
-    multithread_batch = tf.train.batch([current_epoch, label, sparse_images_div_element], batch_size, num_threads=num_threads,
-                                       capacity=batch_size * 3,dynamic_pad=True,shapes=[[], [], [None]])
+    multithread_batch = tf.train.batch([ligand_file,current_epoch, label, sparse_image_4d], batch_size, num_threads=num_threads,
+                                       capacity=batch_size * 3,dynamic_pad=True,shapes=[[],[], [], [None]])
 
     return multithread_batch
 
