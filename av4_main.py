@@ -46,15 +46,16 @@ def train():
     merged_summaries = tf.summary.merge_all()
     train_writer = tf.summary.FileWriter((FLAGS.summaries_dir + '/' + str(FLAGS.run_index) + "_train"), sess.graph)
     
+    # initialize all variables (two thread variables should have been initialized in av4_input already)
+    #sess.run(tf.local_variables_initializer())
+    sess.run(tf.global_variables_initializer())
+
     # create saver to save and load the network state
     saver = tf.train.Saver()
     if not FLAGS.saved_session is None:
         print "Restoring variables from sleep. This may take a while..."
         saver.restore(sess, FLAGS.saved_session)
-    # initialize all variables (two thread variables should have been initialized in av4_input already)
-
-    sess.run(tf.local_variables_initializer())
-    sess.run(tf.global_variables_initializer())
+    
 
     # launch all threads only after the graph is complete and all the variables initialized
     # previously, there was a hard to find occasional problem where the computations would start on unfinished nodes
@@ -98,7 +99,7 @@ class FLAGS:
     # num_classes = 2
     # parameters to optimize runs on different machines for speed/performance
     # number of vectors(images) in one batch
-    batch_size = 200
+    batch_size = 180
     # number of background processes to fill the queue with images
     num_threads = 512
     # data directories
@@ -109,7 +110,7 @@ class FLAGS:
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states
-    saved_session = None#'./summaries/54_netstate/saved_state-9999'
+    saved_session = './summaries/54_netstate/saved_state-9999'
 
 
 def main(_):

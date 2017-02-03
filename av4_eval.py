@@ -4,11 +4,12 @@ import numpy as np
 import pandas as pd
 import re
 from av4_input import image_and_label_queue,index_the_database_into_queue
-from av4_main import FLAGS,intuit_net
+from av4_main import FLAGS
+from av4_networks import intuit_net
 from collections import defaultdict
 
 
-FLAGS.saved_session = './summaries/4_netstate/saved_state-13999'
+FLAGS.saved_session = './summaries/36_netstate/saved_state-23999'
 FLAGS.predictions_file_path = re.sub("netstate","logs",FLAGS.saved_session)
 FLAGS.database_path = '../datasets/unlabeled_av4'
 FLAGS.num_epochs = 25
