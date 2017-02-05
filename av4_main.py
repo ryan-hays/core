@@ -100,7 +100,7 @@ class FLAGS:
     # number of vectors(images) in one batch
     batch_size = 10
     # number of background processes to fill the queue with images
-    num_threads = 1
+    num_threads = 512
     # data directories
 
     # path to the csv file with names of images selected for training
