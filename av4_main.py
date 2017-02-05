@@ -2,10 +2,9 @@ import time,os
 import tensorflow as tf
 import numpy as np
 from av4_input import index_the_database_into_queue,image_and_label_queue
-from av4_networks import intuit_net
+from av4_networks import *
 
 # telling tensorflow how we want to randomly initialize weights
-
 
 def train():
     "train a network"
@@ -17,7 +16,7 @@ def train():
 
     # create an epoch counter
     batch_counter = tf.Variable(0)
-    batch_counter_increment = tf.assign(batch_counter, tf.Variable(0).count_up_to(np.round((examples_in_database*FLAGS.num_epochs)/FLAGS.batch_size)))
+    batch_counter_increment = tf.assign(batch_counter,tf.Variable(0).count_up_to(np.round((examples_in_database*FLAGS.num_epochs)/FLAGS.batch_size)))
     epoch_counter = tf.div(batch_counter*FLAGS.batch_size,examples_in_database)
 
     # create a custom shuffle queue
@@ -28,8 +27,10 @@ def train():
     image_batch = tf.sparse_tensor_to_dense(sparse_image_batch,validate_indices=False)
 
     keep_prob = tf.placeholder(tf.float32)
-    predicted_labels= intuit_net(image_batch,keep_prob,FLAGS.batch_size)
-    
+
+
+    predicted_labels = wide_conv_net(image_batch,keep_prob,FLAGS.batch_size)
+
     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predicted_labels,labels=label_batch)
     cross_entropy_mean = tf.reduce_mean(cross_entropy)
     tf.summary.scalar('cross entropy mean', cross_entropy_mean)
@@ -45,17 +46,15 @@ def train():
     # merge all summaries and create a file writer object
     merged_summaries = tf.summary.merge_all()
     train_writer = tf.summary.FileWriter((FLAGS.summaries_dir + '/' + str(FLAGS.run_index) + "_train"), sess.graph)
-    
-    # initialize all variables (two thread variables should have been initialized in av4_input already)
-    #sess.run(tf.local_variables_initializer())
-    sess.run(tf.global_variables_initializer())
 
     # create saver to save and load the network state
     saver = tf.train.Saver()
-    if not FLAGS.saved_session is None:
+    if FLAGS.saved_session is None:
+        sess.run(tf.global_variables_initializer())
+    else:
         print "Restoring variables from sleep. This may take a while..."
-        saver.restore(sess, FLAGS.saved_session)
-    
+        saver.restore(sess,FLAGS.saved_session)
+
 
     # launch all threads only after the graph is complete and all the variables initialized
     # previously, there was a hard to find occasional problem where the computations would start on unfinished nodes
@@ -99,18 +98,17 @@ class FLAGS:
     # num_classes = 2
     # parameters to optimize runs on different machines for speed/performance
     # number of vectors(images) in one batch
-    batch_size = 180
+    batch_size = 10
     # number of background processes to fill the queue with images
-    num_threads = 512
+    num_threads = 1
     # data directories
 
     # path to the csv file with names of images selected for training
     database_path = "../datasets/labeled_av4"
-
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states
-    saved_session = './summaries/54_netstate/saved_state-9999'
+    saved_session = None#'./summaries/36_netstate/saved_state-23999'
 
 
 def main(_):
@@ -122,10 +120,10 @@ def main(_):
            or tf.gfile.Exists(summaries_dir + "/" + str(FLAGS.run_index) +'_netstate') or tf.gfile.Exists(summaries_dir + "/" + str(FLAGS.run_index)+'_logs')) and FLAGS.run_index < 1000:
         FLAGS.run_index += 1
     else:
-        tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) + '_train' )
-        tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) + '_test')
-        tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) + '_netstate')
-        tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) + '_logs')
+        tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) +'_train' )
+        tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) +'_test')
+        tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) +'_netstate')
+        tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) +'_logs')
     train()
 
 if __name__ == '__main__':
