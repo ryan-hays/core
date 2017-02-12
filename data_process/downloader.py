@@ -8,11 +8,13 @@ import multiprocessing
 import threading
 
 
-
 class parseRCSB:
     '''
     Download pdb from rcsb and split it into receptor and ligand
+
     '''
+    #2 what is rcsb - how does it work aka 1,2,3
+
     def __init__(self):
         self.get_address = lambda PDB: 'https://files.rcsb.org/download/' + PDB + '.pdb'
         self.thread_num = FLAGS.thread_num
@@ -21,17 +23,17 @@ class parseRCSB:
         self.get_dataframe()
 
     def get_dataframe(self):
-        content = open('target_PDB.txt').readline()
-        content = content.split(',')
+        content = open('target_PDB.txt').readline()                     #1 content of what and where
+        content = content.split(',')                                    # I assume you are reading pdbs from the text file ?
         content = map(lambda x: x.strip(), content)
         self.pdb_list = content
 
-    def error_log(self, content):
+    def error_log(self, content):                                       #3 again "content" ?
         # write down error information
         with open(self.log_file, 'a') as fout:
             fout.write(content)
 
-    def downloads(self, item):
+    def downloads(self, item):                                          #4 name of the function is not informative
         '''
         Download pdb from rcsb and split it into receptor and ligand
         :param item: 4 letter PDB ID '3EML'
@@ -68,11 +70,13 @@ class parseRCSB:
             self.error_log("{} doesn't have ligand.\n".format(item))
             return None
 
+        #5 I would create a printable class "statistics"
 
         ligand_flags = False
 
         for each in prody.HierView(hetero).iterResidues():
-            if each.numAtoms() <= FLAGS.atom_num_threahold:
+            if each.numAtoms() <= FLAGS.atom_num_threahold:                                     # 6there will be many thresholds
+                                                                                                # let's organize them together into a class FLAGS
                 # ignore ligand if atom num is less than threshold
                 continue
             else:
@@ -85,16 +89,16 @@ class parseRCSB:
                 prody.writePDB(ligand_path, each)
 
         if ligand_flags:
-            receptor_path = os.path.join(FLAGS.splited_receptor_folder, pdbname + '.pdb')
+            receptor_path = os.path.join(FLAGS.splited_receptor_folder, pdbname + '.pdb')               # 7 splited receptor folder is a bad name
             prody.writePDB(receptor_path, receptor)
         else:
-            self.error_log("{} doesn't convert, no ligand have more than 10 atoms.\n")
+            self.error_log("{} doesn't convert, no ligand have more than 10 atoms.\n")                  #8 look at #5 single class "statistics" would help
 
-    def thread_convert(self, func, dataframe, index):
+    def thread_convert(self, func, dataframe, index):                                                   #9 what does "thread convert mean" ????
         for i in index:
             func(dataframe[i])
 
-    def process_convert(self, func, dataframe, index):
+    def process_convert(self, func, dataframe, index):                                                  #10 what does "process convert mean" ???
         # linspace contain end value but range don't
         # so we use edge[i+1] to select value in index
         # end should be len(index)-1
@@ -118,17 +122,17 @@ class parseRCSB:
         for t in thread_list:
             t.join()
 
-    def convert(self):
+    def convert(self):                                                                                  #11 we already have "thread convert","process convert"
 
-        convert_func = self.downloads
+        convert_func = self.downloads                                                                   # convert is a bad name now
 
         # when there's not enough entry to comvert , decrease thread's num
-        if len(self.pdb_list) < self.process_num * self.thread_num:
+        if len(self.pdb_list) < self.process_num * self.thread_num:                                     #12 not necessary function that takes space- comment it out
             for i in range(len(self.pdb_list)):
                 convert_func(self.pdb_list[i])
             return
 
-        edge = np.linspace(0, len(self.pdb_list), self.process_num + 1).astype(int)
+        edge = np.linspace(0, len(self.pdb_list), self.process_num + 1).astype(int)                     #13 what does "edge" mean
         process_list = [multiprocessing.Process(target=self.process_convert,
                                                 args=(convert_func,
                                                       self.pdb_list,
@@ -161,3 +165,6 @@ class FLAGS:
 if __name__ == '__main__':
     parser = parseRCSB()
     parser.convert()
+
+
+#14 downloader.py is not informative at all
