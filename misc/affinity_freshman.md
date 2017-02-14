@@ -12,7 +12,7 @@ Module 2, Convolutional Neural Networks
 
 
 ####TensorFlow tutorials to complete
-_If you are familiar with all of the concepts in this list: tensor graph, session, tf.global_variable_initializer, tf.train.coordinator, tf.train.start_queue_runners, tf.nn.sparse_softmax_cross_entropy_with_logits, tf.saver, tf.summary, tf.summary.FileWriter,tf.name_scope, please, feel free to skip to the next section._
+_If you are familiar with all of the concepts in this list: tensor graph, session, tf.global_variable_initializer, tf.train.coordinator, tf.train.start_queue_runners, tf.nn.sparse_softmax_cross_entropy_with_logits, tf.saver, tf.summary, tf.summary.FileWriter, tf.name_scope, please, feel free to skip to the next section._
 
 
 [MNIST](https://www.tensorflow.org/tutorials/mnist/beginners/)  
