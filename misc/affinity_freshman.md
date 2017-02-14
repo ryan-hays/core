@@ -1,16 +1,22 @@
-For the introduction to convolutional networks:   
-http://cs231n.github.io/  
-complete  
-Module 1  
-Module 2  
+###_Quick Introduction to Affinity_  
+_this page assembles together the resources that can help anyone, even without specific machine learning background to start working on affinity in less than two weeks._
 
-ConvNets  
-https://www.tensorflow.org/tutorials/mnist/beginners/  
-https://www.tensorflow.org/tutorials/mnist/pros/  
-https://www.tensorflow.org/tutorials/mnist/tf/  
-https://www.tensorflow.org/tutorials/deep_cnn/  
-https://github.com/carpedm20/DCGAN-tensorflow  
-  
+####Background Readings
+_"Convolutional Neural Networks for Visual Recognition"_
+http://cs231n.github.io/  
+Please, read through  
+Module 1, Neural Networks      
+Module 2, Convolutional Neural Networks   
+
+####TensorFlow tutorials to complete
+MNIST <pre>                   https://www.tensorflow.org/tutorials/mnist/beginners/  
+Deep MNIST                  https://www.tensorflow.org/tutorials/mnist/pros/  
+Understandig TensorFlow     https://www.tensorflow.org/tutorials/mnist/tf/  
+CIFAR10                     https://www.tensorflow.org/tutorials/deep_cnn/  
+Image Generation DCGAN      https://github.com/carpedm20/DCGAN-tensorflow  
+
+####Theoretical Introduction
+
 Start with digit generation:  
   
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
