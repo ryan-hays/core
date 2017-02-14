@@ -1,8 +1,9 @@
 ###_Quick Introduction to Affinity_  
-_this page assembles together the resources that can help anyone, even without specific machine learning background to start working on affinity in less than two weeks._
+_The aim of the resources on this page is to allow anyone, even without specific machine learning background, to quickly get up to speeed with Affinity Core virtual screening engine. The estimated time for completions is under two weeks._
 
 ####Background Readings
-_"Convolutional Neural Networks for Visual Recognition"_
+_If you are familiar with all of the concepts in this list: weights, biases, activation function, ReLU, softmax, convolution, pooling, layers of depth, batch, gradient descent, AdamOptimizer, please feel free to skip to the next section._  
+_CS231n "Convolutional Neural Networks for Visual Recognition"_
 http://cs231n.github.io/  
 Please, read through  
 Module 1, Neural Networks      
