@@ -8,7 +8,7 @@ CS231n "Convolutional Neural Networks for Visual Recognition"
 http://cs231n.github.io/  
 Please, read through  
 Module 1, Neural Networks      
-`Module 2, Convolutional Neural Networks`   
+Module 2, Convolutional Neural Networks   
 
 
 ####TensorFlow tutorials to complete
@@ -35,8 +35,8 @@ av4_database_master
 av4_atom_dictionary
 
 For development purposes we host an AWS instance with a single Tesla K80 GPU
-<pre>
-# clone 
+
+`# clone 
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
 cd core  
 python av4_main.py  
@@ -81,7 +81,7 @@ Usually evaluations are written here
 Visualizing the network  
 
 sudo python -m tensorflow.tensorboard --logdir=. --port=80  
-<\pre>
+`
 Open  
 http://awsinstance.com/  
 In your browser to visualize the network. This thing can crawl all the directories  
