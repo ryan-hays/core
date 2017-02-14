@@ -21,10 +21,9 @@ _If you are familiar with all of the concepts in this list: tensor graph, sessio
 [CIFAR10](https://www.tensorflow.org/tutorials/deep_cnn/)  
 [Deep Generative Adversarial Models](https://github.com/carpedm20/DCGAN-tensorflow)  
 
-####Theoretical Introduction
+####Introduction to Affinity Core
 
 Start with digit generation:  
-  
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
 cd core  
 python av4_main.py  
