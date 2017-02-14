@@ -8,7 +8,7 @@ CS231n "Convolutional Neural Networks for Visual Recognition"
 http://cs231n.github.io/  
 Please, read through  
 Module 1, Neural Networks      
-Module 2, Convolutional Neural Networks   
+`Module 2, Convolutional Neural Networks`   
 
 
 ####TensorFlow tutorials to complete
