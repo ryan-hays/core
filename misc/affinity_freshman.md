@@ -36,9 +36,9 @@ av4_atom_dictionary
 
 For development purposes we host an AWS instance with a single Tesla K80 GPU
 
-`clone `
+`clone 
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
-cd core  
+cd core`  
 python av4_main.py  
 vi 
 #To change the database path under flags to   
