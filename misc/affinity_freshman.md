@@ -2,7 +2,8 @@
 _The aim of the resources on this page is to allow anyone, even without specific machine learning background, to quickly get up to speeed with Affinity Core virtual screening engine. The estimated time for completions is under two weeks._
 
 ####Background Readings
-_If you are familiar with all of the concepts the list: weights, biases, activation function, ReLU, softmax, convolution, pooling, layers of depth, batch, gradient descent, AdamOptimizer, please feel free to skip to the next section._  
+_If you are familiar with all of the concepts the list: weights, biases, activation function, ReLU, softmax, convolution, pooling, layers of depth, batch, gradient descent, backpropagation (and chain rule), AdamOptimizer, please feel free to skip to the next section._  
+
 CS231n "Convolutional Neural Networks for Visual Recognition"  
 http://cs231n.github.io/  
 Please, read through  
@@ -12,6 +13,8 @@ Module 2, Convolutional Neural Networks
 
 ####TensorFlow tutorials to complete
 _If you are familiar with all of the concepts in this list: tensor graph, session, tf.global_variable_initializer, tf.train.coordinator, tf.train.start_queue_runners, tf.nn.sparse_softmax_cross_entropy_with_logits, tf.saver, tf.summary, tf.summary.FileWriter,tf.name_scope, please, feel free to skip to the next section._
+
+
 [MNIST](https://www.tensorflow.org/tutorials/mnist/beginners/)  
 [Deep MNIST](https://www.tensorflow.org/tutorials/mnist/pros/)  
 [Understandig TensorFlow's workflow](https://www.tensorflow.org/tutorials/mnist/tf/)  
