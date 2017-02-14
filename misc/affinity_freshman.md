@@ -1,4 +1,4 @@
-###_Quick Introduction to Affinity_  
+###Quick Introduction to Affinity  
 _The aim of the resources on this page is to allow anyone, even without specific machine learning background, to quickly get up to speeed with Affinity Core virtual screening engine. The estimated time for completions is under two weeks._
 
 ####Background Readings
@@ -23,15 +23,26 @@ _If you are familiar with all of the concepts in this list: tensor graph, sessio
 
 ####Introduction to Affinity Core
 
-Start with digit generation:  
+av4_main
+av4_input
+av4_networks
+av4_utils
+
+av4_eval
+
+data and .av4 format
+av4_database_master
+av4_atom_dictionary
+
+For development purposes we host an AWS instance with a single Tesla K80 GPU
+<pre>
+# clone 
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
 cd core  
 python av4_main.py  
-
 vi 
-
-To change the database path under flags to   
-/home/ubuntu/common/data/labeled_av4  
+#To change the database path under flags to   
+#/home/ubuntu/common/data/labeled_av4  
 
 Does not work needs latest tensorflow  
 
@@ -70,7 +81,7 @@ Usually evaluations are written here
 Visualizing the network  
 
 sudo python -m tensorflow.tensorboard --logdir=. --port=80  
-
+<\pre>
 Open  
 http://awsinstance.com/  
 In your browser to visualize the network. This thing can crawl all the directories  
