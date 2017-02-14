@@ -8,12 +8,13 @@ Please, read through
 Module 1, Neural Networks      
 Module 2, Convolutional Neural Networks   
 
+
 ####TensorFlow tutorials to complete
-MNIST <pre>                   https://www.tensorflow.org/tutorials/mnist/beginners/  
-Deep MNIST                  https://www.tensorflow.org/tutorials/mnist/pros/  
-Understandig TensorFlow     https://www.tensorflow.org/tutorials/mnist/tf/  
-CIFAR10                     https://www.tensorflow.org/tutorials/deep_cnn/  
-Image Generation DCGAN      https://github.com/carpedm20/DCGAN-tensorflow  
+[MNIST](https://www.tensorflow.org/tutorials/mnist/beginners/)  
+[Deep MNIST](https://www.tensorflow.org/tutorials/mnist/pros/)  
+[Understandig TensorFlow's workflow](https://www.tensorflow.org/tutorials/mnist/tf/)  
+[CIFAR10](https://www.tensorflow.org/tutorials/deep_cnn/)  
+[Image Generation DCGAN](https://github.com/carpedm20/DCGAN-tensorflow)  
 
 ####Theoretical Introduction
 
