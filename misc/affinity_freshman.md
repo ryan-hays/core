@@ -24,7 +24,8 @@ _If you are familiar with all of the concepts in this list: tensor graph, sessio
 ####Introduction to Affinity Core
 
 Running the Network
-`av4_main<br/>  
+`av4_main
+
 av4_input`
 `av4_networks`
 `av4_utils`
