@@ -216,7 +216,7 @@ Cross entropy (our cost function) goes down as we are training the network.
 Sparsity of Rectifier Linear Unit is a percentage of zero-valued outputs of the layer. 
 In chain rule for backpropagation, the derivative on sparse neuron is 0, and the derivative on downstream 
 neurons is also 0. If the sparsity for the layer is exactly 1, backpropagation does not work, and weights 
-can't be updated. That is what frequently happens when the network "explodes".
+can't be updated. That is what frequently happens when the network "explodes" because of the incorrect weight initialization.
 
 
 
