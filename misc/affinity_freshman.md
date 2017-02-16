@@ -55,16 +55,60 @@ av4_networks.py
 # tf.constant(0.01, shape=shape)
 # or weight variable
 # tf.truncated_normal(shape, stddev=0.005)
-# initial weights and biases for trainable variables are usually initialized with small random positive values
-# deep networks can easily run out of control and owerflow the floats 
-# that's why it's important to initialize them
+# initial weights and biases for trainable variables are usually initialized with small random positive 
+# values. Deep networks can easily run out of control and owerflow the floats in higher layers 
+# if not initialized properly.
+# That's why it's important to initialize variables very accurately
 # especially deep networks can be hierarchically constructed 
 # when the new layer(s) is added to the top of existing trained network
 
 # crucial part 3: variable summaries
-# IE: tf.summary.histogram, tf.summary.scalar, and tf.name_scope (groups variables together under a common name)
+# IE: tf.summary.histogram, tf.summary.scalar, 
+# and tf.name_scope (groups variables together under a common name)
 # variable summaries are written in a separate file and help to monitor the state and evolution of the network
 # during training or testing
+
+
+
+
+av4_input.py
+# is script that reads and indexes the database in av4 format, and creates batches of images
+# in 3D that can be fed to the network
+# av4 database consists of thousands of folders - one for each protein
+# each protein can have many ligands
+# each ligand av4 file can have many positions (frames), and every frame has it's label
+# the name of each folder IE 1QGT, 4G93 each correspond to a particular PDB id original file for which can be 
+# found at http://www.rcsb.org/
+
+# crucial part 1: index_the_database_into_queue
+# crawls of all the folders in the database and creates tensor of filenames
+
+# crucial part 2: read_receptor_and_ligand
+# reads a single example of receptor and ligand from the database
+# returns coordinates and name (label) of every atom (only one frame depending on epoch counter)
+
+# crucial part 3: convert_protein_and_ligand_to_image
+# creates an image (sparse or dense) from input atom coordinates
+# dense image is cubic, has only some atoms of the protein, and describes pixels (not atoms)
+# empty spaces in dense image are filled with zeros
+
+# crucial part 4: tf.train.batch (for three reasons)
+# reason 1:
+# it runs multiple independent threads of image creation
+# reason 2:
+# it batches images together
+# single images are small and tensor operations in them (such as convolution or pooling)
+# are not efficient. 
+# reason 3:
+# gradient descent optimizer gets much better gradient from multiple images. 
+# Ideally, every single gradient descent step would be applied to a representative sample of a whole database
+# this is better achievable with larger batches
+
+
+
+# av4_main.py
+
+
 ``` 
 
 a library of different networks  
