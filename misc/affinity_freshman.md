@@ -217,7 +217,8 @@ Sparsity of Rectifier Linear Unit is a percentage of zero-valued outputs of the 
 In chain rule for backpropagation, the derivative on sparse neuron is 0, and the derivative on downstream 
 neurons is also 0. If the sparsity for the layer is exactly 1, backpropagation does not work, and weights 
 can't be updated. That is what frequently happens when the network "explodes" because of the incorrect weight initialization.
-
+![alt_tag](https://github.com/mitaffinity/core/blob/master/misc/histogram.png)
+Biases that all vere all initialized at 0.001 diverge as we are training our network. 
 
 
 
