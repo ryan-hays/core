@@ -130,6 +130,8 @@ here is how a typical session on our Amazon graphical instance with K80 GPU woul
 # log into our remote machine 
 # email maksym to get the key
 ssh -i P2_key.pem ubuntu@awsinstance.com
+cd maksym
+# every member of the group should have his or her folder
 # clone affinity core into your working directory 
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
 cd core 
@@ -163,14 +165,42 @@ pkill -9 python
 ```
 
 ####Step 2: evaluating the network
-The network from the previous step should have resulted in four outputs
+The network training in the previous step should have resulted in four folders with outputs:
 ```
 1_logs   
 1_netstate   
 1_test   
 1_train  
 ```
-and in addition you will need thse three sripts
+`1_logs` might be empty, and will be used to write outputs during evaluation.
+`1_netstate` will store the saved weights and biases for every trainable variable of the network 
+(and also all other variables, such as epoch counter)
+`1_train` and `1_test` should store summaries for variable states during training and testing that can
+be visualized. Let's expect the outputs of in the foders
+
+```
+ssh -i P2_key.pem ubuntu@awsinstance.com
+# now I am
+# ubuntu@ip-172-31-4-5:~$
+# cd maksym
+cd /core/summaries
+cd 1_netstate
+ls -l
+# should show all of the files together with their size
+# IE: 96789276 Jan 29 16:55 saved_state-60999.data-00000-of-00001
+cd ../1_train
+ls
+# should show 
+# events.out.tfevents.1485708632.ip-172-31-4-5
+# which is a tensorflow summaries file
+# let's try to visualize it:
+# load tensorflow 0.12 (default version in 
+```
+
+
+
+
+and in addition you will need these three sripts
 ```
 av4_eval.py
 av4_input.py
@@ -204,8 +234,6 @@ av4_eval.py
 # 2 is not straighforward. Since many of the docked positions given to the network are not correct
 # (sometimes all of them)
 ```
-
-
 
 
 the simplest way would be to rescore all of the docked positions, and retain one
