@@ -130,14 +130,14 @@ here is how a typical session on our Amazon graphical instance with K80 GPU woul
 # log into our remote machine 
 # email maksym to get the key
 ssh -i P2_key.pem ubuntu@awsinstance.com
-cd maksym
 # every member of the group should have his or her folder
+cd maksym
 # clone affinity core into your working directory 
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
 cd core 
 python av4_main.py  
 # point the script to the location of the database
-vi (or any other command line text file editor)
+vi (or any other command line text file editor; some people like nano) 
 # the database has already been donloaded to the instance
 # change the database path under flags to   
 # /home/ubuntu/common/data/labeled_av4  
@@ -151,21 +151,27 @@ echo $TF12
 
 # start training
 python av4_main.py 
-# to see the outputs
-# and re-launch process in the background
+# seems to work, now it's time to launch this process for a while
+# the key is to launch it on the background, so it does not die when you log off
+# from your remote host. Use the '&' sign
 python av4_main.py &  
-# background process will persist when you exit the session  
+# now background process will persist when you exit the session  
 
-# Only one person/process can access TF on GPU at the same time (by default) 
-# see if anything is running  
+# now the nasty problem: TensorFlow tends not to die and hog on the GPU even after it's been terminated
+# also, there are many of us using GPU instance at the same time, but with TF's default settings
+# only one process will capture all VRAM on the GPU 
+# see if anything is running on the GPU  
 nvidia-smi  
-# should show the running proceses
-# since it's a development instance, it is ok to kill all the python processes with
+# should show the running processes, and how much VRAM each of them takes
+# you can also use top to monitor RAM and CPU
+top
+# since it's a development instance, it is ok to kill all python processes with
+# be carefull as it kills all the python processes that other people are running 
+# it's ok to do it on our instance since it's consired to be only development zone for debugging
 pkill -9 python
-# be ca
 ```
-
-The network training in the previous step should have resulted in four folders with outputs:
+The network training may take hours, or days depending on your dataset and architecture of the network. It's important to note that in our code the epoch is counted by protein-ligand pairs, not by images. Every protein-ligand pair may have multiple incorrect positions of the ligand 50-400, and a single correct, crystal position. In this case, it takes 100 epochs to only show all of the negatives to the network once. That is different from classical understanding of epochs in image recognition when images can't have multiple frames.
+Running the code should have resulted in four folders with outputs:
 ```
 1_logs   
 1_netstate   
@@ -203,6 +209,8 @@ source $TF12
 # now you can navigate your browser to awsinstance.com
 ```
  you should be able to see the following:
+[!alt_tag](https://github.com/mitaffinity/core/blob/master/misc/cross_entropy.png)
+
 
 
 ####Step 2: evaluating the network
