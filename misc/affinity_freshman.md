@@ -25,7 +25,7 @@ _If you are familiar with all of the concepts in this list: tensor graph, sessio
 
 _Structure based virtual screening is an approach that allows to retrieve a very small percent, usually few dozens of molecules, from the large database, of millioons of chemical structures. The process can be imagined as a google search for a flexible key (ligand) with a 3D image of a rigid lock (receptor,protein). Search can be broken into two parts. Since the most optimal relative position of the drug and protein is not known, it has to be estimated (docking). Afterwards, many static protein-ligand complexes have to be ranked by their predicted relative binding affinity (sorting). Usually, 25,000-200,000 pose evaluations are done during docking, and a single pose evaluation is done during ranking. Because Tesla K80 GPU can only evaluate 100-200 images/second, position search for a single ligand may take anywhere between 3 and 35 minutes, docking the average-size database of 1,000,000 of molecules may take 1.2 GPU years. In this example we only apply the network to the previously docked with AutoDock Smina positions, IE: ranking._
 
-####Step 1: teaching the network to distinguish binders from non-binders.
+####Step 1: teaching the network
 You will need four scripts 
 ```
 av4_networks.py
@@ -39,6 +39,34 @@ and an already prepared database of the ligand positions and proteins in av4 bin
 labeled_av4
 ```
 
+
+```
+av4_networks.py 
+# is a library of many different network architectures
+# each of the networks accepts batch of images, and outputs batch of unscaled probabilities (logits)
+
+# crucial part 1: the network itself
+# convolutional layers IE: tf.nn.conv3d
+# pooling layers IE: tf.nn.max_pool3d or tf.nn.avg_pool3d
+# Rectifier Linear Regression Units, or ReLUs IE: tf.nn.relu
+
+# crucial part 2: rules for variable initialization
+# IE: bias_variable 
+# tf.constant(0.01, shape=shape)
+# or weight variable
+# tf.truncated_normal(shape, stddev=0.005)
+# initial weights and biases for trainable variables are usually initialized with small random positive values
+# deep networks can easily run out of control and owerflow the floats 
+# that's why it's important to initialize them
+# especially deep networks can be hierarchically constructed 
+# when the new layer(s) is added to the top of existing trained network
+
+# crucial part 3: variable summaries
+# IE: tf.summary.histogram, tf.summary.scalar, and tf.name_scope (groups variables together under a common name)
+# variable summaries are written in a separate file and help to monitor the state and evolution of the network
+# during training or testing
+``` 
+
 a library of different networks  
 all of the networks accept  
 keeps together hyperparameters of the model such as: batch size,
@@ -47,9 +75,14 @@ keeps together hyperparameters of the model such as: batch size,
 ####Step 2: evaluating the network
 av4_eval
 
+
+#####Step 3: database preparation (optional)
 data and .av4 format
 av4_database_master
 av4_atom_dictionary
+
+
+
 
 For development purposes we host an AWS instance with a single Tesla K80 GPU
 
