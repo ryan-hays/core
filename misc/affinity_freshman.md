@@ -26,18 +26,15 @@ _If you are familiar with all of the concepts in this list: tensor graph, sessio
 _Structure based virtual screening is an approach that allows to retrieve a very small percent, usually few dozens of molecules, from the large database, of millioons of chemical structures. The process can be imagined as a google search for a flexible key (ligand) with a 3D image of a rigid lock (receptor,protein). Search can be broken into two parts. Since the most optimal relative position of the drug and protein is not known, it has to be estimated (docking). Afterwards, many static protein-ligand complexes have to be ranked by their predicted relative binding affinity (sorting). Usually, 25,000-200,000 pose evaluations are done during docking, and a single pose evaluation is done during ranking. Because Tesla K80 GPU can only evaluate 100-200 images/second, position search for a single ligand may take anywhere between 3 and 35 minutes, docking the average-size database of 1,000,000 of molecules may take 1.2 GPU years. In this example we only apply the network to the previously docked with AutoDock Smina positions, IE: ranking._
 
 ####Step 1: teaching the network
-You will need four scripts 
+You will need four scripts, and the database
 ```
 av4_networks.py
 av4_main.py
 av4_input.py
 av4_utils.py
-```
-and an already prepared database of the ligand positions and proteins in av4 binary format.
-
-```
 labeled_av4
 ```
+where `labeled_av4` is an already prepared database of the ligands and proteins in av4 binary format.
 
 
 ```
@@ -101,8 +98,8 @@ av4_input.py
 # are not efficient. 
 # reason 3:
 # gradient descent optimizer gets much better gradient from multiple images. 
-# Ideally, every single gradient descent step would be applied to a representative sample of a whole database
-# this is better achievable with larger batches
+# Ideally, every single gradient descent step would be applied to a representative sample 
+# of a whole database; this is better achievable with larger batches
 
 
 
