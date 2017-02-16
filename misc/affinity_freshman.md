@@ -35,10 +35,9 @@ av4_utils.py
 ```
 and an already prepared database of the ligand positions and proteins in av4 binary format.
 
-```labeled_av4```
-
-
-
+```
+labeled_av4
+```
 
 a library of different networks  
 all of the networks accept  
