@@ -130,13 +130,15 @@ here is how a typical session on our Amazon graphical instance with K80 GPU woul
 # log into our remote machine 
 # email maksym to get the key
 ssh -i P2_key.pem ubuntu@awsinstance.com
+# every member of the group should have his or her folder
+cd maksym
 # clone affinity core into your working directory 
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
 cd core 
 python av4_main.py **(Shouldn't run this until the location pointer has been changed) **  
 # point the script to the location of the database
-vi (or any other command line text file editor)
-# the database has already been downloaded to the instance
+vi (or any other command line text file editor; some people like nano) 
+# the database has already been donloaded to the instance
 # change the database path under flags to   
 # /home/ubuntu/common/data/labeled_av4  
 
@@ -149,29 +151,86 @@ echo $TF12
 
 # start training
 python av4_main.py 
-# to see the outputs
-# and re-launch process in the background
+# seems to work, now it's time to launch this process for a while
+# the key is to launch it on the background, so it does not die when you log off
+# from your remote host. Use the '&' sign
 python av4_main.py &  
-# background process will persist when you exit the session  
+# now background process will persist when you exit the session  
 
-# Only one person/process can access TF on GPU at the same time (by default) 
-# see if anything is running  
+# now the nasty problem: TensorFlow tends not to die and hog on the GPU even after it's been terminated
+# also, there are many of us using GPU instance at the same time, but with TF's default settings
+# only one process will capture all VRAM on the GPU 
+# see if anything is running on the GPU  
 nvidia-smi  
-# should show the running proceses
-# since it's a development instance, it possible to kill all the python processes with
-pkill -9 python  
+# should show the running processes, and how much VRAM each of them takes
+# you can also use top to monitor RAM and CPU
+top
+# since it's a development instance, it is ok to kill all python processes with
+# be carefull as it kills all the python processes that other people are running 
+# it's ok to do it on our instance since it's consired to be only development zone for debugging
+pkill -9 python
 ```
-
-####Step 2: evaluating the network
-The network from the previous step should have resulted in four outputs
+The network training may take hours, or days depending on your dataset and architecture of the network. It's important to note that in our code the epoch is counted by protein-ligand pairs, not by images. Every protein-ligand pair may have multiple incorrect positions of the ligand 50-400, and a single correct, crystal position. In this case, it takes 100 epochs to only show all of the negatives to the network once. That is different from classical understanding of epochs in image recognition when images can't have multiple frames.
+Running the code should have resulted in four folders with outputs:
 ```
 1_logs   
 1_netstate   
 1_test   
 1_train  
 ```
-and in addition you will need thse three sripts
+`1_logs` might be empty, and will be used to write outputs during evaluation.
+`1_netstate` will store the saved weights and biases for every trainable variable of the network 
+(and also all other variables, such as epoch counter)
+`1_train` and `1_test` should store summaries for variable states during training and testing that can
+be visualized. Let's expect the outputs of in the foders
+
 ```
+# log into our instance
+ssh -i P2_key.pem ubuntu@awsinstance.com
+# now I am
+# ubuntu@ip-172-31-4-5:~$
+# cd maksym
+cd /core/summaries
+cd 1_netstate
+ls -l
+# should show all of the files together with their size
+# IE: 96789276 Jan 29 16:55 saved_state-60999.data-00000-of-00001
+cd ../1_train
+ls
+# should show 
+# events.out.tfevents.1485708632.ip-172-31-4-5
+# which is a tensorflow summaries file
+# let's try to visualize it:
+# load tensorflow 0.12 (default version in the environment is 0.10)
+source $TF12
+# it's important to launch the tensorboard on port 80. By default internet browsers, such as chrome,
+# will connect to port 80. You can read more here: 
+# https://en.wikipedia.org/wiki/Port_(computer_networking)
+# by default port 80 is not available to the user (the error is port is busy) that's why we use sudo
+sudo python -m tensorflow.tensorboard --logdir=. --port=80
+# now you can navigate your browser to awsinstance.com
+```
+ you should be able to see the following:
+![alt_tag](https://github.com/mitaffinity/core/blob/master/misc/cross_entropy.png)
+Cross entropy (our cost function) goes down as we are training the network. 
+![alt_tag](https://github.com/mitaffinity/core/blob/master/misc/sparsity.png)
+Sparsity of Rectifier Linear Unit is a percentage of zero-valued outputs of the layer. 
+In chain rule for backpropagation, the derivative on sparse neuron is 0, and the derivative on downstream 
+neurons is also 0. If the sparsity for the layer is exactly 1, backpropagation does not work, and weights 
+can't be updated. That is what frequently happens when the network "explodes" because of the incorrect weight initialization.
+![alt_tag](https://github.com/mitaffinity/core/blob/master/misc/histogram.png)
+Biases that all vere all initialized at 0.001 diverge as we are training our network. 
+
+
+####Step 2: evaluating the network
+
+In addition to four folders resulting from our previous step, you will need these three scripts:
+```
+1_logs   
+1_netstate   
+1_test   
+1_train  
+
 av4_eval.py
 av4_input.py
 av4_utils.py
@@ -205,26 +264,9 @@ av4_eval.py
 # (sometimes all of them)
 ```
 
-
-
-
-the simplest way would be to rescore all of the docked positions, and retain one
-with highest prediction for each ligand for sorting as in AutoDock (and classical biophysics algorithms)
-the network is noisy, and does not work well that way at the moment.
-our best predictions so far incorporate averaging of predictions for many conformations.
-
-#####Step 3: database preparation (optional)
+####Step 3: database preparation (optional)
 data and .av4 format
 av4_database_master
 av4_atom_dictionary
 
-Visualizing the network  
-
-sudo python -m tensorflow.tensorboard --logdir=. --port=80  
-`
-Open  
-http://awsinstance.com/  
-In your browser to visualize the network. This thing can crawl all the directories  
-
-Heavy lifting  
-Clusters  
+####Step 4: running affinity on Bridges, XSEDE national supercomputer
