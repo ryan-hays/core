@@ -62,8 +62,8 @@ av4_networks.py
 # crucial part 3: variable summaries
 # IE: tf.summary.histogram, tf.summary.scalar, 
 # and tf.name_scope (groups variables together under a common name)
-# variable summaries are written in a separate file and help to monitor the state and evolution of the network
-# during training or testing
+# variable summaries are written in a separate file and help to monitor the state and evolution 
+# of the network during training or testing
 
 
 av4_input.py
@@ -72,8 +72,8 @@ av4_input.py
 # av4 database consists of thousands of folders - one for each protein
 # each protein can have many ligands
 # each ligand av4 file can have many positions (frames), and every frame has it's label
-# the name of each folder IE 1QGT, 4G93 each correspond to a particular PDB id original file for which can be 
-# found at http://www.rcsb.org/
+# the name of each folder IE 1QGT, 4G93 each correspond to a particular PDB id  
+# original PDB file with coordinates can be found at http://www.rcsb.org/
 #
 # crucial part 1: index_the_database_into_queue
 # crawls of all the folders in the database and creates tensor of filenames
