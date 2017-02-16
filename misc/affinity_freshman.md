@@ -124,11 +124,42 @@ av4_input.py
 av4_utils.py
 # stores various utilities to support functions that are not natively present in TensorFlow
 ``` 
+here is how a typical session on our Amazon graphical instance with K80 GPU would look like:
 
-a library of different networks  
-all of the networks accept  
-keeps together hyperparameters of the model such as: batch size,
+```
+# log into our remote machine 
+ssh -i P2_key.pem ubuntu@awsinstance.com
+# clone affinity core into your working directory 
+ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
+cd core 
+python av4_main.py  
+# point the script to the location of the database
+vi (or any other command line text file editor)
+# the database has already been donloaded to the instance
+# change the database path under flags to   
+# /home/ubuntu/common/data/labeled_av4  
 
+# does not work; needs latest tensorflow  
+# tensorflow12 is hidden in an envoronmental variable 
+# source $TF12  
+# if you are interested what $TF12 it is:  
+echo $TF12 
+/home/ubuntu/common/venv/tf12/bin/activate  
+
+# start training
+python av4_main.py 
+# to see the outputs
+# and re-launch process in the background
+python av4_main.py &  
+# background process will persist when you exit the session  
+
+# Only one person/process can access TF on GPU at the same time (by default) 
+# see if anything is running  
+nvidia-smi  
+# should show the running proceses
+# since it's a development instance, it possible to kill all the python processes with
+pkill -9 python  
+```
 
 ####Step 2: evaluating the network
 av4_eval
@@ -141,42 +172,6 @@ av4_atom_dictionary
 
 
 
-
-For development purposes we host an AWS instance with a single Tesla K80 GPU
-
-`#clone affinity core into your working directory 
-ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
-cd core`  
-python av4_main.py  
-vi 
-#To change the database path under flags to   
-#/home/ubuntu/common/data/labeled_av4  
-
-Does not work needs latest tensorflow  
-
-Source $TF12  
-
-If you are interested what it is:  
-/home/ubuntu/common/venv/tf12/bin/activate  
-  
-The training should start now  
-python av4_main.py  
-
-The process will break when one exits the terminal  
-
-Launch on the background  
-
-python av4_main.py &  
-Background process will persist regardless if you are in ssh session or not  
-
-Only one person can use the GPU with TF at the same time by default.  
-To see if anything is running  
-nvidia-smi  
-top  
-
-Development zone kill processes with  
-
-pkill -9 python  
 
 Understanding the outputs:  
 
