@@ -160,11 +160,11 @@ python av4_main.py &
 # see if anything is running  
 nvidia-smi  
 # should show the running proceses
-# since it's a development instance, it possible to kill all the python processes with
-pkill -9 python  
+# since it's a development instance, it is ok to kill all the python processes with
+pkill -9 python
+# be ca
 ```
 
-####Step 2: evaluating the network
 The network training in the previous step should have resulted in four folders with outputs:
 ```
 1_logs   
@@ -179,6 +179,7 @@ The network training in the previous step should have resulted in four folders w
 be visualized. Let's expect the outputs of in the foders
 
 ```
+# log into our instance
 ssh -i P2_key.pem ubuntu@awsinstance.com
 # now I am
 # ubuntu@ip-172-31-4-5:~$
@@ -194,8 +195,18 @@ ls
 # events.out.tfevents.1485708632.ip-172-31-4-5
 # which is a tensorflow summaries file
 # let's try to visualize it:
-# load tensorflow 0.12 (default version in 
+# load tensorflow 0.12 (default version in the environment is 0.10)
+source $TF12
+# it's important to launch the tensorboard on port 80. By default internet browsers, such as chrome,
+# will connect to port 80. You can read more here: https://en.wikipedia.org/wiki/Port_(computer_networking)
+# by default port 80 is not available to the user (the error is port is busy) that's why we use sudo
+# now you can navigate your browser to awsinstance.com
 ```
+ you should be able to see the following:
+
+
+####Step 2: evaluating the network
+
 
 
 
