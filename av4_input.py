@@ -163,8 +163,12 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     cropped_receptor_elements = tf.boolean_mask(receptor_elements,retain_atoms)
 
     # merge protein and ligand together. In this case an arbitrary value of 10 is added to the ligand
-    complex_coords = tf.concat(0,[ceiled_ligand_coords,cropped_receptor_coords])
-    complex_elements = tf.concat(0,[ligand_elements+7,cropped_receptor_elements])
+    #complex_coords = tf.concat(0,[ceiled_ligand_coords,cropped_receptor_coords])
+    #complex_elements = tf.concat(0,[ligand_elements+7,cropped_receptor_elements])
+    
+    #TODO TEMP
+    complex_coords = ceiled_ligand_coords
+    complex_elements = ligand_elements
 
     # in coordinates of a protein rounded to the nearest integer can be represented as indices of a sparse 3D tensor
     # values from the atom dictionary can be represented as values of a sparse tensor

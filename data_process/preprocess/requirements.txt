@@ -1,6 +1,0 @@
-prody
-numpy
-scipy
-matplotlib
-biopython
-pyparsing

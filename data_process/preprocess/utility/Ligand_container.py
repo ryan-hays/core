@@ -1,1 +1,0 @@
-#TODO Seperate original class into two parts: One to store PDB(protein) and the other is to store ligands
