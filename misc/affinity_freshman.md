@@ -204,12 +204,20 @@ ls
 # load tensorflow 0.12 (default version in the environment is 0.10)
 source $TF12
 # it's important to launch the tensorboard on port 80. By default internet browsers, such as chrome,
-# will connect to port 80. You can read more here: https://en.wikipedia.org/wiki/Port_(computer_networking)
+# will connect to port 80. You can read more here: 
+# https://en.wikipedia.org/wiki/Port_(computer_networking)
 # by default port 80 is not available to the user (the error is port is busy) that's why we use sudo
 # now you can navigate your browser to awsinstance.com
 ```
  you should be able to see the following:
 ![alt_tag](https://github.com/mitaffinity/core/blob/master/misc/cross_entropy.png)
+Cross entropy (our cost function) goes down as we are training the network. 
+![alt_tag](https://github.com/mitaffinity/core/blob/master/misc/sparsity.png)
+Sparsity of Rectifier Linear Unit is a percentage of zero-valued outputs of the layer. 
+In chain rule for backpropagation, the derivative on sparse neuron is 0, and the derivative on downstream 
+neurons is also 0. If the sparsity for the layer is exactly 1, backpropagation does not work, and weights 
+can't be updated. That is what frequently happens when the network "explodes".
+
 
 
 
