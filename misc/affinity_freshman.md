@@ -119,7 +119,7 @@ av4_input.py
 # 7. fill the graph skeleton with data inputs   IE: tf.train.start_queue_runners
 # 8. also has saver of variable states          IE: tf.train.saver
 # 9. variable summaries to visualize            IE: tf.summaries.writer
-# 10. an epoch counder that counts every read through all proteins in database as one epoch
+# 10. an epoch counter that counts every read through all proteins in database as one epoch
 
 av4_utils.py
 # stores various utilities to support functions that are not natively present in TensorFlow
@@ -128,6 +128,7 @@ here is how a typical session on our Amazon graphical instance with K80 GPU woul
 
 ```
 # log into our remote machine 
+# email maksym to get the key
 ssh -i P2_key.pem ubuntu@awsinstance.com
 # clone affinity core into your working directory 
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
@@ -162,24 +163,60 @@ pkill -9 python
 ```
 
 ####Step 2: evaluating the network
-av4_eval
+The network from the previous step should have resulted in four outputs
+```
+1_logs   
+1_netstate   
+1_test   
+1_train  
+```
+and in addition you will need thse three sripts
+```
+av4_eval.py
+av4_input.py
+av4_utils.py
+```
+the only new script is `av4_eval`  
+```
+av4_eval.py
+# av4_eval script is very similar to av4_main
+#
+# crucial part 1:
+# assembles all of the parts together:
+# 1. input image creation pipeline              IE: ....something = image_and_label_queue 
+# 2. network that makes predictions             IE: intuit_net or nilai_net
+# 3. softmax instead of cost function in main   IE: tf.nn.softmax
+# 4. no optimizer, variables are loaded         IE: saver.restore
+# 5. run while loop pipe the tensor graph       IE: sess.run(train_step_run)
+#
+# crucial part 2: class store_predictions
+# stores, sorts, and saves predictions
+# estimates different evaluation parameters for straightforward binary classification such as 
+# Area Under Curve https://en.wikipedia.org/wiki/Receiver_operating_characteristic
+# Confusion Matrix https://en.wikipedia.org/wiki/Confusion_matrix
+#  
+# crucial part 3: av4_eval can be used for two different tasks
+# 1. distinguishing the correct position within many positions as in docking
+# 2. sorting ligands each of which has many positions as in sorting
+# 1 is very straightforward since our training consits of correct and incorrect positions, 
+# we only need to score all of the available positions
+# our performance on task 1 is very high (AUC > 0.94)
+# 2 is not straighforward. Since many of the docked positions given to the network are not correct
+# (sometimes all of them)
+```
 
+
+
+
+the simplest way would be to rescore all of the docked positions, and retain one
+with highest prediction for each ligand for sorting as in AutoDock (and classical biophysics algorithms)
+the network is noisy, and does not work well that way at the moment.
+our best predictions so far incorporate averaging of predictions for many conformations.
 
 #####Step 3: database preparation (optional)
 data and .av4 format
 av4_database_master
 av4_atom_dictionary
-
-
-
-
-Understanding the outputs:  
-
-1_logs   
-Usually evaluations are written here  
-1_netstate saves the trained weights of the network  
-1_test saves visualization of testing  
-1_train saves visualization of train  
 
 Visualizing the network  
 
@@ -191,6 +228,3 @@ In your browser to visualize the network. This thing can crawl all the directori
 
 Heavy lifting  
 Clusters  
-
-
-
