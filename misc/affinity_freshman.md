@@ -82,7 +82,7 @@ av4_input.py
 # reads a single example of receptor and ligand from the database
 # returns coordinates and name (label) of every atom (only one frame depending on epoch counter)
 #
-# crucial part 3: convert_protein_and_ligand_to_image
+# crucial part 3: convert_protein_and_ligand_to_image ***(A bit unclear, maybe more to differentiate dense image from sparse image. Also describe "pixels" in a bit more detail)***
 # creates an image (sparse or dense) from input atom coordinates
 # dense image is cubic, has only some atoms of the protein, and describes pixels (not atoms)
 # empty spaces in dense image are filled with zeros
@@ -133,10 +133,10 @@ ssh -i P2_key.pem ubuntu@awsinstance.com
 # clone affinity core into your working directory 
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
 cd core 
-python av4_main.py  
+python av4_main.py **(Shouldn't run this until the location pointer has been changed) **  
 # point the script to the location of the database
 vi (or any other command line text file editor)
-# the database has already been donloaded to the instance
+# the database has already been downloaded to the instance
 # change the database path under flags to   
 # /home/ubuntu/common/data/labeled_av4  
 
