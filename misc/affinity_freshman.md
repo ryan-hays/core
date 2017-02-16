@@ -33,9 +33,9 @@ av4_main.py
 av4_input.py
 av4_utils.py
 ```
-and the database of already labeled 0 or 1 positions of the ligands in av4 binary format
+and an already prepared database of the ligand positions and proteins in av4 binary format.
 
-`labeled_av4`
+```labeled_av4```
 
 
 
