@@ -23,14 +23,23 @@ _If you are familiar with all of the concepts in this list: tensor graph, sessio
 
 ####Introduction to Affinity Core
 
-_Structure based virtual screening is an approach that allows to retrieve a very small percent, usually few dozens of molecules, from the large database, of millioons of chemical structures. The process can be imagined as a google search for a flexible key (ligand) with a 3D image of a rigid lock (receptor,protein). Search can be broken into two parts. Since the most optimal relative position of the drug and protein is not known, it has to be estimated (docking). Afterwards, many static protein-ligand complexes have to be ranked by their predicted relative binding affinity (sorting). Usually, 25,000-200,000 pose evaluations are done during docking, and a single pose evaluation is done during ranking. Because Tesla K80 GPU can only evaluate 100-200 images/second, position search for a single ligand may take anywhere between 3 and 35 minutes, docking the average-size database of 1,000,000 of molecules may take 1.2 GPU years. To simplify the process we only apply network to docked conformations in this example._
+_Structure based virtual screening is an approach that allows to retrieve a very small percent, usually few dozens of molecules, from the large database, of millioons of chemical structures. The process can be imagined as a google search for a flexible key (ligand) with a 3D image of a rigid lock (receptor,protein). Search can be broken into two parts. Since the most optimal relative position of the drug and protein is not known, it has to be estimated (docking). Afterwards, many static protein-ligand complexes have to be ranked by their predicted relative binding affinity (sorting). Usually, 25,000-200,000 pose evaluations are done during docking, and a single pose evaluation is done during ranking. Because Tesla K80 GPU can only evaluate 100-200 images/second, position search for a single ligand may take anywhere between 3 and 35 minutes, docking the average-size database of 1,000,000 of molecules may take 1.2 GPU years. In this example we only apply the network to the previously docked with AutoDock Smina positions, IE: ranking._
 
-```av4_main
-av4_input
-av4_networks
-av4_utils
+####Step 1: teaching the network to distinguish binders from non-binders.
+You will need four scripts and the database in av4 of structures to learn from
+```
+av4_networks.py
+av4_main.py
+av4_input.py
+av4_utils.py
 labeled_av4
 ```
+a library of different networks  
+all of the networks accept  
+keeps together hyperparameters of the model such as: batch size,
+
+
+####Step 2: evaluating the network
 av4_eval
 
 data and .av4 format
