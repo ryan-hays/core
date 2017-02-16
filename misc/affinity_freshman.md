@@ -207,6 +207,7 @@ source $TF12
 # will connect to port 80. You can read more here: 
 # https://en.wikipedia.org/wiki/Port_(computer_networking)
 # by default port 80 is not available to the user (the error is port is busy) that's why we use sudo
+sudo python -m tensorflow.tensorboard --logdir=. --port=80
 # now you can navigate your browser to awsinstance.com
 ```
  you should be able to see the following:
@@ -221,15 +222,15 @@ can't be updated. That is what frequently happens when the network "explodes" be
 Biases that all vere all initialized at 0.001 diverge as we are training our network. 
 
 
-
 ####Step 2: evaluating the network
 
-
-
-
-
-and in addition you will need these three sripts
+In addition to four folders resulting from our previous step, you will need these three scripts:
 ```
+1_logs   
+1_netstate   
+1_test   
+1_train  
+
 av4_eval.py
 av4_input.py
 av4_utils.py
@@ -263,24 +264,9 @@ av4_eval.py
 # (sometimes all of them)
 ```
 
-
-the simplest way would be to rescore all of the docked positions, and retain one
-with highest prediction for each ligand for sorting as in AutoDock (and classical biophysics algorithms)
-the network is noisy, and does not work well that way at the moment.
-our best predictions so far incorporate averaging of predictions for many conformations.
-
-#####Step 3: database preparation (optional)
+####Step 3: database preparation (optional)
 data and .av4 format
 av4_database_master
 av4_atom_dictionary
 
-Visualizing the network  
-
-sudo python -m tensorflow.tensorboard --logdir=. --port=80  
-`
-Open  
-http://awsinstance.com/  
-In your browser to visualize the network. This thing can crawl all the directories  
-
-Heavy lifting  
-Clusters  
+####Step 4: running affinity on Bridges, XSEDE national supercomputer
