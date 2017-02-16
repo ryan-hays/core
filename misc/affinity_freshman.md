@@ -209,7 +209,7 @@ source $TF12
 # now you can navigate your browser to awsinstance.com
 ```
  you should be able to see the following:
-[!alt_tag](https://github.com/mitaffinity/core/blob/master/misc/cross_entropy.png)
+![alt_tag](https://github.com/mitaffinity/core/blob/master/misc/cross_entropy.png)
 
 
 
