@@ -134,53 +134,53 @@ av4_utils.py
 ``` 
 here is how a typical session on our Amazon graphical instance with K80 GPU would look like:
 
-```
+```bash
 # log into our remote machine 
 # email maksym to get the key
-ssh -i P2_key.pem ubuntu@awsinstance.com
+$ ssh -i P2_key.pem ubuntu@awsinstance.com
 # every member of the group should have his or her folder
-cd maksym
+$ cd maksym
 # clone affinity core into your working directory 
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
-cd core 
-python av4_main.py
+$ cd core 
+$ python av4_main.py
 # does not work; the database is empty
 # point the script to the location of the database
-vi (or any other command line text file editor; some people like nano) 
+$ vi (or any other command line text file editor; some people like nano) 
 # the database has already been downloaded to the instance
 # change the database path under flags to   
 # /home/ubuntu/common/data/labeled_av4  
-python av4_main.py  
+$ python av4_main.py  
 
 # does not work; needs latest tensorflow  
 # tensorflow12 is hidden in an envoronmental variable 
 # source $TF12  
 # if you are interested what $TF12 it is:  
-echo $TF12 
+$ echo $TF12 
 /home/ubuntu/common/venv/tf12/bin/activate  
 
 # start training
-python av4_main.py 
+$ python av4_main.py 
 # seems to work, now it's time to launch this process for a while
 # the key is to launch it on the background, so it does not die when you log off
 # from your remote host. Use the '&' sign
-python av4_main.py &  
+$ python av4_main.py &  
 # now background process will persist when you exit the session  
 
 # now the nasty problem: TensorFlow tends not to die and hog on the GPU even after it's been terminated
 # also, there are many of us using GPU instance at the same time, but with TF's default settings
 # only one process will capture all VRAM on the GPU 
 # see if anything is running on the GPU  
-nvidia-smi  
+$ nvidia-smi  
 # should show the running processes, and how much VRAM each of them takes
 # you can also use top to monitor RAM and CPU
-top
+$ top
 # since it's a development instance, it is ok to kill all python processes with pkill -9 python
 # be carefull as it kills all the python processes that other people are running 
 # it's ok to do it on our instance since it's consired to be only development zone for debugging
-pkill -9 python
-python av4_main.py &
-exit
+$ pkill -9 python
+$ python av4_main.py &
+$ exit
 ```
 The network training may take hours, or days depending on your dataset and architecture of the network. It's important to note that in our code the epoch is counted by protein-ligand pairs, not by images. Every protein-ligand pair may have multiple incorrect positions of the ligand 50-400, and a single correct, crystal position. In this case, it takes 100 epochs to only show all of the negatives to the network once. That is different from classical understanding of epochs in image recognition when images can't have multiple frames.
 Running the code should have resulted in four folders with outputs:
@@ -198,28 +198,28 @@ be visualized. Let's expect the outputs of in the foders
 
 ```
 # log into our instance
-ssh -i P2_key.pem ubuntu@awsinstance.com
+$ ssh -i P2_key.pem ubuntu@awsinstance.com
 # now I am
 # ubuntu@ip-172-31-4-5:~$
 # cd maksym
-cd /core/summaries
-cd 1_netstate
-ls -l
+$ cd /core/summaries
+$ cd 1_netstate
+$ ls -l
 # should show all of the files together with their size
 # IE: 96789276 Jan 29 16:55 saved_state-60999.data-00000-of-00001
-cd ../1_train
-ls
+$ cd ../1_train
+$ ls
 # should show 
 # events.out.tfevents.1485708632.ip-172-31-4-5
 # which is a tensorflow summaries file
 # let's try to visualize it:
 # load tensorflow 0.12 (default version in the environment is 0.10)
-source $TF12
+$ source $TF12
 # it's important to launch the tensorboard on port 80. By default internet browsers, such as chrome,
 # will connect to port 80. You can read more here: 
 # https://en.wikipedia.org/wiki/Port_(computer_networking)
 # by default port 80 is not available to the user (the error is port is busy) that's why we use sudo
-sudo python -m tensorflow.tensorboard --logdir=. --port=80
+$ sudo python -m tensorflow.tensorboard --logdir=. --port=80
 # now you can navigate your browser to awsinstance.com
 ```
  you should be able to see the following:
@@ -281,26 +281,26 @@ Now let's evaluate our script on distinguishing a single correct position from a
 # Let's download the dataset from Kaggle to our local machine
 # navigate your browser to: https://inclass.kaggle.com/c/affinity4/data
 # and download holdout_av4.zip
-scp -i P2_key.pem holdout_av4.zip ubuntu@awsinstance.com:/home/ubuntu/common/data
-ssh -i P2_key.pem ubuntu@awsinstance.com
-cd common
+$ scp -i P2_key.pem holdout_av4.zip ubuntu@awsinstance.com:/home/ubuntu/common/data
+$ ssh -i P2_key.pem ubuntu@awsinstance.com
+$ cd common
 # unzip the database 
-unzip holdout_av4.zip
+$ unzip holdout_av4.zip
 # get the path to current directory
-pwd 
+$ pwd 
 # /home/ubuntu/common/data/labeled_av4
-cd ~/maksym/core/summaries/1_netstate
-ls
+$ cd ~/maksym/core/summaries/1_netstate
+$ ls
 # note the latest step of the saved network
 # it's saved_state-60999.data-00000-of-00001 in my case
-cd ../..
+$ cd ../..
 # edit 
 # FLAGS.saved_session = ./summaries/1_netstate/saved_state-60999
 # FLAGS.database_path = /home/ubuntu/common/data/labeled_av4
-vi av4_eval.py
+$ vi av4_eval.py
 # now source tensorflow 0.12 and launch the evaluation script
-source $TF12
-python av4_eval.py
+$ source $TF12
+$ python av4_eval.py
 # ....
 # current_epoch: 6 batch_num: [82]  prediction averages: 0.538309   examples per second: 273.89
 # ......
@@ -313,7 +313,7 @@ python av4_eval.py
 # saved_state-60999_predictions.txt
 # saved_state-60999_scores.txt
 # for this kind of evaluation only two files are meaningful:
-vi saved_state-60999_predictions.txt
+$ vi saved_state-60999_predictions.txt
 # saved_state-60999_predictions.txt
 # has four columns:
 # average_prediction   label   filename   predictions
@@ -362,16 +362,16 @@ We have applied our network to distinguish correct position of ligand from incor
 ```
 # edit the name of the database to be used for evaluations
 # to the location of the database at: /home/ubuntu/common/data/labeled_av4
-vi av4_eval.py
+$ vi av4_eval.py
 # run the eval script
-python av4_eval.py
+$ python av4_eval.py
 # the number of epochs in the script FLAGS.num_epochs 
 # will determine the number of frames per each ligand to be evaluated
 # this time we will re-rank only top 20 positions and not consider other 380
 # inspect the outputs of the script at 1_logs
 # cd ./summaries/1_logs
 # again you may find five files in the same folder:
-ls
+$ ls
 # saved_state-60999_average_submission.csv
 # saved_state-60999_max_submission.csv
 # saved_state-60999_multiframe_submission.csv
@@ -379,7 +379,7 @@ ls
 # saved_state-60999_scores.txt
 #
 # this time another three files will carry meaning:
-less saved_state-60999_average_submission.csv
+$ less saved_state-60999_average_submission.csv
 # ID,Predicted
 # 3zw2_270_ligand,0.944675922394
 # 1rmg_432_ligand,0.979166805744
@@ -399,14 +399,14 @@ less saved_state-60999_average_submission.csv
 # will store all of the predictions separated by comma an can be used for future analysis
 # 
 # move all of the predictions to local machine
-cd ..
-tar zcvf 1_logs.tar.gz 1_logs
-pwd
+$ cd ..
+$ tar zcvf 1_logs.tar.gz 1_logs
+$ pwd
 # /home/ubuntu/maksym/core/summaries
-exit
-scp -i P2_key.pem ubuntu@awsinstance.com:/home/ubuntu/maksym/core/summaries/1_logs.tar.gz .
-tar -xzvf 1_logs.tar.gz
-cd 1_logs
+$ exit
+$ scp -i P2_key.pem ubuntu@awsinstance.com:/home/ubuntu/maksym/core/summaries/1_logs.tar.gz .
+$ tar -xzvf 1_logs.tar.gz
+$ cd 1_logs
 # now you are ready to submit your solution:
 # please, navigate your browser to inclass/kaggle.com/c/affinity4
 # how much did you score
