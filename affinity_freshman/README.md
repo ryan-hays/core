@@ -458,3 +458,68 @@ Finally, the naming convention of the database is the following:
  [1a28](http://www.rcsb.org/pdb/explore.do?structureId=1a28) is the structure ID in the PDB. `1a28.av4` is the protein itself, and `1a28_500_ligand.av4` and `1a28_501_ligand.av4` are two of it's ligands.
  
 ####Step 4: running affinity on Bridges, XSEDE national supercomputer
+
+- login to Bridge through XSEDE Single Sign-On (SSO) Hub. 
+```bash
+$ ssh [xsede_username]@login.xsede.org
+$ gsissh bridges
+```
+
+- get groupname
+```bash
+$ id -gn
+```
+your work directory will be `/pylon1/[groupname]/[username]`
+
+- clone affinity source code to work directory
+```bash
+$ cd /pylon1/[groupname]/[username]
+$ git clone https://github.com/mitaffinity/core.git
+```
+
+- copy and paste the key to `$HOME` and change mod
+```
+$ cd $HOME
+$ chmod 400 key.pem
+```
+- transfer data from aws instance to bridges
+``` bash
+$ cd  /pylon1/[groupname]/[username]
+$ scp -i $HOME/key.pem ubuntu@awsinstance.com:/home/ubuntu/common/data/labeled_av4.zip ./
+$ unzip labeled_av4.zip
+```
+- change datapath path in source code  `core/av4_main.py`
+``` python
+database_path = "/pylon1/[groupname]/[username]/labeled_av4"
+```
+
+- create batch script (you can create this script at anywhere, recommand save it under `$HOME`)
+```bash
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH -p GPU
+#SBATCH --ntasks-per-node 28
+#SBATCH -t 48:00:00
+#SBATCH --gres=gpu:4
+#echo commands to stdout
+set -x
+
+#load module
+module load cuda/8.0
+module load tensorflow/0.12.1
+
+#set python environment
+source $TENSORFLOW_ENV/bin/activate
+
+#move to working directory
+cd /pylon1/[groupname]/[username]/core
+
+#run GPU program
+python av4_main.py
+```
+
+- submit job
+```bash
+$ sbatch job.sh
+```
+
