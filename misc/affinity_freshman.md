@@ -345,3 +345,58 @@ av4_database_master
 av4_atom_dictionary
 
 ####Step 4: running affinity on Bridges, XSEDE national supercomputer
+
+login to Bridge through XSEDE Single Sign-On (SSO) Hub. 
+```
+$ ssh [xsede_username]@login.xsede.org
+$ gsissh bridges
+```
+
+get groupname
+```
+$ id -gn
+```
+your work directory will be `/pylon1/[groupname]/[username]`
+
+clone affinity source code to work directory
+```
+$ cd /pylon1/[groupname]/[username]
+$ clone git https://github.com/mitaffinity/core.git
+```
+prepare data
+#todo
+
+create batch script (you can create this script at anywhere, recommand save it under `$HOME`)
+```bash
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH -p GPU
+#SBATCH --ntasks-per-node 28
+#SBATCH -t 48:00:00
+#SBATCH --gres=gpu:4
+#echo commands to stdout
+set -x
+
+#load module
+module load cuda/8.0
+module load tensorflow/0.12.1
+
+#set python environment
+source $TENSORFLOW_ENV/bin/activate
+
+#move to working directory
+cd /pylon1/[groupname]/[username]/core
+
+#run GPU program
+python av4_main.py
+```
+
+submit job
+```
+sbatch job.sh
+```
+
+
+
+
+
