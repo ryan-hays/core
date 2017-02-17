@@ -340,8 +340,43 @@ vi saved_state-60999_predictions.txt
 # around protein-ligand complex randomly, every time an image in different orientation is evaluated
 # ideally, the network should be rotationally and translationally invariant. In that case all of the
 # values in the last column should be same. That is almost the case.
+# another file to look at is saved_state-60999_scores.txt
+# some of the importat parameters such as AUC
+# AUC: 0.947862873006
+# and the confusion matrix: [[7835 1141] [1019 7764]]
+# should be here.
+# you can read more about AUC and the confusion matrix here: 
+# https://en.wikipedia.org/wiki/Receiver_operating_characteristic
 ```
+We have applied our network to distinguish correct position of ligand from incorrect (docking), and it performed very well. Now let's try to apply our network to another stage of virtual screening - ranking. In this case we have multiple ligands (flexible keys), and a series of proteins (rigid locks). In this case we will not do the docking itself, but will use several proposed positions (400) by [smina](https://github.com/mwojcikowski/smina) for each of the ligands. 
+`unlabeleled_av4` contains 10 receptors and, on average, 200 ligands per receptor (100 actives and 100 inactives). There are top 400 positions predicted by smina positions in each ligand av4 file.
+```
+# edit the name of the database to be used for evaluations
+# to the location of the database at: /home/ubuntu/common/data/labeled_av4
+vi av4_eval.py
+# run the eval script
+python av4_eval.py
+# the number of epochs in the script FLAGS.num_epochs 
+# will determine the number of frames per each ligand to be evaluated
+# this time we will re-rank only top 20 positions and not consider other 380
+# inspect the outputs of the script at 1_logs
+# cd ./summaries/1_logs
+# again you may find five files in the same folder:
+ls
+# saved_state-60999_average_submission.csv
+# saved_state-60999_max_submission.csv
+# saved_state-60999_multiframe_submission.csv
+# saved_state-60999_predictions.txt
+# saved_state-60999_scores.txt
+# this time another three files will carry meaning:
+# saved_state-60999_average_submission.csv
+# will store frame averages
+# saved_state-60999_max_submission.csv
+# will store maximum of the frames
+# and can be submitted to Kaggle directly
+# saved_state-60999_multiframe_submission.csv
 
+```
 
 
 ####Step 3: database preparation (optional)
