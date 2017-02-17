@@ -415,9 +415,12 @@ cd 1_logs
 ```
 
 
-####Step 3: database preparation (optional)
+####Step 3: database preparation (demo)
 _We are working hard to make our database construction scripts human-readable. We hope to finish in the near future_  
-Datbase construction script should download crystallographic images from the [Protein Data Bank](
+Database construction is a very complex multistage process, perhaps much more complex than Affinity itself. There are few important things to notice.
+Database is constructed from X-ray crystallographic images from the [Protein Data Bank](http://www.rcsb.org/).
+And binding affinity data is taken from databases like [PubChem](https://pubchem.ncbi.nlm.nih.gov/).
+In the process of preparation ligand is split from it's protein. In addition, fake positions can be generated with standard virtual screening algorithms like [Vina](http://vina.scripps.edu/manual.html).
 data and .av4 format
 av4_database_master
 av4_atom_dictionary
