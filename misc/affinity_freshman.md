@@ -368,14 +368,50 @@ ls
 # saved_state-60999_multiframe_submission.csv
 # saved_state-60999_predictions.txt
 # saved_state-60999_scores.txt
+#
 # this time another three files will carry meaning:
+less saved_state-60999_average_submission.csv
+# ID,Predicted
+# 3zw2_270_ligand,0.944675922394
+# 1rmg_432_ligand,0.979166805744
+# 1b30_303_ligand,0.954633176327
+# 3mw7_516_ligand,0.999969124794
+# 3pby_439_ligand,0.999946951866
+# 4mm5_499_ligand,0.999761760235
+# 1ppf_286_ligand,0.954079449177
+# ...
+# ..
 # saved_state-60999_average_submission.csv
 # will store frame averages
 # saved_state-60999_max_submission.csv
 # will store maximum of the frames
 # and can be submitted to Kaggle directly
 # saved_state-60999_multiframe_submission.csv
-
+# will store all of the predictions separated by comma an can be used for future analysis
+# 
+# move all of the predictions to local machine
+cd ..
+tar zcvf 1_logs.tar.gz 1_logs
+pwd
+# /home/ubuntu/maksym/core/summaries
+exit
+scp -i P2_key.pem ubuntu@awsinstance.com:/home/ubuntu/maksym/core/summaries/1_logs.tar.gz .
+tar -xzvf 1_logs.tar.gz
+cd 1_logs
+# now you are ready to submit your solution:
+# please, navigate your browser to inclass/kaggle.com/c/affinity4
+# how much did you score
+# you can also use post-process 
+# saved_state-60999_multiframe_submission.csv
+# for example, auc_script.py under /misc/ can calculate AUC for any given protein
+# receptor: aa2ar
+# 0.575214145789
+# num predictions: 365
+# receptor: cp2c9
+# 0.540473188014
+# num predictions: 627
+# ...
+# ..
 ```
 
 
