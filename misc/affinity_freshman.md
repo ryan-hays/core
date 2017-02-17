@@ -440,4 +440,12 @@ Data and .av4 format is, generally, stored in the following way
 # ..........
 
 ```
+Finally, the naming convention of the database is the following: 
+```1a28
+     1a28.av4
+     1a28_500_ligand.av4
+     1a28_501_ligand.av4
+ ```
+ [1a28](http://www.rcsb.org/pdb/explore.do?structureId=1a28) is the structure ID in the PDB. `1a28.av4` is the protein itself, and `1a28_500_ligand.av4` and `1a28_501_ligand.av4` are two of it's ligands.
+ 
 ####Step 4: running affinity on Bridges, XSEDE national supercomputer
