@@ -347,24 +347,24 @@ av4_atom_dictionary
 ####Step 4: running affinity on Bridges, XSEDE national supercomputer
 
 - login to Bridge through XSEDE Single Sign-On (SSO) Hub. 
-```
+```bash
 $ ssh [xsede_username]@login.xsede.org
 $ gsissh bridges
 ```
 
 - get groupname
-```
+```bash
 $ id -gn
 ```
 your work directory will be `/pylon1/[groupname]/[username]`
 
 - clone affinity source code to work directory
-```
+```bash
 $ cd /pylon1/[groupname]/[username]
 $ git clone https://github.com/mitaffinity/core.git
 ```
 
-- copy and paste the key to $HOME and change mod
+- copy and paste the key to `$HOME` and change mod
 ```
 $ cd $HOME
 $ chmod 400 key.pem
@@ -406,7 +406,7 @@ python av4_main.py
 ```
 
 - submit job
-```
+```bash
 $ sbatch job.sh
 ```
 
