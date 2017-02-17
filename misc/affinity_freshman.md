@@ -1,6 +1,7 @@
 ###Quick Introduction to Affinity  
 _The aim of the resources on this page is to allow anyone, even without specific machine learning background, to quickly get up to speeed with Affinity Core virtual screening engine. The estimated time for completions is under two weeks._
 
+![alt_tag](https://github.com/mitaffinity/core/blob/master/misc/affinity_how2.png)
 ####Background Readings
 _If you are familiar with all of the concepts the list: weights, biases, activation function, ReLU, softmax, convolution, pooling, layers of depth, batch, gradient descent, backpropagation (and chain rule), AdamOptimizer, please feel free to skip to the next section._  
 
@@ -82,7 +83,7 @@ av4_input.py
 # reads a single example of receptor and ligand from the database
 # returns coordinates and name (label) of every atom (only one frame depending on epoch counter)
 #
-# crucial part 3: convert_protein_and_ligand_to_image ***(A bit unclear, maybe more to differentiate dense image from sparse image. Also describe "pixels" in a bit more detail)***
+# crucial part 3: convert_protein_and_ligand_to_image
 # creates an image (sparse or dense) from input atom coordinates
 # dense image is cubic, has only some atoms of the protein, and describes pixels (not atoms)
 # empty spaces in dense image are filled with zeros
@@ -135,7 +136,7 @@ cd maksym
 # clone affinity core into your working directory 
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
 cd core 
-python av4_main.py **(Shouldn't run this until the location pointer has been changed) **  
+python av4_main.py  
 # point the script to the location of the database
 vi (or any other command line text file editor; some people like nano) 
 # the database has already been donloaded to the instance
@@ -165,10 +166,12 @@ nvidia-smi
 # should show the running processes, and how much VRAM each of them takes
 # you can also use top to monitor RAM and CPU
 top
-# since it's a development instance, it is ok to kill all python processes with
+# since it's a development instance, it is ok to kill all python processes with pkill -9 python
 # be carefull as it kills all the python processes that other people are running 
 # it's ok to do it on our instance since it's consired to be only development zone for debugging
 pkill -9 python
+python av4_main.py &
+exit
 ```
 The network training may take hours, or days depending on your dataset and architecture of the network. It's important to note that in our code the epoch is counted by protein-ligand pairs, not by images. Every protein-ligand pair may have multiple incorrect positions of the ligand 50-400, and a single correct, crystal position. In this case, it takes 100 epochs to only show all of the negatives to the network once. That is different from classical understanding of epochs in image recognition when images can't have multiple frames.
 Running the code should have resulted in four folders with outputs:
@@ -263,154 +266,14 @@ av4_eval.py
 # 2 is not straighforward. Since many of the docked positions given to the network are not correct
 # (sometimes all of them)
 ```
-Now let's evaluate our script on distinguishing a single correct position from a single incorrect position, the same task it has been trained on. In this case testing set would be the part of the same dataset that was not used for training.
-
-```
-# Let's download the dataset from Kaggle to our local machine
-# navigate your browser to: https://inclass.kaggle.com/c/affinity4/data
-# and download holdout_av4.zip
-scp -i P2_key.pem holdout_av4.zip ubuntu@awsinstance.com:/home/ubuntu/common/data
-ssh -i P2_key.pem ubuntu@awsinstance.com
-cd common
-# unzip the database 
-unzip holdout_av4.zip
-# get the path to current directory
-pwd 
-# /home/ubuntu/common/data/labeled_av4
-cd ~/maksym/core/summaries/1_netstate
-ls
-# note the latest step of the saved network
-# it's saved_state-60999.data-00000-of-00001 in my case
-cd ../..
-# edit 
-# FLAGS.saved_session = ./summaries/1_netstate/saved_state-60999
-# FLAGS.database_path = /home/ubuntu/common/data/labeled_av4
-vi av4_eval.py
-# now source tensorflow 0.12 and launch the evaluation script
-source $TF12
-python av4_eval.py
-# ....
-# current_epoch: 6 batch_num: [82] 	prediction averages: 0.538309 	examples per second: 273.89
-# ......
-# all_done
-# the evaluation script should have written five files into the corresponding logs folder
-# in our case it's 
-# saved_state-60999_average_submission.csv
-# saved_state-60999_max_submission.csv
-# saved_state-60999_multiframe_submission.csv
-# saved_state-60999_predictions.txt
-# saved_state-60999_scores.txt
-# for this kind of evaluation only two files are meaningful:
-vi saved_state-60999_predictions.txt
-# saved_state-60999_predictions.txt
-# has four columns:
-# average_prediction   label   filename   predictions
-#
-# 1.0       1.0       1swd_465_ligand.av4_frame19                       1.0              
-# 1.0       1.0       2pno_1757_ligand.av4_frame11                      1.0                     
-# 1.0       1.0       4d1j_4337_ligand.av4_frame13                      1.0  
-# 1.0       1.0       4nul_138_ligand.av4_frame11                       1.0           
-# 1.0       1.0       2pno_1757_ligand.av4_frame3                       1.0                                               
-# 1.0       1.0       4nul_138_ligand.av4_frame15                       1.0,1.0            
-# 1.0       1.0       4nul_138_ligand.av4_frame17                       1.0,1.0  
-# .....
-# ...
-# 0.953     1.0       3n66_819_ligand.av4_frame9                        0.953           
-# 0.953     1.0       3elz_401_ligand.av4_frame5                        0.953                 
-# 0.953     1.0       4rrw_2217_ligand.av4_frame8                       0.953 
-# 0.953     1.0       1gt6_538_ligand.av4_frame6                        0.953  
-# 0.953     1.0       1an5_533_ligand.av4_frame18                       0.953 
-# 0.953     1.0       4ki0_1898_ligand.av4_frame2                       0.953 
-# 0.953     1.0       1ivf_807_ligand.av4_frame18                       0.953  
-# ....
-# 0.002     0.0       3ekw_199_ligand.av4_frame3                        0.002   
-# 0.002     0.0       2b0m_362_ligand.av4_frame0                        0.003,0.001   
-# 0.002     0.0       1oya_399_ligand.av4_frame14                       0.002 
-# 0.002     0.0       2nxi_3110_ligand.av4_frame3                       0.002   
-# 0.002     0.0       1yrh_1605_ligand.av4_frame5                       0.002   
-# 0.001     0.0       3thq_430_ligand.av4_frame18                       0.001 
-# 0.001     0.0       1jvu_248_ligand.av4_frame2                        0.001    
-# 0.001     0.0       1yrh_1605_ligand.av4_frame17                      0.001  
-#
-# the reson that the last column has multiple entries is because same protein-ligand complex can be
-# evaluated several times. Because random affine transform (in av4_input) rotates and shifts the box 
-# around protein-ligand complex randomly, every time an image in different orientation is evaluated
-# ideally, the network should be rotationally and translationally invariant. In that case all of the
-# values in the last column should be same. That is almost the case.
-```
 
 ####Step 3: database preparation (optional)
+_We are working hard to make our database construction scripts human-readable. We hope to finish in the near future_  
+Datbase construction script should download crystallographic images from the [Protein Data Bank](
 data and .av4 format
 av4_database_master
 av4_atom_dictionary
 
 ####Step 4: running affinity on Bridges, XSEDE national supercomputer
-
-- login to Bridge through XSEDE Single Sign-On (SSO) Hub. 
-```bash
-$ ssh [xsede_username]@login.xsede.org
-$ gsissh bridges
-```
-
-- get groupname
-```bash
-$ id -gn
-```
-your work directory will be `/pylon1/[groupname]/[username]`
-
-- clone affinity source code to work directory
-```bash
-$ cd /pylon1/[groupname]/[username]
-$ git clone https://github.com/mitaffinity/core.git
-```
-
-- copy and paste the key to `$HOME` and change mod
-```
-$ cd $HOME
-$ chmod 400 key.pem
-```
-- transfer data from aws instance to bridges
-``` bash
-$ cd  /pylon1/[groupname]/[username]
-$ scp -i $HOME/key.pem ubuntu@awsinstance.com:/home/ubuntu/common/data/labeled_av4.zip ./
-$ unzip labeled_av4.zip
-```
-- change datapath path in source code  `core/av4_main.py`
-``` python
-database_path = "/pylon1/[groupname]/[username]/labeled_av4"
-```
-
-- create batch script (you can create this script at anywhere, recommand save it under `$HOME`)
-```bash
-#!/bin/bash
-#SBATCH -N 1
-#SBATCH -p GPU
-#SBATCH --ntasks-per-node 28
-#SBATCH -t 48:00:00
-#SBATCH --gres=gpu:4
-#echo commands to stdout
-set -x
-
-#load module
-module load cuda/8.0
-module load tensorflow/0.12.1
-
-#set python environment
-source $TENSORFLOW_ENV/bin/activate
-
-#move to working directory
-cd /pylon1/[groupname]/[username]/core
-
-#run GPU program
-python av4_main.py
-```
-
-- submit job
-```bash
-$ sbatch job.sh
-```
-
-
-
 
 
