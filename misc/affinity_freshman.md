@@ -391,7 +391,7 @@ cd /pylon1/[groupname]/[username]/core
 python av4_main.py
 ```
 
-submit job
+- submit job
 ```
 sbatch job.sh
 ```
