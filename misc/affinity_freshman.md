@@ -361,7 +361,7 @@ your work directory will be `/pylon1/[groupname]/[username]`
 - clone affinity source code to work directory
 ```
 $ cd /pylon1/[groupname]/[username]
-$ clone git https://github.com/mitaffinity/core.git
+$ git clone https://github.com/mitaffinity/core.git
 ```
 
 - copy and paste the key to $HOME and change mod
