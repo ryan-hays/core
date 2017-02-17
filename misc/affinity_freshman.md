@@ -134,7 +134,7 @@ av4_utils.py
 ``` 
 here is how a typical session on our Amazon graphical instance with K80 GPU would look like:
 
-```
+```bash
 # log into our remote machine 
 # email maksym to get the key
 ssh -i P2_key.pem ubuntu@awsinstance.com
@@ -196,7 +196,7 @@ Running the code should have resulted in four folders with outputs:
 `1_train` and `1_test` should store summaries for variable states during training and testing that can
 be visualized. Let's expect the outputs of in the foders
 
-```
+```bash
 # log into our instance
 ssh -i P2_key.pem ubuntu@awsinstance.com
 # now I am
@@ -277,7 +277,7 @@ av4_eval.py
 ```
 Now let's evaluate our script on distinguishing a single correct position from a single incorrect position, the same task it has been trained on. In this case testing set would be the part of the same dataset that was not used for training.
 
-```
+```bash
 # Let's download the dataset from Kaggle to our local machine
 # navigate your browser to: https://inclass.kaggle.com/c/affinity4/data
 # and download holdout_av4.zip
@@ -359,7 +359,7 @@ vi saved_state-60999_predictions.txt
 ```
 We have applied our network to distinguish correct position of ligand from incorrect (docking), and it performed very well. Now let's try to apply our network to another stage of virtual screening - ranking. In this case we have multiple ligands (flexible keys), and a series of proteins (rigid locks). In this case we will not do the docking itself, but will use several proposed positions (400) by [smina](https://github.com/mwojcikowski/smina) for each of the ligands. 
 `unlabeleled_av4` contains 10 receptors and, on average, 200 ligands per receptor (100 actives and 100 inactives). There are top 400 positions predicted by smina positions in each ligand av4 file.
-```
+```bash
 # edit the name of the database to be used for evaluations
 # to the location of the database at: /home/ubuntu/common/data/labeled_av4
 vi av4_eval.py
@@ -450,7 +450,8 @@ Data and .av4 format is, generally, stored in the following way
 
 ```
 Finally, the naming convention of the database is the following: 
-```1a28
+```
+     1a28
      1a28.av4
      1a28_500_ligand.av4
      1a28_501_ligand.av4
@@ -458,3 +459,67 @@ Finally, the naming convention of the database is the following:
  [1a28](http://www.rcsb.org/pdb/explore.do?structureId=1a28) is the structure ID in the PDB. `1a28.av4` is the protein itself, and `1a28_500_ligand.av4` and `1a28_501_ligand.av4` are two of it's ligands.
  
 ####Step 4: running affinity on Bridges, XSEDE national supercomputer
+
+- login to Bridge through XSEDE Single Sign-On (SSO) Hub. 
+```bash
+$ ssh [xsede_username]@login.xsede.org
+$ gsissh bridges
+```
+
+- get groupname
+```bash
+$ id -gn
+```
+your work directory will be `/pylon1/[groupname]/[username]`
+
+- clone affinity source code to work directory
+```bash
+$ cd /pylon1/[groupname]/[username]
+$ git clone https://github.com/mitaffinity/core.git
+```
+
+- copy and paste the key to `$HOME` and change mod
+```
+$ cd $HOME
+$ chmod 400 key.pem
+```
+- transfer data from aws instance to bridges
+``` bash
+$ cd  /pylon1/[groupname]/[username]
+$ scp -i $HOME/key.pem ubuntu@awsinstance.com:/home/ubuntu/common/data/labeled_av4.zip ./
+$ unzip labeled_av4.zip
+```
+- change datapath path in source code  `core/av4_main.py`
+``` python
+database_path = "/pylon1/[groupname]/[username]/labeled_av4"
+```
+
+- create batch script (you can create this script at anywhere, recommand save it under `$HOME`)
+```bash
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH -p GPU
+#SBATCH --ntasks-per-node 28
+#SBATCH -t 48:00:00
+#SBATCH --gres=gpu:4
+#echo commands to stdout
+set -x
+
+#load module
+module load cuda/8.0
+module load tensorflow/0.12.1
+
+#set python environment
+source $TENSORFLOW_ENV/bin/activate
+
+#move to working directory
+cd /pylon1/[groupname]/[username]/core
+
+#run GPU program
+python av4_main.py
+```
+
+- submit job
+```bash
+$ sbatch job.sh
+```
