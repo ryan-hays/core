@@ -266,6 +266,83 @@ av4_eval.py
 # 2 is not straighforward. Since many of the docked positions given to the network are not correct
 # (sometimes all of them)
 ```
+Now let's evaluate our script on distinguishing a single correct position from a single incorrect position, the same task it has been trained on. In this case testing set would be the part of the same dataset that was not used for training.
+
+```
+# Let's download the dataset from Kaggle to our local machine
+# navigate your browser to: https://inclass.kaggle.com/c/affinity4/data
+# and download holdout_av4.zip
+scp -i P2_key.pem holdout_av4.zip ubuntu@awsinstance.com:/home/ubuntu/common/data
+ssh -i P2_key.pem ubuntu@awsinstance.com
+cd common
+# unzip the database 
+unzip holdout_av4.zip
+# get the path to current directory
+pwd 
+# /home/ubuntu/common/data/labeled_av4
+cd ~/maksym/core/summaries/1_netstate
+ls
+# note the latest step of the saved network
+# it's saved_state-60999.data-00000-of-00001 in my case
+cd ../..
+# edit 
+# FLAGS.saved_session = ./summaries/1_netstate/saved_state-60999
+# FLAGS.database_path = /home/ubuntu/common/data/labeled_av4
+vi av4_eval.py
+# now source tensorflow 0.12 and launch the evaluation script
+source $TF12
+python av4_eval.py
+# ....
+# current_epoch: 6 batch_num: [82]  prediction averages: 0.538309   examples per second: 273.89
+# ......
+# all_done
+# the evaluation script should have written five files into the corresponding logs folder
+# in our case it's 
+# saved_state-60999_average_submission.csv
+# saved_state-60999_max_submission.csv
+# saved_state-60999_multiframe_submission.csv
+# saved_state-60999_predictions.txt
+# saved_state-60999_scores.txt
+# for this kind of evaluation only two files are meaningful:
+vi saved_state-60999_predictions.txt
+# saved_state-60999_predictions.txt
+# has four columns:
+# average_prediction   label   filename   predictions
+#
+# 1.0       1.0       1swd_465_ligand.av4_frame19                       1.0           
+# 1.0       1.0       2pno_1757_ligand.av4_frame11                      1.0        
+# 1.0       1.0       4d1j_4337_ligand.av4_frame13                      1.0             
+# 1.0       1.0       4nul_138_ligand.av4_frame11                       1.0         
+# 1.0       1.0       2pno_1757_ligand.av4_frame3                       1.0           
+# 1.0       1.0       4nul_138_ligand.av4_frame15                       1.0,1.0            
+# 1.0       1.0       4nul_138_ligand.av4_frame17                       1.0,1.0   
+# .....
+# ...
+# 0.953     1.0       3n66_819_ligand.av4_frame9                        0.953    
+# 0.953     1.0       3elz_401_ligand.av4_frame5                        0.953      
+# 0.953     1.0       4rrw_2217_ligand.av4_frame8                       0.953 
+# 0.953     1.0       1gt6_538_ligand.av4_frame6                        0.953  
+# 0.953     1.0       1an5_533_ligand.av4_frame18                       0.953 
+# 0.953     1.0       4ki0_1898_ligand.av4_frame2                       0.953 
+# 0.953     1.0       1ivf_807_ligand.av4_frame18                       0.953  
+# ....
+# 0.002     0.0       3ekw_199_ligand.av4_frame3                        0.002   
+# 0.002     0.0       2b0m_362_ligand.av4_frame0                        0.003,0.001   
+# 0.002     0.0       1oya_399_ligand.av4_frame14                       0.002 
+# 0.002     0.0       2nxi_3110_ligand.av4_frame3                       0.002   
+# 0.002     0.0       1yrh_1605_ligand.av4_frame5                       0.002   
+# 0.001     0.0       3thq_430_ligand.av4_frame18                       0.001 
+# 0.001     0.0       1jvu_248_ligand.av4_frame2                        0.001
+# 0.001     0.0       1yrh_1605_ligand.av4_frame17                      0.001
+#
+# the reson that the last column has multiple entries is because same protein-ligand complex can be
+# evaluated several times. Because random affine transform (in av4_input) rotates and shifts the box 
+# around protein-ligand complex randomly, every time an image in different orientation is evaluated
+# ideally, the network should be rotationally and translationally invariant. In that case all of the
+# values in the last column should be same. That is almost the case.
+```
+
+
 
 ####Step 3: database preparation (optional)
 _We are working hard to make our database construction scripts human-readable. We hope to finish in the near future_  
