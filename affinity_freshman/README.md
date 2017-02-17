@@ -458,7 +458,7 @@ Finally, the naming convention of the database is the following:
  [1a28](http://www.rcsb.org/pdb/explore.do?structureId=1a28) is the structure ID in the PDB. `1a28.av4` is the protein itself, and `1a28_500_ligand.av4` and `1a28_501_ligand.av4` are two of it's ligands.
  
 ####Step 4: running affinity on Bridges, XSEDE national supercomputer
-In steps 2 and 3 we have used Amazon instance that only has a single GPU to run the scripts. It make take up to a few days to train a deep CNN on protein images, and in industrial and scientific applications it's very reasonable to train networks with several different architectures at the same time. XSEDE (Extream Science and Engineering Discovery Environment) is a broad effort that controls access to most of the largest clusters in the US. In this tutorial we will use [Bridges](https://portal.xsede.org/psc-bridges) that has over a 100 GPUs. It's normal to request 10 or even more GPUs at the same time. 
+In steps 2 and 3 we have used Amazon instance that only has a single GPU to run the scripts. It make take up to a few days to train a deep CNN on protein images, and in industrial and scientific applications it's very reasonable to train networks with several different architectures at the same time. XSEDE (Extream Science and Engineering Discovery Environment) is a broad effort that controls access to most of the largest clusters in the US. In this tutorial we will use [Bridges](https://portal.xsede.org/psc-bridges) that has over a 100 GPUs. The current version of Affinity is written for a single GPU. But usually every user submits a few separate, unrelated jobs at the same time. 
 
 ```
 # register for XSEDE here: https://portal.xsede.org/#/guest
