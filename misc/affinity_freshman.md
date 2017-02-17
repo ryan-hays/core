@@ -417,14 +417,27 @@ cd 1_logs
 
 ####Step 3: database preparation (demo)
 _We are working hard to make our database construction scripts human-readable. We hope to finish in the near future_  
+
 Database construction is a very complex multistage process, perhaps much more complex than Affinity itself. There are few important things to notice.
 Database is constructed from X-ray crystallographic images from the [Protein Data Bank](http://www.rcsb.org/).
 And binding affinity data is taken from databases like [PubChem](https://pubchem.ncbi.nlm.nih.gov/).
-In the process of preparation ligand is split from it's protein. In addition, fake positions can be generated with standard virtual screening algorithms like [Vina](http://vina.scripps.edu/manual.html).
-data and .av4 format
-av4_database_master
-av4_atom_dictionary
+In the process of preparation ligand is split from it's protein. In addition, fake positions can be generated with standard virtual screening algorithms like [Vina](http://vina.scripps.edu/manual.html).  
+On the final stage `av4_database_master` joins pdb recods into a single database of binary files that can be read very fast during training of the network.
+Data and .av4 format is, generally, stored in the following way
+```
+# [label_for_frame_1
+#  [[x11,y11,z11]
+#   [x12,y12,z12]
+#   [x13,y13,z13]
+#   [x14,y14,z14]]
+#   [atom_tag11,atom_tag12,atom_tag13,atom_tag14]
+# [label_for_frame_2
+#  [[x21,y21,z21]
+#   [x22,y22,z22]
+#   [x23,y23,z23]
+#   [x24,y24,z24]]
+#   [atom_tag21,atom_tag22,atom_tag23,atom_tag24]
+# ..........
 
+```
 ####Step 4: running affinity on Bridges, XSEDE national supercomputer
-
-
