@@ -393,7 +393,7 @@ python av4_main.py
 
 - submit job
 ```
-sbatch job.sh
+$ sbatch job.sh
 ```
 
 
