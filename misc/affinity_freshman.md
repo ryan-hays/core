@@ -85,8 +85,13 @@ av4_input.py
 #
 # crucial part 3: convert_protein_and_ligand_to_image
 # creates an image (sparse or dense) from input atom coordinates
-# dense image is cubic, has only some atoms of the protein, and describes pixels (not atoms)
-# empty spaces in dense image are filled with zeros
+# sparse image roughly can be described as array like
+# [[atom_tag1,x1,y1,z1]
+#  [atom_tag2,x2,y2,z2]
+#  [atom_tag3,x3,y3,z3]]
+# dense image is a 3D cube filled with zeros and float numbers
+# both PDB and av4 store data in sparse representations
+# network, however, needs a 3D variant to do convolutions
 #
 # crucial part 4: tf.train.batch (for three reasons)
 # reason 1:
@@ -136,12 +141,14 @@ cd maksym
 # clone affinity core into your working directory 
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
 cd core 
-python av4_main.py  
+python av4_main.py
+# does not work; the database is empty
 # point the script to the location of the database
 vi (or any other command line text file editor; some people like nano) 
-# the database has already been donloaded to the instance
+# the database has already been downloaded to the instance
 # change the database path under flags to   
 # /home/ubuntu/common/data/labeled_av4  
+python av4_main.py  
 
 # does not work; needs latest tensorflow  
 # tensorflow12 is hidden in an envoronmental variable 
