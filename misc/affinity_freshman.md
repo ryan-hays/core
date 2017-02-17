@@ -82,7 +82,7 @@ av4_input.py
 # reads a single example of receptor and ligand from the database
 # returns coordinates and name (label) of every atom (only one frame depending on epoch counter)
 #
-# crucial part 3: convert_protein_and_ligand_to_image
+# crucial part 3: convert_protein_and_ligand_to_image ***(A bit unclear, maybe more to differentiate dense image from sparse image. Also describe "pixels" in a bit more detail)***
 # creates an image (sparse or dense) from input atom coordinates
 # dense image is cubic, has only some atoms of the protein, and describes pixels (not atoms)
 # empty spaces in dense image are filled with zeros
@@ -130,14 +130,14 @@ here is how a typical session on our Amazon graphical instance with K80 GPU woul
 # log into our remote machine 
 # email maksym to get the key
 ssh -i P2_key.pem ubuntu@awsinstance.com
-cd maksym
 # every member of the group should have his or her folder
+cd maksym
 # clone affinity core into your working directory 
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
 cd core 
-python av4_main.py  
+python av4_main.py **(Shouldn't run this until the location pointer has been changed) **  
 # point the script to the location of the database
-vi (or any other command line text file editor)
+vi (or any other command line text file editor; some people like nano) 
 # the database has already been donloaded to the instance
 # change the database path under flags to   
 # /home/ubuntu/common/data/labeled_av4  
@@ -151,21 +151,27 @@ echo $TF12
 
 # start training
 python av4_main.py 
-# to see the outputs
-# and re-launch process in the background
+# seems to work, now it's time to launch this process for a while
+# the key is to launch it on the background, so it does not die when you log off
+# from your remote host. Use the '&' sign
 python av4_main.py &  
-# background process will persist when you exit the session  
+# now background process will persist when you exit the session  
 
-# Only one person/process can access TF on GPU at the same time (by default) 
-# see if anything is running  
+# now the nasty problem: TensorFlow tends not to die and hog on the GPU even after it's been terminated
+# also, there are many of us using GPU instance at the same time, but with TF's default settings
+# only one process will capture all VRAM on the GPU 
+# see if anything is running on the GPU  
 nvidia-smi  
-# should show the running proceses
-# since it's a development instance, it possible to kill all the python processes with
-pkill -9 python  
+# should show the running processes, and how much VRAM each of them takes
+# you can also use top to monitor RAM and CPU
+top
+# since it's a development instance, it is ok to kill all python processes with
+# be carefull as it kills all the python processes that other people are running 
+# it's ok to do it on our instance since it's consired to be only development zone for debugging
+pkill -9 python
 ```
-
-####Step 2: evaluating the network
-The network training in the previous step should have resulted in four folders with outputs:
+The network training may take hours, or days depending on your dataset and architecture of the network. It's important to note that in our code the epoch is counted by protein-ligand pairs, not by images. Every protein-ligand pair may have multiple incorrect positions of the ligand 50-400, and a single correct, crystal position. In this case, it takes 100 epochs to only show all of the negatives to the network once. That is different from classical understanding of epochs in image recognition when images can't have multiple frames.
+Running the code should have resulted in four folders with outputs:
 ```
 1_logs   
 1_netstate   
@@ -179,6 +185,7 @@ The network training in the previous step should have resulted in four folders w
 be visualized. Let's expect the outputs of in the foders
 
 ```
+# log into our instance
 ssh -i P2_key.pem ubuntu@awsinstance.com
 # now I am
 # ubuntu@ip-172-31-4-5:~$
@@ -194,14 +201,36 @@ ls
 # events.out.tfevents.1485708632.ip-172-31-4-5
 # which is a tensorflow summaries file
 # let's try to visualize it:
-# load tensorflow 0.12 (default version in 
+# load tensorflow 0.12 (default version in the environment is 0.10)
+source $TF12
+# it's important to launch the tensorboard on port 80. By default internet browsers, such as chrome,
+# will connect to port 80. You can read more here: 
+# https://en.wikipedia.org/wiki/Port_(computer_networking)
+# by default port 80 is not available to the user (the error is port is busy) that's why we use sudo
+sudo python -m tensorflow.tensorboard --logdir=. --port=80
+# now you can navigate your browser to awsinstance.com
 ```
+ you should be able to see the following:
+![alt_tag](https://github.com/mitaffinity/core/blob/master/misc/cross_entropy.png)
+Cross entropy (our cost function) goes down as we are training the network. 
+![alt_tag](https://github.com/mitaffinity/core/blob/master/misc/sparsity.png)
+Sparsity of Rectifier Linear Unit is a percentage of zero-valued outputs of the layer. 
+In chain rule for backpropagation, the derivative on sparse neuron is 0, and the derivative on downstream 
+neurons is also 0. If the sparsity for the layer is exactly 1, backpropagation does not work, and weights 
+can't be updated. That is what frequently happens when the network "explodes" because of the incorrect weight initialization.
+![alt_tag](https://github.com/mitaffinity/core/blob/master/misc/histogram.png)
+Biases that all vere all initialized at 0.001 diverge as we are training our network. 
 
 
+####Step 2: evaluating the network
 
-
-and in addition you will need these three sripts
+In addition to four folders resulting from our previous step, you will need these three scripts:
 ```
+1_logs   
+1_netstate   
+1_test   
+1_train  
+
 av4_eval.py
 av4_input.py
 av4_utils.py
@@ -234,25 +263,154 @@ av4_eval.py
 # 2 is not straighforward. Since many of the docked positions given to the network are not correct
 # (sometimes all of them)
 ```
+Now let's evaluate our script on distinguishing a single correct position from a single incorrect position, the same task it has been trained on. In this case testing set would be the part of the same dataset that was not used for training.
 
+```
+# Let's download the dataset from Kaggle to our local machine
+# navigate your browser to: https://inclass.kaggle.com/c/affinity4/data
+# and download holdout_av4.zip
+scp -i P2_key.pem holdout_av4.zip ubuntu@awsinstance.com:/home/ubuntu/common/data
+ssh -i P2_key.pem ubuntu@awsinstance.com
+cd common
+# unzip the database 
+unzip holdout_av4.zip
+# get the path to current directory
+pwd 
+# /home/ubuntu/common/data/labeled_av4
+cd ~/maksym/core/summaries/1_netstate
+ls
+# note the latest step of the saved network
+# it's saved_state-60999.data-00000-of-00001 in my case
+cd ../..
+# edit 
+# FLAGS.saved_session = ./summaries/1_netstate/saved_state-60999
+# FLAGS.database_path = /home/ubuntu/common/data/labeled_av4
+vi av4_eval.py
+# now source tensorflow 0.12 and launch the evaluation script
+source $TF12
+python av4_eval.py
+# ....
+# current_epoch: 6 batch_num: [82] 	prediction averages: 0.538309 	examples per second: 273.89
+# ......
+# all_done
+# the evaluation script should have written five files into the corresponding logs folder
+# in our case it's 
+# saved_state-60999_average_submission.csv
+# saved_state-60999_max_submission.csv
+# saved_state-60999_multiframe_submission.csv
+# saved_state-60999_predictions.txt
+# saved_state-60999_scores.txt
+# for this kind of evaluation only two files are meaningful:
+vi saved_state-60999_predictions.txt
+# saved_state-60999_predictions.txt
+# has four columns:
+# average_prediction   label   filename   predictions
+#
+# 1.0       1.0       1swd_465_ligand.av4_frame19                       1.0              
+# 1.0       1.0       2pno_1757_ligand.av4_frame11                      1.0                     
+# 1.0       1.0       4d1j_4337_ligand.av4_frame13                      1.0  
+# 1.0       1.0       4nul_138_ligand.av4_frame11                       1.0           
+# 1.0       1.0       2pno_1757_ligand.av4_frame3                       1.0                                               
+# 1.0       1.0       4nul_138_ligand.av4_frame15                       1.0,1.0            
+# 1.0       1.0       4nul_138_ligand.av4_frame17                       1.0,1.0  
+# .....
+# ...
+# 0.953     1.0       3n66_819_ligand.av4_frame9                        0.953           
+# 0.953     1.0       3elz_401_ligand.av4_frame5                        0.953                 
+# 0.953     1.0       4rrw_2217_ligand.av4_frame8                       0.953 
+# 0.953     1.0       1gt6_538_ligand.av4_frame6                        0.953  
+# 0.953     1.0       1an5_533_ligand.av4_frame18                       0.953 
+# 0.953     1.0       4ki0_1898_ligand.av4_frame2                       0.953 
+# 0.953     1.0       1ivf_807_ligand.av4_frame18                       0.953  
+# ....
+# 0.002     0.0       3ekw_199_ligand.av4_frame3                        0.002   
+# 0.002     0.0       2b0m_362_ligand.av4_frame0                        0.003,0.001   
+# 0.002     0.0       1oya_399_ligand.av4_frame14                       0.002 
+# 0.002     0.0       2nxi_3110_ligand.av4_frame3                       0.002   
+# 0.002     0.0       1yrh_1605_ligand.av4_frame5                       0.002   
+# 0.001     0.0       3thq_430_ligand.av4_frame18                       0.001 
+# 0.001     0.0       1jvu_248_ligand.av4_frame2                        0.001    
+# 0.001     0.0       1yrh_1605_ligand.av4_frame17                      0.001  
+#
+# the reson that the last column has multiple entries is because same protein-ligand complex can be
+# evaluated several times. Because random affine transform (in av4_input) rotates and shifts the box 
+# around protein-ligand complex randomly, every time an image in different orientation is evaluated
+# ideally, the network should be rotationally and translationally invariant. In that case all of the
+# values in the last column should be same. That is almost the case.
+```
 
-the simplest way would be to rescore all of the docked positions, and retain one
-with highest prediction for each ligand for sorting as in AutoDock (and classical biophysics algorithms)
-the network is noisy, and does not work well that way at the moment.
-our best predictions so far incorporate averaging of predictions for many conformations.
-
-#####Step 3: database preparation (optional)
+####Step 3: database preparation (optional)
 data and .av4 format
 av4_database_master
 av4_atom_dictionary
 
-Visualizing the network  
+####Step 4: running affinity on Bridges, XSEDE national supercomputer
 
-sudo python -m tensorflow.tensorboard --logdir=. --port=80  
-`
-Open  
-http://awsinstance.com/  
-In your browser to visualize the network. This thing can crawl all the directories  
+- login to Bridge through XSEDE Single Sign-On (SSO) Hub. 
+```bash
+$ ssh [xsede_username]@login.xsede.org
+$ gsissh bridges
+```
 
-Heavy lifting  
-Clusters  
+- get groupname
+```bash
+$ id -gn
+```
+your work directory will be `/pylon1/[groupname]/[username]`
+
+- clone affinity source code to work directory
+```bash
+$ cd /pylon1/[groupname]/[username]
+$ git clone https://github.com/mitaffinity/core.git
+```
+
+- copy and paste the key to `$HOME` and change mod
+```
+$ cd $HOME
+$ chmod 400 key.pem
+```
+- transfer data from aws instance to bridges
+``` bash
+$ cd  /pylon1/[groupname]/[username]
+$ scp -i $HOME/key.pem ubuntu@awsinstance.com:/home/ubuntu/common/data/labeled_av4.zip ./
+$ unzip labeled_av4.zip
+```
+- change datapath path in source code  `core/av4_main.py`
+``` python
+database_path = "/pylon1/[groupname]/[username]/labeled_av4"
+```
+
+- create batch script (you can create this script at anywhere, recommand save it under `$HOME`)
+```bash
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH -p GPU
+#SBATCH --ntasks-per-node 28
+#SBATCH -t 48:00:00
+#SBATCH --gres=gpu:4
+#echo commands to stdout
+set -x
+
+#load module
+module load cuda/8.0
+module load tensorflow/0.12.1
+
+#set python environment
+source $TENSORFLOW_ENV/bin/activate
+
+#move to working directory
+cd /pylon1/[groupname]/[username]/core
+
+#run GPU program
+python av4_main.py
+```
+
+- submit job
+```bash
+$ sbatch job.sh
+```
+
+
+
+
+
