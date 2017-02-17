@@ -306,13 +306,31 @@ vi saved_state-60999_predictions.txt
 # has four columns:
 # average_prediction   label   filename   predictions
 #
-# 1.0       1.0       1swd_465_ligand.av4_frame19                       1.0                                               
-# 1.0       1.0       2pno_1757_ligand.av4_frame11                      1.0                                               
-# 1.0       1.0       4d1j_4337_ligand.av4_frame13                      1.0                                               
-# 1.0       1.0       4nul_138_ligand.av4_frame11                       1.0                                               
+# 1.0       1.0       1swd_465_ligand.av4_frame19                       1.0              
+# 1.0       1.0       2pno_1757_ligand.av4_frame11                      1.0                     
+# 1.0       1.0       4d1j_4337_ligand.av4_frame13                      1.0  
+# 1.0       1.0       4nul_138_ligand.av4_frame11                       1.0           
 # 1.0       1.0       2pno_1757_ligand.av4_frame3                       1.0                                               
-# 1.0       1.0       4nul_138_ligand.av4_frame15                       1.0,1.0                                           
-# 1.0       1.0       4nul_138_ligand.av4_frame17                       1.0,1.0   
+# 1.0       1.0       4nul_138_ligand.av4_frame15                       1.0,1.0            
+# 1.0       1.0       4nul_138_ligand.av4_frame17                       1.0,1.0  
+# .....
+# ...
+# 0.953     1.0       3n66_819_ligand.av4_frame9                        0.953           
+# 0.953     1.0       3elz_401_ligand.av4_frame5                        0.953                 
+# 0.953     1.0       4rrw_2217_ligand.av4_frame8                       0.953 
+# 0.953     1.0       1gt6_538_ligand.av4_frame6                        0.953  
+# 0.953     1.0       1an5_533_ligand.av4_frame18                       0.953 
+# 0.953     1.0       4ki0_1898_ligand.av4_frame2                       0.953 
+# 0.953     1.0       1ivf_807_ligand.av4_frame18                       0.953  
+# ....
+# 0.002     0.0       3ekw_199_ligand.av4_frame3                        0.002   
+# 0.002     0.0       2b0m_362_ligand.av4_frame0                        0.003,0.001   
+# 0.002     0.0       1oya_399_ligand.av4_frame14                       0.002 
+# 0.002     0.0       2nxi_3110_ligand.av4_frame3                       0.002   
+# 0.002     0.0       1yrh_1605_ligand.av4_frame5                       0.002   
+# 0.001     0.0       3thq_430_ligand.av4_frame18                       0.001 
+# 0.001     0.0       1jvu_248_ligand.av4_frame2                        0.001    
+# 0.001     0.0       1yrh_1605_ligand.av4_frame17                      0.001  
 #
 # the reson that the last column has multiple entries is because same protein-ligand complex can be
 # evaluated several times. Because random affine transform (in av4_input) rotates and shifts the box 
