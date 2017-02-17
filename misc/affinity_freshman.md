@@ -363,19 +363,19 @@ your work directory will be `/pylon1/[groupname]/[username]`
 $ cd /pylon1/[groupname]/[username]
 $ clone git https://github.com/mitaffinity/core.git
 ```
-- prepare data
-copy and paste the key to $HOME and change mod
+
+- copy and paste the key to $HOME and change mod
 ```
 $ cd $HOME
 $ chmod 400 key.pem
 ```
-transfer data from aws instance to bridges
+- transfer data from aws instance to bridges
 ``` bash
 $ cd  /pylon1/[groupname]/[username]
 $ scp -i $HOME/key.pem ubuntu@awsinstance.com:/home/ubuntu/common/data/labeled_av4.zip ./
 $ unzip labeled_av4.zip
 ```
-change datapath path in source code  `core/av4_main.py`
+- change datapath path in source code  `core/av4_main.py`
 ``` python
 database_path = "/pylon1/[groupname]/[username]/labeled_av4"
 ```
