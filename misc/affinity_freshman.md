@@ -26,8 +26,7 @@ _If you are familiar with all of the concepts in this list: tensor graph, sessio
 
 _Structure based virtual screening is an approach that allows to retrieve a very small percent, usually few dozens of molecules, from the large database, of millioons of chemical structures. The process can be imagined as a google search for a flexible key (ligand) with a 3D image of a rigid lock (receptor,protein). Search can be broken into two parts. Since the most optimal relative position of the drug and protein is not known, it has to be estimated (docking). Afterwards, many static protein-ligand complexes have to be ranked by their predicted relative binding affinity (sorting). Usually, 25,000-200,000 pose evaluations are done during docking, and a single pose evaluation is done during ranking. Because Tesla K80 GPU can only evaluate 100-200 images/second, position search for a single ligand may take anywhere between 3 and 35 minutes, docking the average-size database of 1,000,000 of molecules may take 1.2 GPU years. In this example we only apply the network to the previously docked with AutoDock Smina positions, IE: ranking._
 
-
-# https://youtu.be/qHxrW6NUjkU
+[![network_search](https://github.com/mitaffinity/core/blob/master/misc/search.png)](https://youtu.be/qHxrW6NUjkU)
 
 ####Step 1: teaching the network
 You will need four scripts, and the database
