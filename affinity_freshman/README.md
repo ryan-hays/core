@@ -458,43 +458,49 @@ Finally, the naming convention of the database is the following:
  [1a28](http://www.rcsb.org/pdb/explore.do?structureId=1a28) is the structure ID in the PDB. `1a28.av4` is the protein itself, and `1a28_500_ligand.av4` and `1a28_501_ligand.av4` are two of it's ligands.
  
 ####Step 4: running affinity on Bridges, XSEDE national supercomputer
+In steps 2 and 3 we have used Amazon instance that only has a single GPU to run the scripts. It make take up to a few days to train a deep CNN on protein images, and in industrial and scientific applications it's very reasonable to train networks with several different architectures at the same time. XSEDE (Extream Science and Engineering Discovery Environment) is a broad effort that controls access to most of the largest clusters in the US. In this tutorial we will use [Bridges](https://portal.xsede.org/psc-bridges) that has over a 100 GPUs. It's normal to request 10 or even more GPUs at the same time. 
 
-- login to Bridge through XSEDE Single Sign-On (SSO) Hub. 
-```bash
+```
+# register for XSEDE here: https://portal.xsede.org/#/guest
+# and ask maksym to add you to our computer time grant 
+#
+# login to Bridges through XSEDE Single Sign-On (SSO) Hub. 
+bash
 $ ssh [xsede_username]@login.xsede.org
 $ gsissh bridges
-```
-
-- get groupname
-```bash
+# each user is prowided with a high performance work directory would be different from your $HOME 
+# (IE: /home/korablyo) for me. Work directory allows to read and write data much faster 
+# you will need to find your work directory and put the database there
+# it is: /pylon1/[groupname]/[username]
+# get groupname
+bash
 $ id -gn
-```
-your work directory will be `/pylon1/[groupname]/[username]`
-
-- clone affinity source code to work directory
-```bash
+# clone Affinity source code to your work directory
+bash
 $ cd /pylon1/[groupname]/[username]
 $ git clone https://github.com/mitaffinity/core.git
-```
-
-- copy and paste the key to `$HOME` and change mod
-```
+# now you will need to log in into our AWS instance to download the database to Bridges
+# you will need a .pem access key 
+# just create a new text file , and copy-paste your key there
+vi P2_key.pem
+# paste
+:wq
+# change permissions of the key so that only you can read it 
+# you can read more here: http://stackoverflow.com/questions/9270734/ssh-permissions-are-too-open-error
 $ cd $HOME
 $ chmod 400 key.pem
-```
-- transfer data from aws instance to bridges
-``` bash
+# transfer data from aws instance to bridges
+bash
 $ cd  /pylon1/[groupname]/[username]
 $ scp -i $HOME/key.pem ubuntu@awsinstance.com:/home/ubuntu/common/data/labeled_av4.zip ./
 $ unzip labeled_av4.zip
-```
-- change datapath path in source code  `core/av4_main.py`
-``` python
-database_path = "/pylon1/[groupname]/[username]/labeled_av4"
-```
+# change FLAGS.database_path in av4_main.py
+# to database_path = "/pylon1/[groupname]/[username]/labeled_av4"
 
-- create batch script (you can create this script at anywhere, recommand save it under `$HOME`)
-```bash
+```
+create batch script to submit your job. You can read more about submission queue [here](https://www.psc.edu/index.php/bridges/user-guide/running-jobs).
+```
+bash
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -p GPU
@@ -517,9 +523,8 @@ cd /pylon1/[groupname]/[username]/core
 #run GPU program
 python av4_main.py
 ```
-
-- submit job
-```bash
+ run your job
+```
 $ sbatch job.sh
 ```
-
+monitor the status of your job with `squeue -u korablyo`
