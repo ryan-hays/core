@@ -9,13 +9,11 @@ from av4_networks import intuit_net
 from collections import defaultdict
 
 
-
 FLAGS.saved_session = './summaries/39_netstate/saved_state-37999'
 FLAGS.predictions_file_path = re.sub("netstate","logs",FLAGS.saved_session)
 FLAGS.database_path = '../datasets/unlabeled_av4'
 FLAGS.num_epochs = 10
 FLAGS.top_k = FLAGS.num_epochs
-
 
 
 class store_predictions_av3:
@@ -250,10 +248,11 @@ class store_predictions_av3:
 #                    f.write(key + ',' + 'L' + '\n')
 
 
-
 class store_predictions:
     '''
-    store add of the prediction results :return: '''
+    store add of the prediction results
+    :return:
+    '''
 
     raw_predictions = defaultdict(list)
     processed_predictions = defaultdict(list)
@@ -264,7 +263,6 @@ class store_predictions:
         for ligand,current_epoch,prediction in zip(ligand_file_name, batch_current_epoch, batch_predictions):
             #   if in_the_range:
             self.raw_predictions[ligand].append(prediction)
-
 
     def reduce(self):
         '''
@@ -307,8 +305,9 @@ class store_predictions:
         submission_csv = pd.DataFrame(records, columns=['Id']+[ 'Predicted_%d'%i for i in range(1,len(records[0]))])
         submission_csv.to_csv(FLAGS.predictions_file_path + '_multiframe_submission.csv', index=False)
 
-    def save_average(self): 
-        ''' take average of multiple predcition
+    def save_average(self):
+        '''
+        take average of multiple predcition
         :return:
         '''
         records = []
@@ -339,25 +338,18 @@ def evaluate_on_train_set():
     # create session which all the evaluation happens in
     sess = tf.Session()
 
-
-
-
-
     # create a filename queue first
     filename_queue, examples_in_database = index_the_database_into_queue(FLAGS.database_path, shuffle=True)
-
 
     # create an epoch counter
     # there is an additional step with variable initialization in order to get the name of "count up to" in the graph
     batch_counter = tf.Variable(0)
-
     sess.run(tf.global_variables_initializer())
     batch_counter_increment = tf.assign(batch_counter,tf.Variable(0).count_up_to(np.round((examples_in_database*FLAGS.num_epochs)/FLAGS.batch_size)))
 
     batch_counter_var_name = sess.run(tf.report_uninitialized_variables())
 
     epoch_counter = tf.div(batch_counter*FLAGS.batch_size,examples_in_database)
-
 
     # create a custom shuffle queue
     ligand_files,current_epoch,label_batch,sparse_image_batch = image_and_label_queue(batch_size=FLAGS.batch_size, pixel_size=FLAGS.pixel_size,
@@ -376,27 +368,19 @@ def evaluate_on_train_set():
     saver = tf.train.Saver()
     saver.restore(sess,FLAGS.saved_session)
 
-
     # use
     sess.run(tf.contrib.framework.get_variables_by_name(batch_counter_var_name[0])[0].initializer)
+
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess = sess,coord=coord)
-
 
     # create an instance of a class to store predictions
     all_predictios = store_predictions()
     all_predictions_av3 = store_predictions_av3()
 
-
-
-
     # add_batch(self, ligand_file_path, batch_predictions, batch_labels)
 
-
-
-
     print "starting evalution..."
-
 
     try:
         while True or not coord.should_stop():
