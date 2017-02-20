@@ -2,8 +2,7 @@ import tensorflow as tf
 from glob import glob
 import os,time
 from av4_utils import generate_deep_affine_transform,affine_transform
-from av4 import FLAGS
-FLAGS.multiframe_num = 100
+multiframe_num = 100
 
 
 def index_the_database_into_queue(database_path, shuffle):
@@ -14,9 +13,9 @@ def index_the_database_into_queue(database_path, shuffle):
     ligand_file_list = []
     receptor_file_list = []
     # for the ligand it's necessary and sufficient to have an underscore in it's name
-    print "number of ligands:", len(glob(os.path.join(database_path + '/**/', "*[_]*.av4")))
+    print "number of ligands:", len(glob(os.path.join(database_path + '/**/**/', "*[_]*.av4")))
 
-    for ligand_file in glob(os.path.join(database_path + '/**/', "*[_]*.av4")):
+    for ligand_file in glob(os.path.join(database_path + '/**/**/', "*[_]*.av4")):
         receptor_file = "/".join(ligand_file.split("/")[:-1]) + "/" + ligand_file.split("/")[-1][:4] + '.av4'
         if os.path.exists(receptor_file):
             ligand_file_list.append(ligand_file)
@@ -82,7 +81,7 @@ def read_receptor_and_multiframe_ligand(filename_queue, epoch_counter):
     
     
     # select some frame of ligands, if don't have enough frame, repeat it
-    select_range = tf.range(0, FLAGS.multiframe_num)
+    select_range = tf.range(0, multiframe_num)
     select_frame = tf.mod(select_range,tf.shape(ligand_elements)[0])
     multiple_ligand_coords = tf.gather(tf.transpose(multiframe_ligand_coords,perm=[2,0,1]),select_frame)
     labels = tf.gather(ligand_labels,select_frame)
@@ -153,9 +152,9 @@ def convert_protein_and_ligand_to_image(ligand_elements, multiple_ligand_coords,
     not_all = tf.cast(
         tf.reduce_max(tf.cast(tf.square(box_size * 0.5) - tf.square(rotatated_ligand_coords) < 0, tf.int32)), tf.bool)
     ligand_elements, rotatated_ligand_coords = tf.case({tf.equal(not_all, tf.constant(True)): set_elements_coords_zero},
-                                                       keep_elements_coords)
+                                                       keep_elements_coords,exclusive=True)
 
-    indicate = tf.case({tf.equal(not_all,tf.constant(True)):tf.constant(True)},tf.constant(False))
+    indicate = tf.case({tf.equal(not_all,tf.constant(True)):lambda :tf.constant(True)},lambda :tf.constant(False),exclusive=True)
 
     # move coordinates of a complex to an integer number so as to put every atom on a grid
     # ceiled coords is an integer number out of real coordinates that corresponds to the index on the cell
@@ -185,11 +184,10 @@ def convert_protein_and_ligand_to_image(ligand_elements, multiple_ligand_coords,
 
 
     # move elemets to the dimension of depth
-    expand_coords_4d = tf.expand_dims()
     complex_coords_4d = tf.concat(1,
-                                  [complex_coords, tf.reshape(tf.ones(tf.shape(complex_elements))*index, [-1, 1])])
-    sparse_image_4d = tf.SparseTensor(indices=complex_coords, values=complex_elements,
-                                      shape=[side_pixels, side_pixels, side_pixels,FLAGS.multiframe_num])
+                                  [complex_coords, tf.reshape(tf.ones(tf.shape(complex_elements),dtype=tf.int64)*index, [-1, 1])])
+    sparse_image_4d = tf.SparseTensor(indices=complex_coords_4d, values=complex_elements,
+                                      shape=[side_pixels, side_pixels, side_pixels,multiframe_num])
 
     # FIXME: try to save an image and see how it looks like
     return sparse_image_4d, ligand_center_of_mass, final_transition_matrix,indicate
@@ -203,16 +201,17 @@ def image_and_label_queue(batch_size, pixel_size, side_pixels, num_threads, file
     frames = []
     masks = []
 
-    for i in range(FLAGS.multiframe_num):
+    for i in range(multiframe_num):
         sparse_image,_,_,indicate = convert_protein_and_ligand_to_image(ligand_elements, multiple_ligand_coords, receptor_elements,
                                                                 receptor_coords, side_pixels, pixel_size,i)
         frames.append(sparse_image)
         masks.append(indicate)
 
 
-    multiframe_batch = tf.boolean_mask(frames,masks)
-    image_4d = tf.sparse_concat(-1,multiframe_batch)
+    #multiframe_batch = tf.boolean_mask(tensor=frames,mask=masks)
+    #image_4d = tf.sparse_concat(-1,multiframe_batch)
 
-    label = tf.constant(1) if ligand_file.find('actives')>=0 else tf.constant(0)
+    label = tf.cast(tf.greater(tf.reduce_sum(labels),0),tf.int32)
 
-    return ligand_file,current_epoch,label,image_4d
+    #return ligand_file,current_epoch,label,image_4d
+    return ligand_file,current_epoch,label,frames,masks
