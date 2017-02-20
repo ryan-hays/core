@@ -14,3 +14,5 @@ heavy_atom_threshold = 10
 
 # path of smina binary file
 smina = ''
+# number of process running at the same time
+process_num = 4
