@@ -2,7 +2,7 @@ import os,sys
 import config
 from util import log,mkdir
 from glob import glob
-
+import multiprocessing
 
 def dock_ligand(ligand_path):
     receptor_name = os.path.basename(ligand_path).split('_')[0]
@@ -22,4 +22,7 @@ def dock_ligand(ligand_path):
 
 def docking():
     ligands_list = glob(config.splited_ligands_path)
-    map(dock_ligand,ligands_list)
+    pool = multiprocessing.Pool(config.process_num)
+    pool.map_async(dock_ligand,ligands_list)
+    pool.join()
+    pool.close()
