@@ -182,7 +182,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
     in_the_box_frame = tf.ones(tf.shape(out_of_box_frame),tf.int32) - out_of_box_frame
 
     # transformed label 1 when rotate success 0 when failed
-    transformed_label,ligand_elements,rotated_ligand_coords = tf.case({tf.greater_equal(tf.reduce_sum(in_the_box_frame),multiframe_num):set_elements_coords_zero},
+    transformed_label,ligand_elements,rotated_ligand_coords = tf.case({tf.less(tf.reduce_sum(in_the_box_frame),multiframe_num):set_elements_coords_zero},
                                                     keep_elements_coords)
 
     inbox_ligand_coords = tf.gather(rotated_ligand_coords,in_the_box_frame)
