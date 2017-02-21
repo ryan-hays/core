@@ -1,8 +1,10 @@
 import tensorflow as tf
 from glob import glob
 import os,time
+import numpy as np
 from av4_utils import generate_deep_affine_transform,affine_transform
 multiframe_num = 100
+min_frame_in_box = 100
 
 
 def index_the_database_into_queue(database_path, shuffle):
@@ -29,6 +31,11 @@ def index_the_database_into_queue(database_path, shuffle):
                 ligand_file_list.append(ligand_file)  #
                 receptor_file_list.append(receptor_file)  #
 
+    def crystal_path(ligand_path):
+        receptor = os.path.basename(ligand_path).split('_')[0]
+        crystal_file_path = os.path.join('/home/ubuntu/xiao/data/newkaggle/dude/crystal/crystal_ligands_npy',receptor,receptor+'_crystal.npy')
+
+    crystal_file_list = map(crystal_path,ligand_file_list)
     index_list = range(len(ligand_file_list))
     examples_in_database = len(index_list)
 
@@ -39,9 +46,10 @@ def index_the_database_into_queue(database_path, shuffle):
     # create a filename queue (tensor) with the names of the ligand and receptors
     index_tensor = tf.convert_to_tensor(index_list, dtype=tf.int32)
     ligand_files = tf.convert_to_tensor(ligand_file_list, dtype=tf.string)
+    crystal_files = tf.convert_to_tensor(crystal_file_list,dtype=tf.string)
     receptor_files = tf.convert_to_tensor(receptor_file_list, dtype=tf.string)
 
-    filename_queue = tf.train.slice_input_producer([index_tensor, ligand_files, receptor_files], num_epochs=None,
+    filename_queue = tf.train.slice_input_producer([index_tensor, ligand_files,crystal_files ,receptor_files], num_epochs=None,
                                                    shuffle=shuffle)
     return filename_queue, examples_in_database
 
@@ -72,8 +80,9 @@ def read_receptor_and_multiframe_ligand(filename_queue, epoch_counter):
 
     idx = filename_queue[0]
     ligand_file = filename_queue[1]
+    crystal_ligand = np.load(filename_queue)
     serialized_ligand = tf.read_file(ligand_file)
-    serialized_receptor = tf.read_file(filename_queue[2])
+    serialized_receptor = tf.read_file(filename_queue[3])
 
     ligand_labels, ligand_elements, multiframe_ligand_coords = decode_av4(serialized_ligand)
     receptor_labels, receptor_elements, multiframe_receptor_coords = decode_av4(serialized_receptor)
@@ -89,6 +98,127 @@ def read_receptor_and_multiframe_ligand(filename_queue, epoch_counter):
     return ligand_file, tf.squeeze(epoch_counter), tf.squeeze(labels), ligand_elements, tf.squeeze(
         multiple_ligand_coords), receptor_elements, tf.squeeze(multiframe_receptor_coords)
 
+def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand_coords,crystal_ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size,index):
+
+    max_num_attempts = 1000
+    affine_transform_pool_size = 10000
+
+    ligand_center_of_mass =tf.recude_mean(crystal_ligand_coords,recudtion_indices=0)
+    centered_crystal_ligand = crystal_ligand_coords - ligand_center_of_mass
+    centered_multiple_ligand_coords = multiple_lgiand_coords - ligand_center_of_mass
+    centered_receptor_coords = receptor_coords - ligand_center_of_mass
+    
+    box_size = (tf.cast(side_pixels, tf.float32)* pixel_size)
+
+
+
+    def generate_transition_matrix(attempt, transition_matrix, batch_of_transition_matrices):
+        transition_matrix = tf.gather(batch_of_transition_matrices,
+                                      tf.random_uniform([],minval=0,maxval=affine_transform_pool_size,
+                                                        dtype=tf.int32))
+        attempt +=1
+        return attempt, transition_matrix,batch_of_transition_matrices
+    
+    def not_enough_in_the_box(attempt, transition_matrix, batch_of_transition_matrices,centered_crystal_ligand=centered_crystal_ligand,
+                           multiple_ligand_coords = centered_multiple_ligand_coords,box_size= box_size,
+                           max_num_attempts=max_num_attempts):
+        def affine_multiple_transform(index,multiple_coordinates=multiple_ligand_coords, transition_matrix=transition_matrix):
+            coordinates = tf.gather(multiple_coordinates,index)
+            transformed_coordinates,_ = affine_transform(coordinates,transition_matrix)
+            return transformed_coordinates
+
+        transformed_crystal_coords,transition_matrix = affine_transform(centered_crystal_ligand,transition_matrix)
+
+        transformed_coords = tf.map_fn(affine_multiple_transform,tf.range(tf.shape(multiple_ligand_coords)[0]))
+        # transformed_coords.shape [n_frame,n_atoms,3]
+        # out_of_box_atoms.shape [ n_frame, n_atoms]
+        out_of_box_atoms = tf.squeeze(tf.reduce_sum(tf.cast(tf.square(box_size*0.5) - tf.square(transformed_coords)<0,tf.int32),redction_indices=-1))
+        # out_of_box_frame [n_frame]
+        out_of_box_frame = tf.squeeze(tf.cast(tf.reduce_sum(out_of_box_atoms,reduction_indices=-1)>0,tf.int32))
+        in_the_box_frame = tf.ones(out_of_box_frame.shape()) - out_of_box_frame
+        return tf.less(tf.recude_sum(in_the_box_frame),multiframe_num)
+
+    attempt = tf.Variable(tf.constant(0,shape=[1]))
+    batch_of_transition_matrices = tf.Variable(generate_deep_affine_transform(affine_transform_pool_size))
+
+    transition_matrix = tf.gather(batch_of_transition_matrices,
+                                  tf.random_uniform([],minval=0,maxval=affine_transform_pool_size,dtype=tf.int64))
+
+    last_attempt, final_transition_matrix, _ = tf.while_loop(not_enough_in_the_box,generate_transition_matrix,
+                                                             [attempt,transition_matrix,batch_of_transition_matrices],
+                                                             parallel_interations=1)
+
+    def affine_multiple_transform(index, multiple_coordinates=centered_multiple_ligand_coords,
+                                  transition_matrix=final_transition_matrix):
+        coordinates = tf.gather(multiple_coordinates, index)
+        transformed_coordinates, _ = affine_transform(coordinates, transition_matrix)
+        return transformed_coordinates
+
+    rotatated_ligand_coords = tf.map_fn(affine_transform,tf.range(tf.shape(centered_multiple_ligand_coords)[0]))
+    rotated_receptor_coords, _ = affine_transform(centered_receptor_coords, final_transition_matrix)
+
+    def set_elements_coords_zero(): return tf.constant([0], dtype=tf.int32), tf.constant([[1,0, 0, 0]], dtype=tf.float32)
+    def keep_elements_coords(): return ligand_elements, rotatated_ligand_coords
+
+    out_of_box_atoms = tf.squeeze(
+        tf.reduce_sum(tf.cast(tf.square(box_size * 0.5) - tf.square(rotatated_ligand_coords) < 0, tf.int32),
+                      redction_indices=-1))
+
+    out_of_box_frame = tf.squeeze(tf.cast(tf.reduce_sum(out_of_box_atoms, reduction_indices=-1) > 0, tf.int32))
+
+    in_the_box_frame = tf.ones(out_of_box_frame.shape()) - out_of_box_frame
+
+
+    ligand_elements,rotated_ligand_coords = tf.case({tf.greater_equal(tf.reduce_sum(in_the_box_frame),multiframe_num):set_elements_coords_zero},
+                                                    keep_elements_coords)
+
+    inbox_ligand_coords = tf.gather(rotated_ligand_coords,in_the_box_frame)
+    select_ligand_coords = tf.gather(inbox_ligand_coords,tf.range(multiframe_num))
+
+
+    epsilon = tf.constant(0.999, dtype=tf.float32)
+    ceiled_ligand_coords = tf.cast(
+        tf.round((-0.5 + (tf.cast(side_pixels, tf.float32) * 0.5) + (select_ligand_coords / pixel_size)) * epsilon),
+        tf.int64)
+    ceiled_receptor_coords = tf.cast(
+        tf.round((-0.5 + (tf.cast(side_pixels, tf.float32) * 0.5) + (rotated_receptor_coords / pixel_size)) * epsilon),
+        tf.int64)
+
+    top_filter = tf.reduce_max(ceiled_receptor_coords, reduction_indices=1) < side_pixels
+    bottom_filter = tf.reduce_min(ceiled_receptor_coords, reduction_indices=1) > 0
+    retain_atoms = tf.logical_and(top_filter, bottom_filter)
+    cropped_receptor_coords = tf.boolean_mask(ceiled_receptor_coords, retain_atoms)
+    cropped_receptor_elements = tf.boolean_mask(receptor_elements, retain_atoms)
+
+    multiple_cropped_receptor_coords = tf.ones([tf.shape(ceiled_ligand_coords)[0],1,1])*cropped_receptor_coords
+    complex_coords = tf.concat(0, [ceiled_ligand_coords, multiple_cropped_receptor_coords])
+    complex_elements = tf.concat(0, [ligand_elements + 7, cropped_receptor_elements])
+
+    '''
+    dimention_4th = tf.cast(tf.reshape(tf.range(tf.shape(select_ligand_coords)[0]),
+                                       [tf.shape(select_ligand_coords)[0],1,1]),tf.int64)
+    base = tf.ones([tf.shape(select_ligand_coords[0],tf.shape(select_ligand_coords)[1],1)],tf.int64)
+    ligand_frame_depth = dimention_4th*base
+    multiple_complex_elements =tf.reshape( base*tf.reshape(complex_elements,[1,tf.shape(complex_elements)[0],1]),[-1])
+    complex_coords_4d = tf.concat(2,
+                                  [complex_coords,ligand_frame_depth])
+    sparse_image_4d = tf.SparseTensor(indices=complex_coords_4d,values = multiple_complex_elements,
+                                      shape=[side_pixels,side_pixels,side_pixels)
+    '''
+
+    def generate_sparse_image_4d(depth,complex_coords=complex_coords,complex_elements=complex_elements):
+        single_complex_coords = tf.gather(complex_coords,depth)
+        complex_coords_4d = tf.concat(1,
+                                      [single_complex_coords,
+                                       tf.reshape(tf.ones(tf.shape(complex_elements),tf.int64)*depth [-1, 1])])
+        sparse_image_4d = tf.SparseTensor(indices=complex_coords_4d, values=complex_elements,
+                                          shape=[side_pixels, side_pixels, side_pixels, tf.shape(complex_coords)[0]])
+        return sparse_image_4d
+
+
+    sparse_images = tf.map_fn(generate_sparse_image_4d,tf.range(tf.shape(complex_coords)[0]))
+    sparse_image_4d = tf.sparse_concate(-1,sparse_images)
+    return sparse_image_4d,ligand_center_of_mass,final_transition_matrix
 
 def convert_protein_and_ligand_to_image(ligand_elements, multiple_ligand_coords, receptor_elements, receptor_coords, side_pixels,
                                         pixel_size,index):
@@ -198,6 +328,10 @@ def image_and_label_queue(batch_size, pixel_size, side_pixels, num_threads, file
     ligand_file, current_epoch, labels, ligand_elements, multiple_ligand_coords, receptor_elements, receptor_coords = read_receptor_and_multiframe_ligand(
         filename_queue,epoch_counter=epoch_counter)
 
+    sparse_image,_,_ = convert_protein_and_ligand_to_image(ligand_elements,multiple_ligand_coords,receptor_elements,receptor_coords,
+                                                           side_pixels,pixel_size)
+
+    '''
     frames = []
     masks = []
 
@@ -208,10 +342,15 @@ def image_and_label_queue(batch_size, pixel_size, side_pixels, num_threads, file
         masks.append(indicate)
 
 
+
     #multiframe_batch = tf.boolean_mask(tensor=frames,mask=masks)
     #image_4d = tf.sparse_concat(-1,multiframe_batch)
+    concate_sparse = lambda :tf.sparse_concate(-1,frames)
+    '''
 
-    label = tf.cast(tf.greater(tf.reduce_sum(labels),0),tf.int32)
+    label = tf.cast(tf.euqal(tf.reduce_sum(labels),multiframe_num),tf.int32)
+
+
 
     #return ligand_file,current_epoch,label,image_4d
     return ligand_file,current_epoch,label,frames,masks
