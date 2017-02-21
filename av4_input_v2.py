@@ -93,10 +93,9 @@ def read_receptor_and_multiframe_ligand(filename_queue, epoch_counter):
     
     
     # select some frame of ligands, if don't have enough frame, repeat it
-    size = tf.case([(tf.less(multiframe_num,tf.shape(multiframe_ligand_coords)[0]),lambda :tf.shape(multiframe_ligand_coords)[0])],lambda :tf.constant(multiframe_num))
-
+    size = tf.maximum(multiframe_num,tf.shape(ligand_labels)[0])
     select_range = tf.range(0, size)
-    select_frame = tf.mod(select_range,tf.shape(ligand_elements)[0])
+    select_frame = tf.mod(select_range,tf.shape(ligand_labels)[0])
     multiple_ligand_coords = tf.gather(tf.transpose(multiframe_ligand_coords,perm=[2,0,1]),select_frame)
     labels = tf.gather(ligand_labels,select_frame)
 
@@ -367,7 +366,7 @@ def image_and_label_queue(batch_size, pixel_size, side_pixels, num_threads, file
     concate_sparse = lambda :tf.sparse_concate(-1,frames)
     '''
 
-    label = tf.cast(tf.equal(tf.reduce_sum(labels),multiframe_num),tf.int32)
+    label = labels
     final_label = label*transformed_label
 
 
