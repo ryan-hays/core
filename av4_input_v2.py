@@ -163,6 +163,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
         # Third approch
         #
         #
+        epsilon = tf.constant(0.999, dtype=tf.float32)
         ceiled_ligand_coords = tf.cast(
             tf.round((tf.constant(-0.5, tf.float32) + (tf.cast(side_pixels, tf.float32) / 2.0) + (
                 transformed_coords / pixel_size)) * epsilon),
