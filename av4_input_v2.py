@@ -199,7 +199,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements, multiple_lgian
         {tf.less(tf.reduce_sum(in_the_box_frame), multiframe_num): set_elements_coords_zero},
         keep_elements_coords)
 
-    inbox_ligand_coords = tf.gather(rotated_ligand_coords, mask)
+    inbox_ligand_coords = tf.boolean_mask(rotated_ligand_coords,tf.reshape( mask,[tf.shape(rotated_ligand_coords)[0]]))
     select_ligand_coords = tf.gather(inbox_ligand_coords, tf.range(select_range))
 
     epsilon = tf.constant(0.999, dtype=tf.float32)
