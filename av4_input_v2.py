@@ -201,11 +201,12 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
     complex_coords = tf.concat(0, [ceiled_ligand_coords, multiple_cropped_receptor_coords])
     complex_elements = tf.concat(0, [ligand_elements + 7, cropped_receptor_elements])
 
-    
-    dimention_4th = tf.cast(tf.reshape(tf.range(tf.shape(select_ligand_coords)[0]),
-                                       [tf.shape(select_ligand_coords)[0],1,1]),tf.int32)
-    base = tf.ones([tf.shape(select_ligand_coords)[0],tf.shape(select_ligand_coords)[1],1],tf.int32)
+    # for each frame assign the 4th dimention as 0,1,2...100
+    dimention_4th = tf.cast(tf.reshape(tf.range(tf.shape(complex_coords)[0]),
+                                       [tf.shape(complex_coords)[0],1,1]),tf.int32)
+    base = tf.ones([tf.shape(complex_coords)[0],tf.shape(complex_coords)[1],1],tf.int32)
     ligand_frame_depth =tf.cast( dimention_4th*base,tf.int64)
+    # repeat complex_elements 100 time, used to generate SparseTensor
     multiple_complex_elements =tf.reshape( base*tf.reshape(complex_elements,[1,tf.shape(complex_elements)[0],1]),[-1])
     complex_coords_4d =tf.reshape( tf.concat(2,
                                   [complex_coords,ligand_frame_depth]),[-1,4])
