@@ -113,7 +113,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
     centered_receptor_coords = receptor_coords - ligand_center_of_mass
     
     box_size = (tf.cast(side_pixels, tf.float32)* pixel_size)
-
+    epsilon = tf.constant(0.999, dtype=tf.float32)
 
 
     def generate_transition_matrix(attempt, transition_matrix, batch_of_transition_matrices):
@@ -154,10 +154,24 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
         # another approch
         #
         #
-        out_of_box_atoms = tf.squeeze(tf.reduce_sum(
-            tf.cast(tf.less(box_size*0.5,tf.cast(tf.abs(transformed_coords),tf.float32)), tf.int32),
-            reduction_indices=-1))
-        out_of_box_frame = tf.squeeze(tf.cast(tf.reduce_sum(out_of_box_atoms, reduction_indices=-1) > 0, tf.int32))
+        #out_of_box_atoms = tf.squeeze(tf.reduce_sum(
+        #    tf.cast(tf.less(box_size*0.5,tf.cast(tf.abs(transformed_coords),tf.float32)), tf.int32),
+        #    reduction_indices=-1))
+        #out_of_box_frame = tf.squeeze(tf.cast(tf.reduce_sum(out_of_box_atoms, reduction_indices=-1) > 0, tf.int32))
+        #in_the_box_frame = tf.ones(tf.shape(out_of_box_frame), tf.int32) - out_of_box_frame
+
+        # Third approch
+        #
+        #
+        ceiled_ligand_coords = tf.cast(
+            tf.round((tf.constant(-0.5, tf.float32) + (tf.cast(side_pixels, tf.float32) / 2.0) + (
+                transformed_coords / pixel_size)) * epsilon),
+            tf.int64)
+        top_filter = ceiled_ligand_coords  >= side_pixels
+        bottom_filter = ceiled_ligand_coords < 0
+        out_of_box_atoms = tf.squeeze(tf.reduce_sum(tf.cast(tf.logical_and(top_filter, bottom_filter),tf.int32),reduction_indices=-1))
+        out_of_box_frame = tf.squeeze(tf.reduce_sum(out_of_box_atoms>0,reduction_indices=-1))
+
         in_the_box_frame = tf.ones(tf.shape(out_of_box_frame), tf.int32) - out_of_box_frame
 
         return tf.logical_and(tf.logical_and(within_iteration_limit, not_all), tf.less(tf.reduce_sum(in_the_box_frame), ligands_frame_num))
@@ -188,13 +202,25 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
     #    tf.reduce_sum(tf.cast(tf.square(box_size * 0.5) - tf.cast(tf.square(rotatated_ligand_coords),tf.float32) < 0, tf.int32),
     #                  reduction_indices=-1))
 
-    out_of_box_atoms = tf.squeeze(tf.reduce_sum(
-        tf.cast(tf.less(box_size * 0.5, tf.cast(tf.abs(rotatated_ligand_coords), tf.float32)), tf.int32),
-        reduction_indices=-1))
+    #out_of_box_atoms = tf.squeeze(tf.reduce_sum(
+    #    tf.cast(tf.less(box_size * 0.5, tf.cast(tf.abs(rotatated_ligand_coords), tf.float32)), tf.int32),
+    #    reduction_indices=-1))
 
-    out_of_box_frame = tf.squeeze(tf.cast(tf.reduce_sum(out_of_box_atoms, reduction_indices=-1) > 0, tf.int32))
+    #out_of_box_frame = tf.squeeze(tf.cast(tf.reduce_sum(out_of_box_atoms, reduction_indices=-1) > 0, tf.int32))
 
-    in_the_box_frame = tf.ones(tf.shape(out_of_box_frame),tf.int32) - out_of_box_frame
+    #in_the_box_frame = tf.ones(tf.shape(out_of_box_frame),tf.int32) - out_of_box_frame
+
+    ceiled_ligand_coords = tf.cast(
+        tf.round((tf.constant(-0.5, tf.float32) + (tf.cast(side_pixels, tf.float32) / 2.0) + (
+            rotatated_ligand_coords / pixel_size)) * epsilon),
+        tf.int64)
+    top_filter = ceiled_ligand_coords >= side_pixels
+    bottom_filter = ceiled_ligand_coords < 0
+    out_of_box_atoms = tf.squeeze(
+        tf.reduce_sum(tf.cast(tf.logical_and(top_filter, bottom_filter), tf.int32), reduction_indices=-1))
+    out_of_box_frame = tf.squeeze(tf.reduce_sum(out_of_box_atoms > 0, reduction_indices=-1))
+
+    in_the_box_frame = tf.ones(tf.shape(out_of_box_frame), tf.int32) - out_of_box_frame
 
     # transformed label 1 when rotate success 0 when failed
     transformed_label,ligand_elements,rotated_ligand_coords = tf.case({tf.less(tf.reduce_sum(in_the_box_frame), ligands_frame_num):set_elements_coords_zero},
