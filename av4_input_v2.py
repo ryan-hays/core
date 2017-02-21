@@ -144,7 +144,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
         #
         #
         # transformed_coords.shape [n_frame,n_atoms,3]
-        transformed_coords = tf.map_fn(affine_multiple_transform,tf.range(tf.shape(multiple_ligand_coords)[0]),dtype=tf.float32)
+        transformed_coords = tf.map_fn(affine_multiple_transform,tf.range(tf.shape(multiple_ligand_coords)[0]),dtype=tf.float32,parallel_iterations=1)
         # out_of_box_atoms.shape [ n_frame, n_atoms]
         #out_of_box_atoms = tf.squeeze(tf.reduce_sum(tf.cast(tf.square(box_size*0.5) - tf.cast(tf.square(transformed_coords),tf.float32)<0,tf.int32),reduction_indices=-1))
         # out_of_box_frame [n_frame]
@@ -172,21 +172,25 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
                                                              [attempt,transition_matrix,batch_of_transition_matrices],
                                                              parallel_iterations=1)
 
-    def affine_multiple_transform(index, multiple_coordinates=centered_multiple_ligand_coords,
+    def affine_multiple_transform_1(index, multiple_coordinates=centered_multiple_ligand_coords,
                                   transition_matrix=final_transition_matrix):
         coordinates = tf.gather(multiple_coordinates, index)
         transformed_coordinates, _ = affine_transform(coordinates, transition_matrix)
         return transformed_coordinates
 
-    rotatated_ligand_coords = tf.map_fn(affine_multiple_transform,tf.range(tf.shape(centered_multiple_ligand_coords)[0]),dtype=tf.float32)
+    rotatated_ligand_coords = tf.map_fn(affine_multiple_transform_1,tf.range(tf.shape(centered_multiple_ligand_coords)[0]),dtype=tf.float32,parallel_iterations=1)
     rotated_receptor_coords, _ = affine_transform(centered_receptor_coords, final_transition_matrix)
 
     def set_elements_coords_zero(): return  tf.constant([0],dtype=tf.int32),tf.constant([0], dtype=tf.int32), tf.zeros([1,1,3], dtype=tf.float32)
     def keep_elements_coords(): return tf.constant([1],dtype=tf.int32), tf.cast(ligand_elements,tf.int32), rotatated_ligand_coords
 
-    out_of_box_atoms = tf.squeeze(
-        tf.reduce_sum(tf.cast(tf.square(box_size * 0.5) - tf.cast(tf.square(rotatated_ligand_coords),tf.float32) < 0, tf.int32),
-                      reduction_indices=-1))
+    #out_of_box_atoms = tf.squeeze(
+    #    tf.reduce_sum(tf.cast(tf.square(box_size * 0.5) - tf.cast(tf.square(rotatated_ligand_coords),tf.float32) < 0, tf.int32),
+    #                  reduction_indices=-1))
+
+    out_of_box_atoms = tf.squeeze(tf.reduce_sum(
+        tf.cast(tf.less(box_size * 0.5, tf.cast(tf.abs(rotatated_ligand_coords), tf.float32)), tf.int32),
+        reduction_indices=-1))
 
     out_of_box_frame = tf.squeeze(tf.cast(tf.reduce_sum(out_of_box_atoms, reduction_indices=-1) > 0, tf.int32))
 
