@@ -36,7 +36,7 @@ def output_test():
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
     for i in range(100):
-        name,image,image_label,w,rr,r,s = sess.run([file_name,image_batch,label,wrong,rotatated_ligand_coords,rotated_ligand_coords,select_ligand_coords])
+        name,image,image_label,w,rr,r,s = sess.run([file_name,sparse_image_batch.indices,label,wrong,rotatated_ligand_coords,rotated_ligand_coords,select_ligand_coords])
         print os.path.basename(name),image_label
         print image.shape
         print w.shape
