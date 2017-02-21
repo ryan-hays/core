@@ -171,7 +171,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
     rotatated_ligand_coords = tf.map_fn(affine_multiple_transform,tf.range(tf.shape(centered_multiple_ligand_coords)[0]),dtype=tf.float32)
     rotated_receptor_coords, _ = affine_transform(centered_receptor_coords, final_transition_matrix)
 
-    def set_elements_coords_zero(): return tf.constant([0], dtype=tf.int32), tf.zeros(tf.shape(rotatated_ligand_coords), dtype=tf.float32)
+    def set_elements_coords_zero(): return tf.constant([0], dtype=tf.int32), tf.zeros([1,1,3], dtype=tf.float32)
     def keep_elements_coords(): return tf.cast(ligand_elements,tf.int32), rotatated_ligand_coords
 
     out_of_box_atoms = tf.squeeze(
@@ -206,8 +206,9 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
     cropped_receptor_coords = tf.boolean_mask(ceiled_receptor_coords, retain_atoms)
     cropped_receptor_elements = tf.boolean_mask(receptor_elements, retain_atoms)
 
+    
     multiple_cropped_receptor_coords = tf.ones([tf.shape(ceiled_ligand_coords)[0],1,1],tf.int64)*cropped_receptor_coords
-    complex_coords = tf.concat(0, [ceiled_ligand_coords, multiple_cropped_receptor_coords])
+    complex_coords = tf.concat(1, [ceiled_ligand_coords, multiple_cropped_receptor_coords])
     complex_elements = tf.concat(0, [ligand_elements + 7, cropped_receptor_elements])
 
     # for each frame assign the 4th dimention as 0,1,2...100
