@@ -2,7 +2,7 @@ import time, os
 import tensorflow as tf
 import numpy as np
 from av4_input_v2 import index_the_database_into_queue, image_and_label_queue
-from av4_networks import *
+from av4_networks_v2 import *
 
 
 # telling tensorflow how we want to randomly initialize weights
@@ -106,7 +106,7 @@ class FLAGS:
     # num_classes = 2
     # parameters to optimize runs on different machines for speed/performance
     # number of vectors(images) in one batch
-    batch_size = 100
+    batch_size = 1
     # number of background processes to fill the queue with images
     num_threads = 512
     # data directories
