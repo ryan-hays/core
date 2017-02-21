@@ -219,7 +219,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
     bottom_filter = ceiled_ligand_coords < 0
     out_of_box_atoms = tf.squeeze(
         tf.reduce_sum(tf.cast(tf.logical_and(top_filter, bottom_filter), tf.int32), reduction_indices=-1))
-    out_of_box_frame = tf.squeeze(tf.reduce_sum(out_of_box_atoms > 0, reduction_indices=-1))
+    out_of_box_frame = tf.squeeze(tf.reduce_sum(tf.cast(out_of_box_atoms > 0,tf.int32), reduction_indices=-1))
 
     in_the_box_frame = tf.ones(tf.shape(out_of_box_frame), tf.int32) - out_of_box_frame
 
