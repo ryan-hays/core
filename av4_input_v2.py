@@ -56,7 +56,7 @@ def index_the_database_into_queue(database_path, shuffle):
     return filename_queue, examples_in_database
 
 
-def read_receptor_and_multiframe_ligand(filename_queue, epoch_counter):
+def read_receptor_and_multiframe_ligand(filename_queue, epoch_counter,image_depth):
     def decode_av4(serialized_record):
         # decode everything into int32
         tmp_decoded_record = tf.decode_raw(serialized_record, tf.int32)
@@ -258,7 +258,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements, multiple_lgian
 
 def image_and_label_queue(batch_size, pixel_size, side_pixels, num_threads, filename_queue, epoch_counter,image_depth):
     ligand_file, current_epoch, labels, ligand_elements, multiple_ligand_coords, crystal_coords, receptor_elements, receptor_coords = read_receptor_and_multiframe_ligand(
-        filename_queue, epoch_counter=epoch_counter)
+        filename_queue, epoch_counter=epoch_counter,image_depth=image_depth)
 
     sparse_image, _, _, transformed_label= convert_protein_and_multiple_ligand_to_image(ligand_elements,
                                                                                          multiple_ligand_coords,
@@ -287,10 +287,10 @@ def image_and_label_queue(batch_size, pixel_size, side_pixels, num_threads, file
     label = tf.cast(tf.greater(tf.reduce_sum(labels), 0), tf.int32)
     final_label = label * transformed_label
 
-    multithread_batch = tf.train.batch([ligand_file, current_epoch, final_label, sparse_image], batch_size,
-                                       num_threads=num_threads,
-                                       capacity=batch_size * 3, dynamic_pad=True, shapes=[[], [], [], [None]])
-    #return ligand_file, current_epoch, final_label, sparse_image
+   # multithread_batch = tf.train.batch([ligand_file, current_epoch, final_label, sparse_image], batch_size,
+    #                                   num_threads=num_threads,
+     #                                  capacity=batch_size * 3, dynamic_pad=True, shapes=[[], [], [], [None]])
+    return ligand_file, current_epoch, final_label, sparse_image
     # return ligand_file,current_epoch,label,frames,masks
-    return multithread_batch
+    #return multithread_batch
 
