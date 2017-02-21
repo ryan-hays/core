@@ -159,10 +159,10 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
         transformed_coordinates, _ = affine_transform(coordinates, transition_matrix)
         return transformed_coordinates
 
-    rotatated_ligand_coords = tf.map_fn(affine_multiple_transform,tf.range(tf.shape(centered_multiple_ligand_coords)[0]))
+    rotatated_ligand_coords = tf.map_fn(affine_multiple_transform,tf.range(tf.shape(centered_multiple_ligand_coords)[0]),dtype=tf.float32)
     rotated_receptor_coords, _ = affine_transform(centered_receptor_coords, final_transition_matrix)
 
-    def set_elements_coords_zero(): return tf.constant([0], dtype=tf.int32), tf.constant([[1,0, 0, 0]], dtype=tf.int32)
+    def set_elements_coords_zero(): return tf.constant([0], dtype=tf.int32), tf.constant([[1,0, 0, 0]], dtype=tf.float32)
     def keep_elements_coords(): return tf.cast(ligand_elements,tf.int32), rotatated_ligand_coords
 
     out_of_box_atoms = tf.squeeze(

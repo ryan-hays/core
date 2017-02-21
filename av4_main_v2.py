@@ -23,7 +23,7 @@ def output_test():
                                                                         num_threads=FLAGS.num_threads,
                                                                         filename_queue=filename_queue,
                                                                         epoch_counter=epoch_counter)
-
+    sess.run(tf.global_variables_initializer())
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
