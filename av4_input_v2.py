@@ -282,7 +282,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
 
    # sparse_images = tf.map_fn(generate_sparse_image_4d,tf.range(tf.shape(complex_coords)[0]))
    # sparse_image_4d = tf.sparse_concate(-1,sparse_images)
-    return sparse_image_4d,ligand_center_of_mass,final_transition_matrix,transformed_label
+    return sparse_image_4d,ligand_center_of_mass,final_transition_matrix,transformed_label,rotatated_ligand_coords,rotated_ligand_coords,select_ligand_coords
 
 
 def image_and_label_queue(batch_size, pixel_size, side_pixels, num_threads, filename_queue, epoch_counter):
@@ -290,7 +290,7 @@ def image_and_label_queue(batch_size, pixel_size, side_pixels, num_threads, file
     ligand_file, current_epoch, labels, ligand_elements, multiple_ligand_coords, crystal_coords,receptor_elements, receptor_coords = read_receptor_and_multiframe_ligand(
         filename_queue,epoch_counter=epoch_counter)
 
-    sparse_image,_,_ ,transformed_label= convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_ligand_coords,crystal_coords,receptor_elements,receptor_coords,
+    sparse_image,_,_ ,transformed_label,rotatated_ligand_coords,rotated_ligand_coords,select_ligand_coords= convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_ligand_coords,crystal_coords,receptor_elements,receptor_coords,
                                                            side_pixels,pixel_size)
 
     '''
@@ -315,5 +315,5 @@ def image_and_label_queue(batch_size, pixel_size, side_pixels, num_threads, file
 
 
 
-    return ligand_file,current_epoch,final_label,sparse_image
+    return ligand_file,current_epoch,final_label,sparse_image,rotatated_ligand_coords,rotated_ligand_coords,select_ligand_coords
     #return ligand_file,current_epoch,label,frames,masks
