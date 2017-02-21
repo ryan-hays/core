@@ -177,11 +177,6 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements, multiple_lgian
                                         tf.range(tf.shape(centered_multiple_ligand_coords)[0]), dtype=tf.float32)
     rotated_receptor_coords, _ = affine_transform(centered_receptor_coords, final_transition_matrix)
 
-    def set_elements_coords_zero(): return tf.constant([0], dtype=tf.int32), tf.constant([0], dtype=tf.int32), tf.zeros(
-        [1, 1, 3], dtype=tf.float32)
-
-    def keep_elements_coords(): return tf.constant([1], dtype=tf.int32), tf.cast(ligand_elements,
-                                                                                 tf.int32), rotatated_ligand_coords
 
     out_of_box_atoms = tf.squeeze(
         tf.reduce_sum(
@@ -192,13 +187,20 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements, multiple_lgian
 
     in_the_box_frame = tf.ones(tf.shape(out_of_box_frame), tf.int32) - out_of_box_frame
 
+    def set_elements_coords_zero(): return tf.constant([0], dtype=tf.int32), tf.constant([0], dtype=tf.int32), tf.zeros(
+        [1, 1, 3], dtype=tf.float32),tf.constant(True,tf.bool),tf.constant(1,tf.int32)
+
+    def keep_elements_coords(): return tf.constant(
+        [1], dtype=tf.int32), tf.cast(ligand_elements,tf.int32),rotatated_ligand_coords,tf.cast(in_the_box_frame,tf.bool),tf.constant(multiframe_num,tf.int32)
+
+
     # transformed label 1 when rotate success 0 when failed
-    transformed_label, ligand_elements, rotated_ligand_coords = tf.case(
+    transformed_label, ligand_elements, rotated_ligand_coords, mask, select_range = tf.case(
         {tf.less(tf.reduce_sum(in_the_box_frame), multiframe_num): set_elements_coords_zero},
         keep_elements_coords)
 
-    inbox_ligand_coords = tf.gather(rotated_ligand_coords, in_the_box_frame)
-    select_ligand_coords = tf.gather(inbox_ligand_coords, tf.range(multiframe_num))
+    inbox_ligand_coords = tf.gather(rotated_ligand_coords, mask)
+    select_ligand_coords = tf.gather(inbox_ligand_coords, tf.range(select_range))
 
     epsilon = tf.constant(0.999, dtype=tf.float32)
     # ceiled_ligand_coords = tf.cast(

@@ -25,8 +25,8 @@ def output_test():
                                                                         epoch_counter=epoch_counter)
 
     indices = sparse_image_batch.indices
-    top_filter = tf.reduce_max(indices, reduction_indices=1) >= FLAGS.side_pixels
-    bottom_filter = tf.reduce_min(indices, reduction_indices=1) <= 0
+    top_filter = tf.reduce_max(indices, reduction_indices=-1) >= FLAGS.side_pixels
+    bottom_filter = tf.reduce_min(indices, reduction_indices=-1) <= 0
     out_of_box_indices = tf.logical_and(top_filter, bottom_filter)
     wrong = tf.boolean_mask(indices,out_of_box_indices)
 
