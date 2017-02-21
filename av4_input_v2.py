@@ -93,7 +93,7 @@ def read_receptor_and_multiframe_ligand(filename_queue, epoch_counter):
     
     
     # select some frame of ligands, if don't have enough frame, repeat it
-    size = tf.case([tf.less(multiframe_num,tf.shape(multiframe_ligand_coords)[0]),lambda :tf.shape(multiframe_ligand_coords)[0]],multiframe_num)
+    size = tf.case([(tf.less(multiframe_num,tf.shape(multiframe_ligand_coords)[0]),lambda :tf.shape(multiframe_ligand_coords)[0])],lambda :multiframe_num)
 
     select_range = tf.range(0, size)
     select_frame = tf.mod(select_range,tf.shape(ligand_elements)[0])
