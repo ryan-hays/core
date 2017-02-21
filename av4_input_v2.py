@@ -196,8 +196,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
     rotatated_ligand_coords = tf.map_fn(affine_multiple_transform_1,tf.range(tf.shape(centered_multiple_ligand_coords)[0]),dtype=tf.float32,parallel_iterations=1)
     rotated_receptor_coords, _ = affine_transform(centered_receptor_coords, final_transition_matrix)
 
-    def set_elements_coords_zero(): return  tf.constant([0],dtype=tf.int32),tf.constant([0], dtype=tf.int32), tf.zeros([1,1,3], dtype=tf.float32)
-    def keep_elements_coords(): return tf.constant([1],dtype=tf.int32), tf.cast(ligand_elements,tf.int32), rotatated_ligand_coords
+
 
     #out_of_box_atoms = tf.squeeze(
     #    tf.reduce_sum(tf.cast(tf.square(box_size * 0.5) - tf.cast(tf.square(rotatated_ligand_coords),tf.float32) < 0, tf.int32),
@@ -223,14 +222,17 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
 
     in_the_box_frame = tf.ones(tf.shape(out_of_box_frame), tf.int32) - out_of_box_frame
 
+    inbox_ligand_coords = tf.gather(ceiled_ligand_coords, in_the_box_frame)
+
+    def set_elements_coords_zero(): return  tf.constant([0],dtype=tf.int32),tf.constant([0], dtype=tf.int32), tf.zeros([1,1,3], dtype=tf.float32)
+    def keep_elements_coords(): return tf.constant([1],dtype=tf.int32), tf.cast(ligand_elements,tf.int32), inbox_ligand_coords
 
 
     # transformed label 1 when rotate success 0 when failed
-    transformed_label,ligand_elements,rotated_ligand_coords = tf.case({tf.less(tf.reduce_sum(in_the_box_frame), ligands_frame_num):set_elements_coords_zero},
+    transformed_label,ligand_elements,select_ligands_coords = tf.case({tf.less(tf.reduce_sum(in_the_box_frame), ligands_frame_num):set_elements_coords_zero},
                                                                       keep_elements_coords)
 
-    inbox_ligand_coords = tf.gather(rotated_ligand_coords,in_the_box_frame)
-    select_ligand_coords = tf.gather(inbox_ligand_coords, tf.range(ligands_frame_num))
+
 
 
     epsilon = tf.constant(0.999, dtype=tf.float32)
@@ -238,10 +240,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
     #ceiled_ligand_coords = tf.cast(
     #    tf.round((half_side_pixels+scalar_ligand_coords) * epsilon),
     #    tf.int64)
-    ceiled_ligand_coords = tf.cast(
-        tf.round((tf.constant(-0.5, tf.float32) + (tf.cast(side_pixels, tf.float32) / 2.0) + (
-            select_ligand_coords / pixel_size)) * epsilon),
-        tf.int64)
+
     ceiled_receptor_coords = tf.cast(
         tf.round((tf.constant(-0.5,tf.float32) + (tf.cast(side_pixels, tf.float32) /2.0) + (rotated_receptor_coords / pixel_size)) * epsilon),
         tf.int64)
@@ -254,7 +253,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
 
 
     multiple_cropped_receptor_coords = tf.ones([tf.shape(ceiled_ligand_coords)[0],1,1],tf.int64)*cropped_receptor_coords
-    complex_coords = tf.concat(1, [ceiled_ligand_coords, multiple_cropped_receptor_coords])
+    complex_coords = tf.concat(1, [select_ligands_coords, multiple_cropped_receptor_coords])
     complex_elements = tf.concat(0, [ligand_elements + 7, cropped_receptor_elements])
 
     # for each frame assign the 4th dimention as 0,1,2...100
