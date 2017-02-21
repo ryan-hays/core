@@ -33,7 +33,7 @@ def index_the_database_into_queue(database_path, shuffle):
 
     def crystal_path(ligand_path):
         receptor = os.path.basename(ligand_path).split('_')[0]
-        crystal_file_path = os.path.join('/home/ubuntu/xiao/data/newkaggle/dude/crystal/crystal_ligands_npy',receptor,receptor+'_crystal.npy')
+        crystal_file_path = os.path.join('/home/ubuntu/xiao/data/newkaggle/dude/crystal/crystal_ligands_npy',receptor,receptor+'_crystal.av4')
 
     crystal_file_list = map(crystal_path,ligand_file_list)
     index_list = range(len(ligand_file_list))
@@ -80,23 +80,27 @@ def read_receptor_and_multiframe_ligand(filename_queue, epoch_counter):
 
     idx = filename_queue[0]
     ligand_file = filename_queue[1]
-    crystal_ligand = np.load(filename_queue)
     serialized_ligand = tf.read_file(ligand_file)
+    serialized_crystal = tf.read_file(filename_queue[2])
     serialized_receptor = tf.read_file(filename_queue[3])
 
+
     ligand_labels, ligand_elements, multiframe_ligand_coords = decode_av4(serialized_ligand)
+    _,_,crystal_coords = decode_av4(serialized_crystal)
     receptor_labels, receptor_elements, multiframe_receptor_coords = decode_av4(serialized_receptor)
 
     
     
     # select some frame of ligands, if don't have enough frame, repeat it
-    select_range = tf.range(0, multiframe_num)
+    size = tf.case([tf.less(multiframe_num,tf.shape(multiframe_ligand_coords)[0]),lambda :tf.shape(multiframe_ligand_coords)[0]],multiframe_num)
+
+    select_range = tf.range(0, size)
     select_frame = tf.mod(select_range,tf.shape(ligand_elements)[0])
     multiple_ligand_coords = tf.gather(tf.transpose(multiframe_ligand_coords,perm=[2,0,1]),select_frame)
     labels = tf.gather(ligand_labels,select_frame)
 
     return ligand_file, tf.squeeze(epoch_counter), tf.squeeze(labels), ligand_elements, tf.squeeze(
-        multiple_ligand_coords), receptor_elements, tf.squeeze(multiframe_receptor_coords)
+        multiple_ligand_coords), tf.squeeze(crystal_coords),receptor_elements, tf.squeeze(multiframe_receptor_coords)
 
 def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand_coords,crystal_ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size,index):
 
@@ -325,10 +329,10 @@ def convert_protein_and_ligand_to_image(ligand_elements, multiple_ligand_coords,
 
 def image_and_label_queue(batch_size, pixel_size, side_pixels, num_threads, filename_queue, epoch_counter):
 
-    ligand_file, current_epoch, labels, ligand_elements, multiple_ligand_coords, receptor_elements, receptor_coords = read_receptor_and_multiframe_ligand(
+    ligand_file, current_epoch, labels, ligand_elements, multiple_ligand_coords, crystal_coords,receptor_elements, receptor_coords = read_receptor_and_multiframe_ligand(
         filename_queue,epoch_counter=epoch_counter)
 
-    sparse_image,_,_ = convert_protein_and_ligand_to_image(ligand_elements,multiple_ligand_coords,receptor_elements,receptor_coords,
+    sparse_image,_,_ = convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_ligand_coords,crystal_coords,receptor_elements,receptor_coords,
                                                            side_pixels,pixel_size)
 
     '''
