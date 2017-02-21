@@ -17,21 +17,30 @@ def output_test():
     epoch_counter = tf.div(batch_counter * FLAGS.batch_size, examples_in_database)
     # epoch_counter = tf.constant(0)
     # create a custom shuffle queue
-    file_name, current_epoch, label, sparse_image_batch = image_and_label_queue(batch_size=FLAGS.batch_size,
+    file_name, current_epoch, label, sparse_image_batch,rotatated_ligand_coords,rotated_ligand_coords,select_ligand_coords = image_and_label_queue(batch_size=FLAGS.batch_size,
                                                                         pixel_size=FLAGS.pixel_size,
                                                                         side_pixels=FLAGS.side_pixels,
                                                                         num_threads=FLAGS.num_threads,
                                                                         filename_queue=filename_queue,
                                                                         epoch_counter=epoch_counter)
 
+    indices = sparse_image_batch.indices
+    top_filter = tf.reduce_max(indices, reduction_indices=1) >= FLAGS.side_pixels
+    bottom_filter = tf.reduce_min(indices, reduction_indices=1) <= 0
+    out_of_box_indices = tf.logical_and(top_filter, bottom_filter)
+    wrong = tf.boolean_mask(indices,out_of_box_indices)
+
+
     image_batch =tf.sparse_tensor_to_dense(sparse_image_batch, validate_indices=False)
     sess.run(tf.global_variables_initializer())
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
     for i in range(100):
-        name,image,image_label = sess.run([file_name,image_batch,label])
+        name,image,image_label,w,rr,r,s = sess.run([file_name,image_batch,label,wrong,rotatated_ligand_coords,rotated_ligand_coords,select_ligand_coords])
         print os.path.basename(name),image_label
         print image.shape
+        print w.shape
+        print np.all(rr==r)
 
 def train():
     "train a network"
