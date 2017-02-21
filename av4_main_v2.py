@@ -19,7 +19,7 @@ def train():
     batch_counter_increment = tf.assign(batch_counter, tf.Variable(0).count_up_to(
         np.round((examples_in_database * FLAGS.num_epochs) / FLAGS.batch_size)))
     epoch_counter = tf.div(batch_counter * FLAGS.batch_size, examples_in_database)
-
+    #epoch_counter = tf.constant(0)
     # create a custom shuffle queue
     _, current_epoch, label, sparse_image_batch = image_and_label_queue(batch_size=FLAGS.batch_size,
                                                                               pixel_size=FLAGS.pixel_size,
@@ -30,7 +30,7 @@ def train():
 
     #imultiframe_batch = tf.boolean_mask(sparse_image_batch,mask)
     #image_4d = tf.sparse_concat(-1,multiframe_batch)
-    image_batch = tf.sparse_tensor_to_dense(sparse_image_batch, validate_indices=False)
+    image_batch =tf.cast( tf.sparse_tensor_to_dense(sparse_image_batch, validate_indices=False),tf.float32)
     
 
     keep_prob = tf.placeholder(tf.float32)
@@ -98,7 +98,7 @@ class FLAGS:
     side_pixels = 40
     # weights for each class for the scoring function
     # number of times each example in the dataset will be read
-    num_epochs = 50000  # epochs are counted based on the number of the protein examples
+    num_epochs = 50  # epochs are counted based on the number of the protein examples
     # usually the dataset would have multiples frames of ligand binding to the same protein
     # av4_input also has an oversampling algorithm.
     # Example: if the dataset has 50 frames with 0 labels and 1 frame with 1 label, and we want to run it for 50 epochs,

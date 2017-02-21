@@ -33,7 +33,7 @@ def index_the_database_into_queue(database_path, shuffle):
 
     def crystal_path(ligand_path):
         receptor = os.path.basename(ligand_path).split('_')[0]
-        crystal_file_path = os.path.join('/home/ubuntu/xiao/data/newkaggle/dude/crystal/crystal_ligands_npy',receptor,receptor+'_crystal.av4')
+        crystal_file_path = os.path.join('/home/ubuntu/xiao/data/newkaggle/dude/crystal/crystal_ligands',receptor,receptor+'_crystal.av4')
         return crystal_file_path
 
     crystal_file_list = map(crystal_path,ligand_file_list)
@@ -134,7 +134,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
 
         transformed_crystal_coords,transition_matrix = affine_transform(centered_crystal_ligand,transition_matrix)
 
-        transformed_coords = tf.map_fn(affine_multiple_transform,tf.range(tf.shape(multiple_ligand_coords)[0]))
+        transformed_coords = tf.map_fn(affine_multiple_transform,tf.range(tf.shape(multiple_ligand_coords)[0]),dtype=tf.float32)
         # transformed_coords.shape [n_frame,n_atoms,3]
         # out_of_box_atoms.shape [ n_frame, n_atoms]
         out_of_box_atoms = tf.squeeze(tf.reduce_sum(tf.cast(tf.square(box_size*0.5) - tf.cast(tf.square(transformed_coords),tf.float32)<0,tf.int32),reduction_indices=-1))
