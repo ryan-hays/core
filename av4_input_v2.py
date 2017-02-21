@@ -170,7 +170,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
             tf.int64)
         top_filter = ceiled_ligand_coords  >= side_pixels
         bottom_filter = ceiled_ligand_coords < 0
-        out_of_box_atoms = tf.squeeze(tf.reduce_sum(tf.cast(tf.logical_and(top_filter, bottom_filter),tf.int32),reduction_indices=-1))
+        out_of_box_atoms = tf.squeeze(tf.reduce_sum(tf.cast(tf.logical_or(top_filter, bottom_filter),tf.int32),reduction_indices=-1))
         out_of_box_frame = tf.squeeze(tf.reduce_sum(tf.cast(out_of_box_atoms>0,tf.int32),reduction_indices=-1))
 
         in_the_box_frame = tf.ones(tf.shape(out_of_box_frame), tf.int32) - out_of_box_frame
@@ -218,10 +218,12 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
     top_filter = ceiled_ligand_coords >= side_pixels
     bottom_filter = ceiled_ligand_coords < 0
     out_of_box_atoms = tf.squeeze(
-        tf.reduce_sum(tf.cast(tf.logical_and(top_filter, bottom_filter), tf.int32), reduction_indices=-1))
+        tf.reduce_sum(tf.cast(tf.logical_or(top_filter, bottom_filter), tf.int32), reduction_indices=-1))
     out_of_box_frame = tf.squeeze(tf.reduce_sum(tf.cast(out_of_box_atoms > 0,tf.int32), reduction_indices=-1))
 
     in_the_box_frame = tf.ones(tf.shape(out_of_box_frame), tf.int32) - out_of_box_frame
+
+
 
     # transformed label 1 when rotate success 0 when failed
     transformed_label,ligand_elements,rotated_ligand_coords = tf.case({tf.less(tf.reduce_sum(in_the_box_frame), ligands_frame_num):set_elements_coords_zero},
