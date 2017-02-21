@@ -224,7 +224,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
 
     inbox_ligand_coords = tf.gather(ceiled_ligand_coords, in_the_box_frame)
 
-    def set_elements_coords_zero(): return  tf.constant([0],dtype=tf.int32),tf.constant([0], dtype=tf.int32), tf.zeros([1,1,3], dtype=tf.float32)
+    def set_elements_coords_zero(): return  tf.constant([0],dtype=tf.int32),tf.constant([0], dtype=tf.int32), tf.zeros([1,1,3], dtype=tf.int64)
     def keep_elements_coords(): return tf.constant([1],dtype=tf.int32), tf.cast(ligand_elements,tf.int32), inbox_ligand_coords
 
 
