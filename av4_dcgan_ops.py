@@ -62,9 +62,8 @@ def conv3d(input_, output_dim,
 
     return conv
 
-
 def deconv3d(input_, output_shape,
-       k_h=5, k_w=5, k_d =5, d_h=2, d_w=2, d_d = 2 stddev=0.02,
+       k_h=5, k_w=5, k_d =5, d_h=2, d_w=2, d_d = 2, stddev=0.02,
        name="deconv3d", with_w=False):
   with tf.variable_scope(name):
     # filter : [height, width, output_channels, in_channels]

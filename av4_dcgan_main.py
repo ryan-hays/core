@@ -3,23 +3,27 @@ import tensorflow as tf
 import numpy as np
 from av4_input import index_the_database_into_queue,image_and_label_queue
 from av4_networks import *
+from av4_dcgan_model import DCGAN
 
 # telling tensorflow how we want to randomly initialize weights
 
 def train():
-    dcgan = DCGAN(
-          sess,
-          input_width=FLAGS.side_pixels,
-          input_height=FLAGS.side_pixels,
-          input_depth = FLAGS.side_pixels,
-          output_width=FLAGS.side_pixels,
-          output_height=FLAGS.side_pixels,
-          output_depth = FLAGS.side_pixels,
-          batch_size=FLAGS.batch_size,
-          c_dim=FLAGS.num_channels,
-          is_crop=FLAGS.is_crop,
-          checkpoint_dir=FLAGS.checkpoint_dir,
-          sample_dir=FLAGS.sample_dir)
+    run_config = tf.ConfigProto()
+    run_config.gpu_options.allow_growth=True
+    with tf.Session(config=run_config) as sess:
+        dcgan = DCGAN(
+              sess,
+              input_width=FLAGS.side_pixels,
+              input_height=FLAGS.side_pixels,
+              input_depth = FLAGS.side_pixels,
+              output_width=FLAGS.side_pixels,
+              output_height=FLAGS.side_pixels,
+              output_depth = FLAGS.side_pixels,
+              batch_size=FLAGS.batch_size,
+              c_dim=FLAGS.num_channels,
+              is_crop=FLAGS.is_crop,
+              checkpoint_dir=FLAGS.checkpoint_dir,
+              sample_dir=FLAGS.sample_dir)
 
 
     "train a network"
@@ -53,8 +57,9 @@ def train():
     try:
       tf.global_variables_initializer().run()
     except:
-      tf.initialize_all_variables().run()
-        sess.run([dcgan.d_loss, dcgan.g_loss],feed_dict={input:images})
+        tf.initialize_all_variables().run()
+
+    sess.run([dcgan.d_loss, dcgan.g_loss],feed_dict={input:images})
 
     dcgan.g_sum = merge_summary([dcgan.z_sum, dcgan.d__sum,
         dcgan.G_sum, dcgan.d_loss_fake_sum, dcgan.g_loss_sum])
@@ -62,7 +67,7 @@ def train():
         [dcgan.z_sum, dcgan.d_sum, dcgan.d_loss_real_sum, dcgan.d_loss_sum])
     dcgan.writer = SummaryWriter("./logs", self.sess.graph)
 
-    sample_z = np.random.uniform(-1, 1, size=(self.sample_num , self.z_dim))
+    batch_z = np.random.uniform(-1, 1, size=(dcgan.sample_num , dcgan.z_dim))
     
 
    
@@ -111,7 +116,7 @@ def train():
                     dcgan.inputs: sample_inputs,
                 },
               )
-              save_images(samples, [8, 8],
+                save_images(samples, [40, 40,40],
                     './{}/train_{:02d}_{:04d}.png'.format(config.sample_dir, epoch, idx))
                 print("[Sample] d_loss: %.8f, g_loss: %.8f" % (d_loss, g_loss)) 
             except:
@@ -174,6 +179,7 @@ def main(_):
         tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) +'_test')
         tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) +'_netstate')
         tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) +'_logs')
+    
     train()
 
 if __name__ == '__main__':
