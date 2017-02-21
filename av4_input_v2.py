@@ -103,7 +103,7 @@ def read_receptor_and_multiframe_ligand(filename_queue, epoch_counter):
     return ligand_file, tf.squeeze(epoch_counter), tf.squeeze(labels), ligand_elements, tf.squeeze(
         multiple_ligand_coords), tf.squeeze(crystal_coords),receptor_elements, tf.squeeze(multiframe_receptor_coords)
 
-def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand_coords,crystal_ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size,index):
+def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand_coords,crystal_ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size):
 
     max_num_attempts = 1000
     affine_transform_pool_size = 10000
