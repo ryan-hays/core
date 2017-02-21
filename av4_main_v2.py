@@ -22,7 +22,8 @@ def output_test():
                                                                         side_pixels=FLAGS.side_pixels,
                                                                         num_threads=FLAGS.num_threads,
                                                                         filename_queue=filename_queue,
-                                                                        epoch_counter=epoch_counter)
+                                                                        epoch_counter=epoch_counter,
+                                                                        image_depth = FLAGS.image_depth )
 
 
     image_batch =tf.sparse_tensor_to_dense(sparse_image_batch, validate_indices=False)
@@ -53,7 +54,8 @@ def train():
                                                                               side_pixels=FLAGS.side_pixels,
                                                                               num_threads=FLAGS.num_threads,
                                                                               filename_queue=filename_queue,
-                                                                              epoch_counter=epoch_counter)
+                                                                              epoch_counter=epoch_counter,
+                                                                              image_depth = FLAGS.image_depth )
 
     #imultiframe_batch = tf.boolean_mask(sparse_image_batch,mask)
     #image_4d = tf.sparse_concat(-1,multiframe_batch)
@@ -133,7 +135,7 @@ class FLAGS:
     # num_classes = 2
     # parameters to optimize runs on different machines for speed/performance
     # number of vectors(images) in one batch
-    batch_size = 1
+    batch_size = 2
     # number of background processes to fill the queue with images
     num_threads = 512
     # data directories
@@ -144,6 +146,8 @@ class FLAGS:
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states
     saved_session = None  # './summaries/36_netstate/saved_state-23999'
+
+    image_depth = 100
 
 
 def main(_):
