@@ -192,8 +192,12 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
     epsilon = tf.constant(0.999, dtype=tf.float32)
     half_side_pixels = (side_pixels-1.0)/2.0
     scalar_ligand_coords = tf.cast(select_ligand_coords,tf.float32)/tf.cast(pixel_size,tf.float32)
+    #ceiled_ligand_coords = tf.cast(
+    #    tf.round((half_side_pixels+scalar_ligand_coords) * epsilon),
+    #    tf.int64)
     ceiled_ligand_coords = tf.cast(
-        tf.round((half_side_pixels+scalar_ligand_coords) * epsilon),
+        tf.round((tf.constant(-0.5, tf.float32) + (tf.cast(side_pixels, tf.float32) / 2.0) + (
+            select_ligand_coords / pixel_size)) * epsilon),
         tf.int64)
     ceiled_receptor_coords = tf.cast(
         tf.round((tf.constant(-0.5,tf.float32) + (tf.cast(side_pixels, tf.float32) /2.0) + (rotated_receptor_coords / pixel_size)) * epsilon),
