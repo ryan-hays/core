@@ -171,8 +171,8 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
     rotatated_ligand_coords = tf.map_fn(affine_multiple_transform,tf.range(tf.shape(centered_multiple_ligand_coords)[0]),dtype=tf.float32)
     rotated_receptor_coords, _ = affine_transform(centered_receptor_coords, final_transition_matrix)
 
-    def set_elements_coords_zero(): return tf.constant([0], dtype=tf.int32), tf.zeros([1,1,3], dtype=tf.float32)
-    def keep_elements_coords(): return tf.cast(ligand_elements,tf.int32), rotatated_ligand_coords
+    def set_elements_coords_zero(): return  tf.constant([0],dtype=tf.int32),tf.constant([0], dtype=tf.int32), tf.zeros([1,1,3], dtype=tf.float32)
+    def keep_elements_coords(): return tf.constant([1],dtype=tf.int32), tf.cast(ligand_elements,tf.int32), rotatated_ligand_coords
 
     out_of_box_atoms = tf.squeeze(
         tf.reduce_sum(tf.cast(tf.square(box_size * 0.5) - tf.cast(tf.square(rotatated_ligand_coords),tf.float32) < 0, tf.int32),
@@ -182,8 +182,8 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
 
     in_the_box_frame = tf.ones(tf.shape(out_of_box_frame),tf.int32) - out_of_box_frame
 
-
-    ligand_elements,rotated_ligand_coords = tf.case({tf.greater_equal(tf.reduce_sum(in_the_box_frame),multiframe_num):set_elements_coords_zero},
+    # transformed label 1 when rotate success 0 when failed
+    transformed_label,ligand_elements,rotated_ligand_coords = tf.case({tf.greater_equal(tf.reduce_sum(in_the_box_frame),multiframe_num):set_elements_coords_zero},
                                                     keep_elements_coords)
 
     inbox_ligand_coords = tf.gather(rotated_ligand_coords,in_the_box_frame)
@@ -206,7 +206,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
     cropped_receptor_coords = tf.boolean_mask(ceiled_receptor_coords, retain_atoms)
     cropped_receptor_elements = tf.boolean_mask(receptor_elements, retain_atoms)
 
-    
+
     multiple_cropped_receptor_coords = tf.ones([tf.shape(ceiled_ligand_coords)[0],1,1],tf.int64)*cropped_receptor_coords
     complex_coords = tf.concat(1, [ceiled_ligand_coords, multiple_cropped_receptor_coords])
     complex_elements = tf.concat(0, [ligand_elements + 7, cropped_receptor_elements])
@@ -237,7 +237,7 @@ def convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_lgiand
 
    # sparse_images = tf.map_fn(generate_sparse_image_4d,tf.range(tf.shape(complex_coords)[0]))
    # sparse_image_4d = tf.sparse_concate(-1,sparse_images)
-    return sparse_image_4d,ligand_center_of_mass,final_transition_matrix
+    return sparse_image_4d,ligand_center_of_mass,final_transition_matrix,transformed_label
 
 def convert_protein_and_ligand_to_image(ligand_elements, multiple_ligand_coords, receptor_elements, receptor_coords, side_pixels,
                                         pixel_size,index):
@@ -347,7 +347,7 @@ def image_and_label_queue(batch_size, pixel_size, side_pixels, num_threads, file
     ligand_file, current_epoch, labels, ligand_elements, multiple_ligand_coords, crystal_coords,receptor_elements, receptor_coords = read_receptor_and_multiframe_ligand(
         filename_queue,epoch_counter=epoch_counter)
 
-    sparse_image,_,_ = convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_ligand_coords,crystal_coords,receptor_elements,receptor_coords,
+    sparse_image,_,_ ,transformed_label= convert_protein_and_multiple_ligand_to_image(ligand_elements,multiple_ligand_coords,crystal_coords,receptor_elements,receptor_coords,
                                                            side_pixels,pixel_size)
 
     '''
@@ -368,6 +368,7 @@ def image_and_label_queue(batch_size, pixel_size, side_pixels, num_threads, file
     '''
 
     label = tf.cast(tf.equal(tf.reduce_sum(labels),multiframe_num),tf.int32)
+    final_label = label*transformed_label
 
 
 
