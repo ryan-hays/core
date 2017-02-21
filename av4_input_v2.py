@@ -34,6 +34,7 @@ def index_the_database_into_queue(database_path, shuffle):
     def crystal_path(ligand_path):
         receptor = os.path.basename(ligand_path).split('_')[0]
         crystal_file_path = os.path.join('/home/ubuntu/xiao/data/newkaggle/dude/crystal/crystal_ligands_npy',receptor,receptor+'_crystal.av4')
+        return crystal_file_path
 
     crystal_file_list = map(crystal_path,ligand_file_list)
     index_list = range(len(ligand_file_list))
