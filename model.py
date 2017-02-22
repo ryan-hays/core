@@ -93,6 +93,7 @@ class DCGAN(object):
 
     self.z = tf.placeholder(
       tf.float32, [None, self.z_dim], name='z')
+    
     self.z_sum = histogram_summary("z", self.z)
 
     if self.y_dim:

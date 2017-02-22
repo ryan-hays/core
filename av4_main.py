@@ -13,6 +13,7 @@ def train():
 
     # create a filename queue first
     filename_queue, examples_in_database = index_the_database_into_queue(FLAGS.database_path, shuffle=True)
+    # create labels
 
     # create an epoch counter
     batch_counter = tf.Variable(0)
@@ -65,12 +66,16 @@ def train():
     while True:
         start = time.time()
         batch_num = sess.run(batch_counter_increment)
-        epo,c_entropy_mean,_ = sess.run([current_epoch,cross_entropy_mean,train_step_run], feed_dict={keep_prob: 0.5})
-        print "epoch:",epo[0],"global step:", batch_num, "\tcross entropy mean:", c_entropy_mean,
+        
+        images = sess.run([image_batch])
+        sess.run([op_loss_d],feed_dict={input:images})
+        #epo,c_entropy_mean,_ = sess.run([current_epoch,cross_entropy_mean,train_step_run], feed_dict={keep_prob: 0.5})
+        #print "epoch:",epo[0],"global step:", batch_num, "\tcross entropy mean:", c_entropy_mean,
 
-        print "\texamples per second:", "%.2f" % (FLAGS.batch_size / (time.time() - start))
+        #print "\texamples per second:", "%.2f" % (FLAGS.batch_size / (time.time() - start))
 
         if (batch_num % 1000 == 999):
+            sess.run()
             # once in a while save the network state and write variable summaries to disk
             c_entropy_mean,sc_entropy_mean,summaries = sess.run(
                 [cross_entropy_mean, shuffled_cross_entropy_mean, merged_summaries], feed_dict={keep_prob: 1})
