@@ -68,30 +68,31 @@ class DCGAN(object):
 			self.g_bn1 = batch_norm(name='g_bn1')
 			self.g_bn2 = batch_norm(name='g_bn2')
 
-	    	if not self.y_dim:
-	    		self.g_bn3 = batch_norm(name='g_bn3')
+		if not self.y_dim:
+			self.g_bn3 = batch_norm(name='g_bn3')
 
 
 
-	    		self.checkpoint_dir = checkpoint_dir
-	    		self.build_model()
+		self.checkpoint_dir = checkpoint_dir
+		self.build_model()
 
 	def build_model(self):
 		if self.y_dim:
 			self.y= tf.placeholder(tf.float32, [self.batch_size, self.y_dim], name='y')
 
+		image_dims = [self.input_height, self.input_height, self.c_dim]
 
-			self.inputs = tf.placeholder(
-				tf.int32, [self.batch_size] + image_dims, name='real_images')
-			self.sample_inputs = tf.placeholder(
-				tf.int32, [self.sample_num] + image_dims, name='sample_inputs')
+		self.inputs = tf.placeholder(
+			tf.int32, [self.batch_size] + image_dims, name='real_images')
+		self.sample_inputs = tf.placeholder(
+			tf.int32, [self.sample_num] + image_dims, name='sample_inputs')
 
-			inputs = self.inputs
-			sample_inputs = self.sample_inputs
-			self.z = tf.placeholder(
-				tf.float32, [None, self.z_dim], name='z')
-			self.z_sum = histogram_summary("z", self.z)
-			four = 4
+		inputs = self.inputs
+		sample_inputs = self.sample_inputs
+		self.z = tf.placeholder(
+			tf.float32, [None, self.z_dim], name='z')
+		self.z_sum = histogram_summary("z", self.z)
+	
 
 		if self.y_dim:
 			self.G = self.generator(self.z, self.y)
@@ -108,34 +109,34 @@ class DCGAN(object):
 			self.sampler = self.sampler(self.z)
 			self.D_, self.D_logits_ = self.discriminator(self.G, reuse=True)
 
-			self.d_sum = histogram_summary("d", self.D)
-			self.d__sum = histogram_summary("d_", self.D_)
-			self.G_sum = image_summary("G", self.G)
+		self.d_sum = histogram_summary("d", self.D)
+		self.d__sum = histogram_summary("d_", self.D_)
+		self.G_sum = image_summary("G", self.G)
 
-			self.d_loss_real = tf.reduce_mean(
-				tf.nn.sigmoid_cross_entropy_with_logits(
-					logits=self.D_logits, targets=tf.ones_like(self.D)))
-			self.d_loss_fake = tf.reduce_mean(
-				tf.nn.sigmoid_cross_entropy_with_logits(
-					logits=self.D_logits_, targets=tf.zeros_like(self.D_)))
-			self.g_loss = tf.reduce_mean(
-				tf.nn.sigmoid_cross_entropy_with_logits(
-					logits=self.D_logits_, targets=tf.ones_like(self.D_)))
+		self.d_loss_real = tf.reduce_mean(
+			tf.nn.sigmoid_cross_entropy_with_logits(
+				logits=self.D_logits, targets=tf.ones_like(self.D)))
+		self.d_loss_fake = tf.reduce_mean(
+			tf.nn.sigmoid_cross_entropy_with_logits(
+				logits=self.D_logits_, targets=tf.zeros_like(self.D_)))
+		self.g_loss = tf.reduce_mean(
+			tf.nn.sigmoid_cross_entropy_with_logits(
+				logits=self.D_logits_, targets=tf.ones_like(self.D_)))
 
-			self.d_loss_real_sum = scalar_summary("d_loss_real", self.d_loss_real)
-			self.d_loss_fake_sum = scalar_summary("d_loss_fake", self.d_loss_fake)
+		self.d_loss_real_sum = scalar_summary("d_loss_real", self.d_loss_real)
+		self.d_loss_fake_sum = scalar_summary("d_loss_fake", self.d_loss_fake)
 
-			self.d_loss = self.d_loss_real + self.d_loss_fake
+		self.d_loss = self.d_loss_real + self.d_loss_fake
 
-			self.g_loss_sum = scalar_summary("g_loss", self.g_loss)
-			self.d_loss_sum = scalar_summary("d_loss", self.d_loss)
+		self.g_loss_sum = scalar_summary("g_loss", self.g_loss)
+		self.d_loss_sum = scalar_summary("d_loss", self.d_loss)
 
-			t_vars = tf.trainable_variables()
+		t_vars = tf.trainable_variables()
 
-			self.d_vars = [var for var in t_vars if 'd_' in var.name]
-			self.g_vars = [var for var in t_vars if 'g_' in var.name]
+		self.d_vars = [var for var in t_vars if 'd_' in var.name]
+		self.g_vars = [var for var in t_vars if 'g_' in var.name]
 
-			self.saver = tf.train.Saver()
+		self.saver = tf.train.Saver()
 
 	def discriminator(self, image, y=None, reuse=False):
 		with tf.variable_scope("discriminator") as scope:
