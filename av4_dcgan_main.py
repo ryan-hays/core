@@ -69,6 +69,8 @@ def train():
 
     batch_z = np.random.uniform(-1, 1, size=(dcgan.sample_num , dcgan.z_dim))
     
+    print "sample number", dcgan.sample_num
+
 
    
     
