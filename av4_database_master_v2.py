@@ -16,6 +16,49 @@ class stats:
 # writes statistics
 # TODO make exceptions more informative
 
+def convert_dude_database_to_av4(database_path,positives_folder,decoys_folder,receptors_folder):
+    output_path = str(database_path+'_av4')
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    def save_av4(filepath, labels, elements, multiframe_coords):
+    labels = np.asarray(labels, dtype=np.int32)
+    elements = np.asarray(elements, dtype=np.int32)
+    multiframe_coords = np.asarray(multiframe_coords, dtype=np.float32)
+
+    if not (int(len(multiframe_coords[:, 0]) == int(len(elements)))):
+        raise Exception('Number of atom elements is not equal to the number of coordinates')
+
+    if multiframe_coords.ndim == 2:
+        if not int(len(labels)) == 1:
+            raise Exception('Number labels is not equal to the number of coordinate frames')
+    else:
+        if not (int(len(multiframe_coords[0, 0, :]) == int(len(labels)))):
+            raise Exception('Number labels is not equal to the number of coordinate frames')
+
+    number_of_examples = np.array([len(labels)], dtype=np.int32)
+    av4_record = number_of_examples.tobytes()
+    av4_record += labels.tobytes()
+    av4_record += elements.tobytes()
+    av4_record += multiframe_coords.tobytes()
+    f = open(filepath + ".av4", 'w')
+    f.write(av4_record)
+    f.close()
+
+    for receptor in os.listdir(database_path):
+        receptor_folder = os.path.join(database_path,receptor)
+        for ligand in os.listdir(receptor_folder):
+            try:
+                ligand_folder = os.path.join(os.path.join(receptor_folder,ligand)
+                receptor_path = os.path.join(os.path.dirname(database_path),'receptors',receptor+'.pdb')
+                frames = os.listdir(ligand_folder)
+                frame_num = len(frames)
+                prody_receptor = prody.parsePDB(receptor_path)
+                multiframe_ligand_coords = np.array([])
+                prody_positive = prody.parsePDB(os.path.join(ligand_folder,ligand+'_1.pdb'))
+            
+
+
 def convert_database_to_av4(database_path, positives_folder, decoys_folder, receptors_folder):
     """Crawls the folder (receptors in this case) and saves every PDB it finds
     into .npy array with 1) coordinates 2) mapped to the atom name number """
