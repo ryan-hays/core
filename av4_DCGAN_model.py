@@ -15,7 +15,7 @@ def conv_out_size_same(size, stride):
 
 class DCGAN(object):
 	def __init__(self, sess, input_height=40, input_width=40, input_depth =40, is_crop=True,
-		batch_size=64, sample_num = 64, output_height=64, output_width=64, output_depth = 64,
+		batch_size=100, sample_num = 64, output_height=64, output_width=64, output_depth = 64,
 		y_dim=None, z_dim=100, gf_dim=64, df_dim=64,
 		gfc_dim=1024, dfc_dim=1024, c_dim=3, checkpoint_dir=None, sample_dir=None):
 	# """
@@ -83,9 +83,9 @@ class DCGAN(object):
 		image_dims = [self.input_height, self.input_height, self.c_dim]
 
 		self.inputs = tf.placeholder(
-			tf.int32, [self.batch_size] + image_dims, name='real_images')
+			tf.float32, [self.batch_size] + image_dims, name='real_images')
 		self.sample_inputs = tf.placeholder(
-			tf.int32, [self.sample_num] + image_dims, name='sample_inputs')
+			tf.float32, [self.sample_num] + image_dims, name='sample_inputs')
 
 		inputs = self.inputs
 		sample_inputs = self.sample_inputs
@@ -143,31 +143,31 @@ class DCGAN(object):
 			if reuse:
 				scope.reuse_variables()
 
-				if not self.y_dim:
-					h0 = lrelu(conv3d(image, self.df_dim, name='d_h0_conv'))
-					h1 = lrelu(self.d_bn1(conv3d(h0, self.df_dim*2, name='d_h1_conv')))
-					h2 = lrelu(self.d_bn2(conv3d(h1, self.df_dim*4, name='d_h2_conv')))
-					h3 = lrelu(self.d_bn3(conv3d(h2, self.df_dim*8, name='d_h3_conv')))
-					h4 = linear(tf.reshape(h3, [self.batch_size, -1]), 1, 'd_h3_lin')
+			if not self.y_dim:
+				h0 = lrelu(conv3d(image, self.df_dim, name='d_h0_conv'))
+				h1 = lrelu(self.d_bn1(conv3d(h0, self.df_dim*2, name='d_h1_conv')))
+				h2 = lrelu(self.d_bn2(conv3d(h1, self.df_dim*4, name='d_h2_conv')))
+				h3 = lrelu(self.d_bn3(conv3d(h2, self.df_dim*8, name='d_h3_conv')))
+				h4 = linear(tf.reshape(h3, [self.batch_size, -1]), 1, 'd_h3_lin')
 
-					return tf.nn.sigmoid(h4), h4
-				else:
-					yb = tf.reshape(y, [self.batch_size, 1, 1, 1, self.y_dim])
-					x = conv_cond_concat(image, yb)
+				return tf.nn.sigmoid(h4), h4
+			else:
+				yb = tf.reshape(y, [self.batch_size, 1, 1, 1, self.y_dim])
+				x = conv_cond_concat(image, yb)
 
-					h0 = lrelu(conv3d(x, self.c_dim + self.y_dim, name='d_h0_conv'))
-					h0 = conv_cond_concat(h0, yb)
+				h0 = lrelu(conv3d(x, self.c_dim + self.y_dim, name='d_h0_conv'))
+				h0 = conv_cond_concat(h0, yb)
 
-					h1 = lrelu(self.d_bn1(conv3d(h0, self.df_dim + self.y_dim, name='d_h1_conv')))
-					h1 = tf.reshape(h1, [self.batch_size, -1])      
-					h1 = concat([h1, y], 1)
+				h1 = lrelu(self.d_bn1(conv3d(h0, self.df_dim + self.y_dim, name='d_h1_conv')))
+				h1 = tf.reshape(h1, [self.batch_size, -1])      
+				h1 = concat([h1, y], 1)
 
-					h2 = lrelu(self.d_bn2(linear(h1, self.dfc_dim, 'd_h2_lin')))
-					h2 = concat([h2, y], 1)
+				h2 = lrelu(self.d_bn2(linear(h1, self.dfc_dim, 'd_h2_lin')))
+				h2 = concat([h2, y], 1)
 
-					h3 = linear(h2, 1, 'd_h3_lin')
+				h3 = linear(h2, 1, 'd_h3_lin')
 
-					return tf.nn.sigmoid(h3), h3
+				return tf.nn.sigmoid(h3), h3
 
 	def generator(self, z, y=None):
 		with tf.variable_scope("generator") as scope:
@@ -183,7 +183,7 @@ class DCGAN(object):
 				z, self.gf_dim*8*s_h16*s_w16*s_d16, 'g_h0_lin', with_w=True)
 
 				self.h0 = tf.reshape(
-				self.z_, [-1, int(s_h16), int(s_w16), int(s_d16), int(self.gf_dim * 8)])
+				self.z_, [-1, (s_h16), (s_w16), (s_d16), (self.gf_dim * 8)])
 				h0 = tf.nn.relu(self.g_bn0(self.h0))
 
 				self.h1, self.h1_w, self.h1_b = deconv3d(
