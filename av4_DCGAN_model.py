@@ -80,7 +80,7 @@ class DCGAN(object):
 		if self.y_dim:
 			self.y= tf.placeholder(tf.float32, [self.batch_size, self.y_dim], name='y')
 
-		image_dims = [self.input_height, self.input_height, self.c_dim]
+		image_dims = [self.input_height, self.input_height, self.input_depth, self.c_dim]
 
 		self.inputs = tf.placeholder(
 			tf.float32, [self.batch_size] + image_dims, name='real_images')
