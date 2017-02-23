@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 from av4_input import index_the_database_into_queue,image_and_label_queue
 from av4_networks import *
-from av4_dcgan_model import DCGAN
+from av4_DCGAN_model import DCGAN
 
 # telling tensorflow how we want to randomly initialize weights
 

@@ -11,7 +11,7 @@ from av4_dcgan_ops import *
 from utils import *
 
 def conv_out_size_same(size, stride):
-	return math.ceil(float(size) / float(stride))
+	return int(math.ceil(float(size) / float(stride)))
 
 class DCGAN(object):
 	def __init__(self, sess, input_height=40, input_width=40, input_depth =40, is_crop=True,
@@ -177,31 +177,34 @@ class DCGAN(object):
 				s_h4, s_w4, s_d4 = conv_out_size_same(s_h2, 2), conv_out_size_same(s_w2, 2), conv_out_size_same(s_d2, 2)
 				s_h8, s_w8, s_d8 = conv_out_size_same(s_h4, 2), conv_out_size_same(s_w4, 2), conv_out_size_same(s_d4, 2)
 				s_h16, s_w16, s_d16 = conv_out_size_same(s_h8, 2), conv_out_size_same(s_w8, 2), conv_out_size_same(s_d8, 2)
-
+				
 				# project `z` and reshape
-				self.z_, self.h0_w, self.h0_b, self.h0_d = linear(
+				self.z_, self.h0_w, self.h0_b = linear(
 				z, self.gf_dim*8*s_h16*s_w16*s_d16, 'g_h0_lin', with_w=True)
 
 				self.h0 = tf.reshape(
-				self.z_, [-1, s_h16, s_w16, s_d16, self.gf_dim * 8])
+				self.z_, [-1, int(s_h16), int(s_w16), int(s_d16), int(self.gf_dim * 8)])
 				h0 = tf.nn.relu(self.g_bn0(self.h0))
 
-				self.h1, self.h1_w, self.h1_b, self.h1_d = deconv3d(
+				self.h1, self.h1_w, self.h1_b = deconv3d(
 				h0, [self.batch_size, s_h8, s_w8, s_d8, self.gf_dim*4], name='g_h1', with_w=True)
 				h1 = tf.nn.relu(self.g_bn1(self.h1))
 
-				h2, self.h2_w, self.h2_b, self.h2_d = deconv3d(
+				h2, self.h2_w, self.h2_b = deconv3d(
 				h1, [self.batch_size, s_h4, s_w4, s_d4, self.gf_dim*2], name='g_h2', with_w=True)
 				h2 = tf.nn.relu(self.g_bn2(h2))
 
-				h3, self.h3_w, self.h3_b, self.h3_d = deconv3d(
+				h3, self.h3_w, self.h3_b = deconv3d(
 				h2, [self.batch_size, s_h2, s_w2, s_d2, self.gf_dim*1], name='g_h3', with_w=True)
 				h3 = tf.nn.relu(self.g_bn3(h3))
 
-				h4, self.h4_w, self.h4_b, self.h4_d = deconv3d(
+				h4, self.h4_w, self.h4_b = deconv3d(
 				h3, [self.batch_size, s_h, s_w, s_d, self.c_dim], name='g_h4', with_w=True)
 
 				return tf.nn.tanh(h4)
+
+
+		
 			else:
 				s_h, s_w, s_d = self.output_height, self.output_width, self.output_depth
 				s_h2, s_h4 = int(s_h/2), int(s_h/4)
@@ -231,9 +234,8 @@ class DCGAN(object):
 					deconv3d(h2, [self.batch_size, s_h, s_w, s_d, self.c_dim], name='g_h3'))
 
 	def sampler(self, z, y=None):
-	    with tf.variable_scope("generator") as scope:
-	    	scope.reuse_variables()
-
+		with tf.variable_scope("generator") as scope:
+			scope.reuse_variables()
 			if not self.y_dim:
 				s_h, s_w, s_d = self.output_height, self.output_width, self.output_depth
 				s_h2, s_w2, s_d2 = conv_out_size_same(s_h, 2), conv_out_size_same(s_w, 2) , conv_out_size_same(s_d, 2)
