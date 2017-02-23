@@ -268,5 +268,6 @@ def image_and_label_stable_queue(sess,batch_size,pixel_size,side_pixels,num_thre
 
     # multithread_batch = tf.train.batch([current_epoch, label, dense_complex], batch_size, num_threads=num_threads,capacity=batch_size * 3,shapes=[[], [], [side_pixels, side_pixels, side_pixels]])
 
-    return multithread_batch"""
+    return multithread_batch
+"""
 

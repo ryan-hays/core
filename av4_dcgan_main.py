@@ -49,23 +49,23 @@ def train():
     # keep_prob = tf.placeholder(tf.float32)
 
 
-    d_optim = tf.train.AdamOptimizer(config.learning_rate, beta1=config.beta1) \
+    d_optim = tf.train.AdamOptimizer(FLAGS.learning_rate, beta1=FLAGS.beta1) \
         .minimize(dcgan.d_loss, var_list=dcgan.d_vars)
-    g_optim = tf.train.AdamOptimizer(config.learning_rate, beta1=config.beta1) \
+    g_optim = tf.train.AdamOptimizer(FLAGS.learning_rate, beta1=FLAGS.beta1) \
         .minimize(dcgan.g_loss, var_list=dcgan.g_vars)
 
     try:
-      tf.global_variables_initializer().run()
+      sess.run(tf.global_variables_initializer())
     except:
-        tf.initialize_all_variables().run()
+        sess.run(tf.initialize_all_variables())
 
-    sess.run([dcgan.d_loss, dcgan.g_loss],feed_dict={input:images})
 
-    dcgan.g_sum = merge_summary([dcgan.z_sum, dcgan.d__sum,
+
+    dcgan.g_sum = tf.summary.merge([dcgan.z_sum, dcgan.d__sum,
         dcgan.G_sum, dcgan.d_loss_fake_sum, dcgan.g_loss_sum])
-    dcgan.d_sum = merge_summary(
+    dcgan.d_sum = tf.summary.merge(
         [dcgan.z_sum, dcgan.d_sum, dcgan.d_loss_real_sum, dcgan.d_loss_sum])
-    dcgan.writer = SummaryWriter("./logs", self.sess.graph)
+    dcgan.writer = tf.summary.FileWriter("./logs", sess.graph)
 
     batch_z = np.random.uniform(-1, 1, size=(dcgan.sample_num , dcgan.z_dim))
     
@@ -87,7 +87,10 @@ def train():
         batch_num = sess.run(batch_counter_increment)
 
         batch_images = sess.run([image_batch])
-
+        print "images shape ",len(batch_images)
+        print "image shape ",batch_images[0].shape
+        # don't know why it return a list
+        sess.run([dcgan.d_loss, dcgan.g_loss],feed_dict={dcgan.inputs:batch_images[0],dcgan.z: batch_z})
         # Update D network
         _, summary_str = self.sess.run([d_optim, dcgan.d_sum],
             feed_dict={ self.inputs: batch_images, dcgan.z: batch_z })
@@ -146,7 +149,7 @@ class FLAGS:
     # num_classes = 2
     # parameters to optimize runs on different machines for speed/performance
     # number of vectors(images) in one batch
-    batch_size = 100
+    batch_size = 10
     # number of background processes to fill the queue with images
     num_threads = 512
     # data directories
@@ -161,12 +164,13 @@ class FLAGS:
     sample_dir = "samples"
 
     # path to the csv file with names of images selected for training
-    database_path = "../datasets/labeled_av4"
+    database_path = "/home/ubuntu/common/data/labeled_av4"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states
     saved_session = None#'./summaries/36_netstate/saved_state-23999'
-
+    learning_rate = 0.0002
+    beta1 = 0.5
 
 def main(_):
     """gracefully creates directories for the log files and for the network state launches. After that orders network training to start"""
