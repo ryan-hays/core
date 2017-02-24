@@ -67,10 +67,9 @@ def train():
         [dcgan.z_sum, dcgan.d_sum, dcgan.d_loss_real_sum, dcgan.d_loss_sum])
     dcgan.writer = tf.summary.FileWriter("./logs", sess.graph)
 
-    batch_z = np.random.uniform(-1, 1, size=(dcgan.sample_num , dcgan.z_dim))
+    batch_z = np.random.uniform(-1, 1, size=(dcgan.sample_number, dcgan.z_dim))
     
-    print "sample number", dcgan.sample_num
-
+    
 
    
     
@@ -87,10 +86,11 @@ def train():
         batch_num = sess.run(batch_counter_increment)
 
         batch_images = sess.run([image_batch])
+        batch_images =batch_images[0]
         print "images shape ",len(batch_images)
         print "image shape ",batch_images[0].shape
         # don't know why it return a list
-        sess.run([dcgan.d_loss, dcgan.g_loss],feed_dict={dcgan.inputs:batch_images[0],dcgan.z: batch_z})
+        sess.run([dcgan.d_loss, dcgan.g_loss],feed_dict={dcgan.inputs:batch_images,dcgan.z: batch_z})
         # Update D network
         _, summary_str = self.sess.run([d_optim, dcgan.d_sum],
             feed_dict={ self.inputs: batch_images, dcgan.z: batch_z })
@@ -117,8 +117,8 @@ def train():
                 samples, d_loss, g_loss = self.sess.run(
                 [dcgan.sampler, dcgan.d_loss, dcgan.g_loss],
                 feed_dict={
-                    dcgan.z: sample_z,
-                    dcgan.inputs: sample_inputs,
+                    dcgan.z: batch_z,
+                    dcgan.inputs: batch_images,
                 },
               )
                 save_images(samples, [40, 40,40],
@@ -164,7 +164,7 @@ class FLAGS:
     sample_dir = "samples"
 
     # path to the csv file with names of images selected for training
-    database_path = "/home/ubuntu/common/data/labeled_av4"
+    database_path = "labeled_av4"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states

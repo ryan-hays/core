@@ -15,7 +15,7 @@ def conv_out_size_same(size, stride):
 
 class DCGAN(object):
 	def __init__(self, sess, input_height=40, input_width=40, input_depth =40, is_crop=True,
-		batch_size=100, sample_num = 64, output_height=64, output_width=64, output_depth = 64,
+		batch_size=10, sample_number =10, output_height=40, output_width=40, output_depth = 40,
 		y_dim=None, z_dim=100, gf_dim=64, df_dim=64,
 		gfc_dim=1024, dfc_dim=1024, c_dim=3, checkpoint_dir=None, sample_dir=None):
 	# """
@@ -36,8 +36,8 @@ class DCGAN(object):
 		self.channels = (c_dim == 14)
 
 		self.batch_size = batch_size
-		self.sample_num = sample_num
-
+		
+		self.sample_number = sample_number
 		self.input_height = input_height
 		self.input_width = input_width
 		self.input_depth = input_depth
@@ -85,7 +85,7 @@ class DCGAN(object):
 		self.inputs = tf.placeholder(
 			tf.float32, [self.batch_size] + image_dims, name='real_images')
 		self.sample_inputs = tf.placeholder(
-			tf.float32, [self.sample_num] + image_dims, name='sample_inputs')
+			tf.float32, [self.sample_number] + image_dims, name='sample_inputs')
 
 		inputs = self.inputs
 		sample_inputs = self.sample_inputs
@@ -185,6 +185,9 @@ class DCGAN(object):
 				self.h0 = tf.reshape(
 				self.z_, [-1, (s_h16), (s_w16), (s_d16), (self.gf_dim * 8)])
 				h0 = tf.nn.relu(self.g_bn0(self.h0))
+
+				h0_shape = h0.get_shape().as_list()
+
 
 				self.h1, self.h1_w, self.h1_b = deconv3d(
 				h0, [self.batch_size, s_h8, s_w8, s_d8, self.gf_dim*4], name='g_h1', with_w=True)

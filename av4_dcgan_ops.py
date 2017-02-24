@@ -79,6 +79,7 @@ def deconv3d(input_, output_shape,
     #            strides=[1, d_h, d_w, 1])
 
     biases = tf.get_variable('biases', [output_shape[-1]], initializer=tf.constant_initializer(0.0))
+
     deconv = tf.reshape(tf.nn.bias_add(deconv, biases), deconv.get_shape())
 
 
@@ -103,3 +104,5 @@ def linear(input_, output_size, scope=None, stddev=0.02, bias_start=0.0, with_w=
       return tf.matmul(input_, matrix) + bias, matrix, bias
     else:
       return tf.matmul(input_, matrix) + bias
+
+
