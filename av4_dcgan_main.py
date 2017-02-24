@@ -62,7 +62,7 @@ def train():
 
 
     dcgan.g_sum = tf.summary.merge([dcgan.z_sum, dcgan.d__sum,
-        dcgan.G_sum, dcgan.d_loss_fake_sum, dcgan.g_loss_sum])
+        dcgan.d_loss_fake_sum, dcgan.g_loss_sum])
     dcgan.d_sum = tf.summary.merge(
         [dcgan.z_sum, dcgan.d_sum, dcgan.d_loss_real_sum, dcgan.d_loss_sum])
     dcgan.writer = tf.summary.FileWriter("./logs", sess.graph)
@@ -107,10 +107,10 @@ def train():
             feed_dict={ dcgan.z: batch_z })
         dcgan.writer.add_summary(summary_str, counter)
           
-        errD_fake = dcgan.d_loss_fake.eval({ dcgan.z: batch_z })
-        errD_real = dcgan.d_loss_real.eval({ dcgan.inputs: batch_images })
-        errG = dcgan.g_loss.eval({dcgan.z: batch_z})
-
+        #errD_fake = dcgan.d_loss_fake.eval({ dcgan.z: batch_z })
+        #errD_real = dcgan.d_loss_real.eval({ dcgan.inputs: batch_images })
+        #errG = dcgan.g_loss.eval({dcgan.z: batch_z})
+        print "batch ",batch_num 
         if (batch_num % 1000 == 999):
             sess.run()
             # once in a while save the network state and write variable summaries to disk
@@ -122,8 +122,9 @@ def train():
                     dcgan.inputs: batch_images,
                 },
               )
-                save_images(samples, [40, 40,40],
-                    './{}/train_{:02d}_{:04d}.png'.format(config.sample_dir, epoch, idx))
+                np.save(os.path.join(FLAGS.sample_dir,'train_{}.npy'.format(batch_num)),samples)
+                #save_images(samples, [40, 40,40],
+                #    './{}/train_{:02d}_{:04d}.png'.format(config.sample_dir, epoch, idx))
                 print("[Sample] d_loss: %.8f, g_loss: %.8f" % (d_loss, g_loss)) 
             except:
                 print("one pic error!...")
@@ -165,9 +166,10 @@ class FLAGS:
     sample_dir = "samples"
 
     # path to the csv file with names of images selected for training
-    database_path = "labeled_av4"
+    database_path = "/home/ubuntu/common/data/labeled_av4"
     # directory where to write variable summaries
     summaries_dir = './summaries'
+    sample_dir = './sample'
     # optional saved session: network from which to load variable states
     saved_session = None#'./summaries/36_netstate/saved_state-23999'
     learning_rate = 0.0002
@@ -187,6 +189,9 @@ def main(_):
         tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) +'_netstate')
         tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) +'_logs')
     
+    sample_dir = os.path.join(FLAGS.sample_dir)
+    if not tf.gfile.Exists(sample_dir):
+        tf.gfile.MakeDirs(sample_dir)
     train()
 
 if __name__ == '__main__':
