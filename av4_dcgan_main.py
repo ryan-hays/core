@@ -84,6 +84,7 @@ def train():
     while True:
         start = time.time()
         batch_num = sess.run(batch_counter_increment)
+        counter = 1 
 
         batch_images = sess.run([image_batch])
         batch_images =batch_images[0]
@@ -92,29 +93,29 @@ def train():
         # don't know why it return a list
         sess.run([dcgan.d_loss, dcgan.g_loss],feed_dict={dcgan.inputs:batch_images,dcgan.z: batch_z})
         # Update D network
-        _, summary_str = self.sess.run([d_optim, dcgan.d_sum],
-            feed_dict={ self.inputs: batch_images, dcgan.z: batch_z })
+        _, summary_str = sess.run([d_optim, dcgan.d_sum],
+            feed_dict={ dcgan.inputs: batch_images, dcgan.z: batch_z })
         dcgan.writer.add_summary(summary_str, counter)
 
         # Update G network
-        _, summary_str = self.sess.run([g_optim, dcgan.g_sum],
+        _, summary_str = sess.run([g_optim, dcgan.g_sum],
             feed_dict={ dcgan.z: batch_z })
         dcgan.writer.add_summary(summary_str, counter)
 
         # Run g_optim twice to make sure that d_loss does not go to zero (different from paper)
-        _, summary_str = self.sess.run([g_optim, dcgan.g_sum],
+        _, summary_str = sess.run([g_optim, dcgan.g_sum],
             feed_dict={ dcgan.z: batch_z })
         dcgan.writer.add_summary(summary_str, counter)
           
         errD_fake = dcgan.d_loss_fake.eval({ dcgan.z: batch_z })
-        errD_real = dcgan.d_loss_real.eval({ self.inputs: batch_images })
+        errD_real = dcgan.d_loss_real.eval({ dcgan.inputs: batch_images })
         errG = dcgan.g_loss.eval({dcgan.z: batch_z})
 
         if (batch_num % 1000 == 999):
             sess.run()
             # once in a while save the network state and write variable summaries to disk
             try:
-                samples, d_loss, g_loss = self.sess.run(
+                samples, d_loss, g_loss = sess.run(
                 [dcgan.sampler, dcgan.d_loss, dcgan.g_loss],
                 feed_dict={
                     dcgan.z: batch_z,
@@ -126,7 +127,7 @@ def train():
                 print("[Sample] d_loss: %.8f, g_loss: %.8f" % (d_loss, g_loss)) 
             except:
                 print("one pic error!...")
-
+        counter += 1        
     assert not np.isnan(cross_entropy_mean), 'Model diverged with loss = NaN'
 
 
