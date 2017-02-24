@@ -1,17 +1,17 @@
 import time,os
 import tensorflow as tf
 import numpy as np
-import pandas as pd
+#import pandas as pd
 import re
-from av4_input import image_and_label_queue,index_the_database_into_queue
-from av4_main import FLAGS
-from av4_networks import intuit_net
+from av4_input_v2 import image_and_label_queue,index_the_database_into_queue
+from av4_main_v2 import FLAGS
+from av4_networks_v2 import intuit_net,wide_conv_net
 from collections import defaultdict
 
 
-FLAGS.saved_session = './summaries/39_netstate/saved_state-37999'
+FLAGS.saved_session = './summaries/2_netstate/saved_state-417999'
 FLAGS.predictions_file_path = re.sub("netstate","logs",FLAGS.saved_session)
-FLAGS.database_path = '../datasets/unlabeled_av4'
+FLAGS.database_path = '/pylon1/ci4s8bp/xluo5/data/newkaggle/dude/test_set'
 FLAGS.num_epochs = 10
 FLAGS.top_k = FLAGS.num_epochs
 
@@ -354,12 +354,12 @@ def evaluate_on_train_set():
     # create a custom shuffle queue
     ligand_files,current_epoch,label_batch,sparse_image_batch = image_and_label_queue(batch_size=FLAGS.batch_size, pixel_size=FLAGS.pixel_size,
                                                                           side_pixels=FLAGS.side_pixels, num_threads=FLAGS.num_threads,
-                                                                          filename_queue=filename_queue, epoch_counter=epoch_counter)
+                                                                          filename_queue=filename_queue, epoch_counter=epoch_counter,image_depth=FLAGS.image_depth)
 
     image_batch = tf.sparse_tensor_to_dense(sparse_image_batch,validate_indices=False)
 
     keep_prob = tf.placeholder(tf.float32)
-    y_conv = intuit_net(image_batch,keep_prob,FLAGS.batch_size)
+    y_conv = wide_conv_net(tf.cast(image_batch,tf.float32),keep_prob,FLAGS.batch_size)
 
     # compute softmax over raw predictions
     predictions = tf.nn.softmax(y_conv)[:,1]
@@ -389,21 +389,25 @@ def evaluate_on_train_set():
             my_ligand_files, my_ligand_frames, my_predictions, my_labels = sess.run(
                 [ligand_files, current_epoch, predictions, label_batch],
                 feed_dict={keep_prob: 1})
-            print "current_epoch:", my_ligand_frames[0], "batch_num:", batch_num,
+            print "current_epoch:", my_ligand_frames, "batch_num:", batch_num,
             print "\tprediction averages:", np.mean(my_predictions),
             print "\texamples per second:", "%.2f" % (FLAGS.batch_size / (time.time() - start))
-
-            all_predictios.add_batch(my_ligand_files, my_ligand_frames, my_predictions)
+            with open('eval_result.txt','a') as fout:
+                if type(my_ligand_files) == str:
+                    my_ligand_files = [my_ligand_files]
+                for my_ligand_file,my_prediction,my_label in zip(my_ligand_files,my_predictions,my_labels):
+                    fout.write(','.join([my_ligand_file,str(my_prediction),str(my_label)])+'\n')
+            #all_predictios.add_batch(my_ligand_files, my_ligand_frames, my_predictions)
             # add_batch(self, ligand_file_path, batch_predictions, batch_labels)
-            all_predictions_av3.add_batch(my_ligand_files,my_ligand_frames,my_predictions,my_labels)
+            #all_predictions_av3.add_batch(my_ligand_files,my_ligand_frames,my_predictions,my_labels)
 
             print "my labels:",my_labels
 
     except tf.errors.OutOfRangeError:
         print "exiting the loop"
 
-    all_predictios.save()
-    all_predictions_av3.save_predictions(FLAGS.predictions_file_path)
+    #all_predictios.save()
+    #all_predictions_av3.save_predictions(FLAGS.predictions_file_path)
 
 evaluate_on_train_set()
 print "All Done"

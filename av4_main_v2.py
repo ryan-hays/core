@@ -141,7 +141,7 @@ class FLAGS:
     # data directories
 
     # path to the csv file with names of images selected for training
-    database_path = "/home/ubuntu/xiao/data/newkaggle/dude/train_set"
+    database_path = "/pylon1/ci4s8bp/xluo5/data/newkaggle/dude/train_set"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states
