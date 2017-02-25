@@ -1,6 +1,6 @@
 import os,sys
 import config
-from util import log,mkdir
+from utils import log,mkdir
 from glob import glob
 import multiprocessing
 
@@ -15,7 +15,7 @@ def dock_ligand(ligand_path):
         cmd = '{} -r {} -l {} --autobox_ligand {} -o {} --num_modes=1000 --energy_range=100 --cpu=1 '\
             .format(config.smina,receptor_path,ligand_path,ligand_path,docked_ligand_path)
 
-        mkdir(os.path.dirname(docked_ligand_path))
+        mkdir(docked_ligand_path)
         os.system(cmd)
 
 

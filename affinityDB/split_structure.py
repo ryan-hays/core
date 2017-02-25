@@ -5,7 +5,14 @@ import numpy as np
 import multiprocessing
 from glob import glob
 import config
-from util import log,mkdir
+from utils import log,mkdir
+
+'''
+load PDB download from RCSB
+split it into receptor and hetero
+if hetero's heavy atom more than threshold
+save the receptor and hetero ligand
+'''
 
 def split_structure(pdb_path):
     pdb_name = os.path.basename(pdb_path).split('.')[0].lower()
@@ -43,10 +50,17 @@ def split_structure(pdb_path):
     if ligand_flags:
         receptor_path = os.path.join(config.splited_receptor_folder, pdb_name + '.pdb')
         prody.writePDB(receptor_path, receptor)
+        log('success_ligand')
     else:
         log("threshold_failed.log","{}, no ligand above threshold {}.\n".format(pdb_name,config.heavy_atom_threshold))
 
 
 def split():
     pdb_list = glob(config.pdb_download_path)
-    map(split_structure,pdb_list)
+
+    pool = multiprocessing.Pool(config.process_num)
+    pool.map_async(split_structure,pdb_list)
+    pool.join()
+    pool.close()
+
+    #map(split_structure,pdb_list)
