@@ -45,7 +45,15 @@ def train():
                                                                           filename_queue=filename_queue, epoch_counter=epoch_counter)
 
     image_batch = tf.sparse_tensor_to_dense(sparse_image_batch,validate_indices=False)
+    empty_box = 1 - tf.reduce_sum(image_batch,reduction_indices=-1,keep_dims=True)
+    with tf.control_dependencies([tf.assert_greater_equal(empty_box,0.)]):
+        empty_channel = tf.constant([0]*(FLAGS.num_channels-1)+[1],shape = [1,1,1,1,FLAGS.num_channels],dtype=tf.float32)
 
+    full_image_batch = image_batch + empty_box*empty_channel
+
+    
+
+    
     # keep_prob = tf.placeholder(tf.float32)
 
 
@@ -86,7 +94,7 @@ def train():
         batch_num = sess.run(batch_counter_increment)
         counter = 1 
 
-        batch_images = sess.run([image_batch])
+        batch_images = sess.run([full_image_batch])
         batch_images =batch_images[0]
         print "images shape ",len(batch_images)
         print "image shape ",batch_images[0].shape
@@ -111,8 +119,10 @@ def train():
         #errD_real = dcgan.d_loss_real.eval({ dcgan.inputs: batch_images })
         #errG = dcgan.g_loss.eval({dcgan.z: batch_z})
         print "batch ",batch_num 
+        #with open('counter.out','a') as fout:
+        #    fout.write(str(batch_num)+'\n')
         if (batch_num % 1000 == 999):
-            sess.run()
+            #sess.run()
             # once in a while save the network state and write variable summaries to disk
             try:
                 samples, d_loss, g_loss = sess.run(
@@ -140,7 +150,7 @@ class FLAGS:
     # size of the box around the ligand in pixels
     side_pixels = 40
     # Total number of channels for the data
-    num_channels = 14
+    num_channels = 15
     # weights for each class for the scoring function
     # number of times each example in the dataset will be read
     num_epochs = 50000 # epochs are counted based on the number of the protein examples

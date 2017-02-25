@@ -176,7 +176,7 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
 
     # move elemets to the dimension of depth
     complex_coords_4d = tf.concat(1, [complex_coords, tf.reshape(tf.cast(complex_elements - 1, dtype=tf.int64), [-1, 1])])
-    sparse_image_4d = tf.SparseTensor(indices=complex_coords_4d, values=tf.ones(tf.shape(complex_elements)), shape=[side_pixels,side_pixels,side_pixels,14])
+    sparse_image_4d = tf.SparseTensor(indices=complex_coords_4d, values=tf.ones(tf.shape(complex_elements)), shape=[side_pixels,side_pixels,side_pixels,15])
 
     # FIXME: try to save an image and see how it looks like
     return sparse_image_4d,ligand_center_of_mass,final_transition_matrix

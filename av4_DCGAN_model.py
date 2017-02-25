@@ -29,11 +29,11 @@ class DCGAN(object):
 	# 	df_dim: (optional) Dimension of discrim filters in first conv layer. [64]
 	# 	gfc_dim: (optional) Dimension of gen units for for fully connected layer. [1024]
 	# 	dfc_dim: (optional) Dimension of discrim units for fully connected layer. [1024]
-	# 	c_dim: (optional) Number of channels, which represent different atoms. [14]
+	# 	c_dim: (optional) Number of channels, which represent different atoms. [15]
 	# """
 		self.sess = sess
 		self.is_crop = is_crop
-		self.channels = (c_dim == 14)
+		self.channels = (c_dim == 15)
 
 		self.batch_size = batch_size
 		
@@ -204,7 +204,10 @@ class DCGAN(object):
 				h4, self.h4_w, self.h4_b = deconv3d(
 				h3, [self.batch_size, s_h, s_w, s_d, self.c_dim], name='g_h4', with_w=True)
 
-				return tf.nn.tanh(h4)
+                                max_val = tf.reduce_max(h4,reduction_indices=-1,keep_dims=True)
+                                max_channels = tf.equal(h4,max_val)
+                                      
+				return tf.cast(max_channels,tf.int32)
 
 
 		
