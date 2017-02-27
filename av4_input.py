@@ -170,12 +170,15 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     # values from the atom dictionary can be represented as values of a sparse tensor
     # in this case TF's sparse_tensor_to_dense can be used to generate an image out of rounded coordinates
 
-    # move elemets to the dimension of depth
-    complex_coords_4d = tf.concat(1, [complex_coords, tf.reshape(tf.cast(complex_elements - 1, dtype=tf.int64), [-1, 1])])
-    sparse_image_4d = tf.SparseTensor(indices=complex_coords_4d, values=tf.ones(tf.shape(complex_elements)), shape=[side_pixels,side_pixels,side_pixels,14])
+#    # move elemets to the dimension of depth
+#    # complex_coords_4d = tf.concat(1, [complex_coords, tf.reshape(tf.cast(complex_elements - 1, dtype=tf.int64), [-1, 1])])
+#    # sparse_image_4d = tf.SparseTensor(indices=complex_coords_4d, values=tf.ones(tf.shape(complex_elements)), shape=[side_pixels,side_pixels,side_pixels,14])
+#    # FIXME: try to save an image and see how it looks like
+    sparse_complex = tf.SparseTensor(indices=complex_coords,values=tf.to_float(complex_elements),shape=[side_pixels,side_pixels,side_pixels])
+    complex_image = tf.sparse_tensor_to_dense(sparse_complex,validate_indices=False)
 
-    # FIXME: try to save an image and see how it looks like
-    return sparse_image_4d,ligand_center_of_mass,final_transition_matrix
+    return complex_image,ligand_center_of_mass,final_transition_matrix
+
 
 def image_and_label_queue(batch_size,pixel_size,side_pixels,num_threads,filename_queue,epoch_counter):
     """Creates shuffle queue for training the network"""
@@ -184,11 +187,22 @@ def image_and_label_queue(batch_size,pixel_size,side_pixels,num_threads,filename
     ligand_file,current_epoch,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue,epoch_counter=epoch_counter)
 
     # convert coordinates of ligand and protein into an image
-    sparse_image_4d,_,_ = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
+#    sparse_image_4d,_,_ = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
+    complex_image,_,_ = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)
 
     # create a batch of proteins and ligands to read them together
-    multithread_batch = tf.train.batch([ligand_file,current_epoch, label, sparse_image_4d], batch_size, num_threads=num_threads,
-                                       capacity=batch_size * 3,dynamic_pad=True,shapes=[[],[], [], [None]])
+    print "ligand file shape", ligand_file.get_shape()
+    print "current epochshape ", current_epoch.get_shape()
+    print "label shape",label.get_shape()
+    print "complex image shape", complex_image.get_shape()
+    time.sleep(1)
+
+#    multithread_batch = tf.train.batch([ligand_file,current_epoch,label,complex_image],batch_size=batch_size,
+#                                       num_threads=num_threads,capacity=batch_size * 5,dynamic_pad=False,shapes=[1,1,1,[side_pixels,side_pixels,side_pixels]])
+
+    multithread_batch = tf.train.batch([ligand_file,current_epoch,label,complex_image], batch_size=batch_size,
+                                       num_threads=num_threads, capacity=batch_size * 5,
+                                       shapes=[[],[],[],[side_pixels, side_pixels, side_pixels]])
 
     return multithread_batch
 
