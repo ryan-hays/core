@@ -154,7 +154,7 @@ $ python av4_main.py
 
 # does not work; needs latest tensorflow  
 # tensorflow12 is hidden in an envoronmental variable 
-# source $TF12  
+$ source $TF12  
 # if you are interested what $TF12 it is:  
 $ echo $TF12 
 /home/ubuntu/common/venv/tf12/bin/activate  
