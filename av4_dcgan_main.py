@@ -45,8 +45,8 @@ def train():
                                                                           filename_queue=filename_queue, epoch_counter=epoch_counter)
 
     image_batch = tf.sparse_tensor_to_dense(sparse_image_batch,validate_indices=False)
-    # image_batch channel is 14, doesn't add empty channel yet
-    h_filter = tf.constant([1]+[0]*(FLAGS.num_channels-2))
+    # image_batch channel is 15, last channel is empty now
+    h_filter = tf.constant([1]+[0]*(FLAGS.num_channels-1),shape=[1,1,1,1,FLAGS.num_channels],dtype=tf.float32)
     empty_box = 1 - tf.reduce_sum(image_batch*h_filter,reduction_indices=-1,keep_dims=True)
     with tf.control_dependencies([tf.assert_greater_equal(empty_box,0.)]):
         empty_channel = tf.constant([0]*(FLAGS.num_channels-1)+[1],shape = [1,1,1,1,FLAGS.num_channels],dtype=tf.float32)
@@ -178,7 +178,7 @@ class FLAGS:
     sample_dir = "samples"
 
     # path to the csv file with names of images selected for training
-    database_path = "labeled_av4"
+    database_path = "/home/ubuntu/common/data/labeled_av4"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     sample_dir = './sample'
