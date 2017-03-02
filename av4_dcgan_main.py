@@ -146,9 +146,9 @@ class FLAGS:
     """important model parameters"""
 
     # size of one pixel generated from protein in Angstroms (float)
-    pixel_size = 0.5
+    pixel_size = 1
     # size of the box around the ligand in pixels
-    side_pixels = 40
+    side_pixels = 20
     # Total number of channels for the data
     num_channels = 15
     # weights for each class for the scoring function
@@ -176,7 +176,7 @@ class FLAGS:
     sample_dir = "samples"
 
     # path to the csv file with names of images selected for training
-    database_path = "/home/ubuntu/common/data/labeled_av4"
+    database_path = "labeled_av4"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     sample_dir = './sample'

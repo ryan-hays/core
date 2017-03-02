@@ -140,11 +140,16 @@ class DCGAN(object):
 
 	def discriminator(self, image, y=None, reuse=False):
 		with tf.variable_scope("discriminator") as scope:
+			# max_val = tf.reduce_max(image,reduction_indices=-1,keep_dims=True)
+			# max_channels = tf.equal(image,max_val)
+			# dis_image = tf.cast(max_channels,tf.float32)
+			dis_image = image
+
 			if reuse:
 				scope.reuse_variables()
 
 			if not self.y_dim:
-				h0 = lrelu(conv3d(image, self.df_dim, name='d_h0_conv'))
+				h0 = lrelu(conv3d(dis_image, self.df_dim, name='d_h0_conv'))
 				h1 = lrelu(self.d_bn1(conv3d(h0, self.df_dim*2, name='d_h1_conv')))
 				h2 = lrelu(self.d_bn2(conv3d(h1, self.df_dim*4, name='d_h2_conv')))
 				h3 = lrelu(self.d_bn3(conv3d(h2, self.df_dim*8, name='d_h3_conv')))
@@ -153,7 +158,7 @@ class DCGAN(object):
 				return tf.nn.sigmoid(h4), h4
 			else:
 				yb = tf.reshape(y, [self.batch_size, 1, 1, 1, self.y_dim])
-				x = conv_cond_concat(image, yb)
+				x = conv_cond_concat(dis_image, yb)
 
 				h0 = lrelu(conv3d(x, self.c_dim + self.y_dim, name='d_h0_conv'))
 				h0 = conv_cond_concat(h0, yb)
@@ -207,7 +212,9 @@ class DCGAN(object):
                                 max_val = tf.reduce_max(h4,reduction_indices=-1,keep_dims=True)
                                 max_channels = tf.equal(h4,max_val)
                                       
-				return tf.cast(max_channels,tf.int32)
+				#return tf.cast(max_channels,tf.float32)
+				return h4
+
 
 
 		
@@ -266,7 +273,8 @@ class DCGAN(object):
 
 				h4 = deconv3d(h3, [self.batch_size, s_h, s_w, s_d, self.c_dim], name='g_h4')
 
-				return tf.nn.tanh(h4)
+				h4 = h4*20
+				return tf.nn.sigmoid(h4)
 			else:
 				s_h, s_w, s_d = self.output_height, self.output_width, self.output_depth
 				s_h2, s_h4 = int(s_h/2), int(s_h/4)
