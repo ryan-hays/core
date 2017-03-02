@@ -45,7 +45,9 @@ def train():
                                                                           filename_queue=filename_queue, epoch_counter=epoch_counter)
 
     image_batch = tf.sparse_tensor_to_dense(sparse_image_batch,validate_indices=False)
-    empty_box = 1 - tf.reduce_sum(image_batch,reduction_indices=-1,keep_dims=True)
+    # image_batch channel is 14, doesn't add empty channel yet
+    h_filter = tf.constant([1]+[0]*(FLAGS.num_channels-2))
+    empty_box = 1 - tf.reduce_sum(image_batch*h_filter,reduction_indices=-1,keep_dims=True)
     with tf.control_dependencies([tf.assert_greater_equal(empty_box,0.)]):
         empty_channel = tf.constant([0]*(FLAGS.num_channels-1)+[1],shape = [1,1,1,1,FLAGS.num_channels],dtype=tf.float32)
 
