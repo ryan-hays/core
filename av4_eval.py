@@ -1,7 +1,6 @@
 import time,os
 import tensorflow as tf
 import numpy as np
-import pandas as pd
 import re
 from av4_input import image_and_label_queue,index_the_database_into_queue
 from av4_main import FLAGS
@@ -249,10 +248,10 @@ class store_predictions_av3:
 
 
 class store_predictions:
-    '''
-    store add of the prediction results
-    :return:
-    '''
+
+    #store add of the prediction results
+    #:return:
+
 
     raw_predictions = defaultdict(list)
     processed_predictions = defaultdict(list)
@@ -302,8 +301,11 @@ class store_predictions:
             else:
                 records.append([key]+value)
 
-        submission_csv = pd.DataFrame(records, columns=['Id']+[ 'Predicted_%d'%i for i in range(1,len(records[0]))])
-        submission_csv.to_csv(FLAGS.predictions_file_path + '_multiframe_submission.csv', index=False)
+        columns = ['Id'] + ['Predicted_%d' % i for i in range(1, len(records[0]))]
+        with open(FLAGS.predictions_file_path+'_multiframe_submission.csv','w') as fout:
+            fout.write(','.join(columns)+'\n')
+            for record in records:
+                fout.write(','.join(map(str,record))+'\n')
 
     def save_average(self):
         '''
@@ -314,8 +316,11 @@ class store_predictions:
         for key,value in self.raw_predictions.items():
             records.append([key,np.mean(np.array(value))])
 
-        submission_csv = pd.DataFrame(records,columns=['ID','Predicted'])
-        submission_csv.to_csv(FLAGS.predictions_file_path+'_average_submission.csv',index=False)
+        columns = ['ID', 'Predicted']
+        with open(FLAGS.predictions_file_path + '_average_submission.csv','w') as fout:
+            fout.write(','.join(columns)+'\n')
+            for record in records:
+                fout.write(','.join(map(str,record))+'\n')
 
     def save_max(self):
 
@@ -323,8 +328,12 @@ class store_predictions:
         for key,value in self.raw_predictions.items():
             records.append([key, np.max(np.array(value))])
 
-        submission_csv = pd.DataFrame(records, columns=['ID', 'Predicted'])
-        submission_csv.to_csv(FLAGS.predictions_file_path + '_max_submission.csv', index=False)
+        columns = ['ID', 'Predicted']
+        with open(FLAGS.predictions_file_path+'_max_submission.csv','w') as fout:
+            fout.write(','.join(columns)+'\n')
+            for record in records:
+                fout.write(','.join(map(str,record))+'\n')
+
 
     def save(self):
         self.save_average()
