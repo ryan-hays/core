@@ -20,10 +20,11 @@ def download():
     # here we choose the structure with both ligands and binding affinity information
     pdb_list = list(set(pdb_target.has_ligands)) # & set(pdb_target.binding_affinity))
 
-    pool = multiprocessing.Pool(config.process_num)
-    pool.map_async(download_pdb, pdb_list)
-    pool.join()
-    pool.close()
+    #pool = multiprocessing.Pool(config.process_num)
+    #pool.map_async(download_pdb, pdb_list)
+    #pool.join()
+    #pool.close()
 
-    #map(download_pdb,pdb_list)
+    map(download_pdb,pdb_list)
 
+download()

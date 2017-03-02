@@ -1,6 +1,6 @@
 import os
 #base folder for all the output
-base = './'
+base = '/home/ubuntu/xiao/data/affinityDB'
 # folder to store pdb download from Protein DataBank
 pdb_download_path = os.path.join(base,'data','downloads')
 # folder to store splited receptor
