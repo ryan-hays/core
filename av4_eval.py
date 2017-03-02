@@ -4,7 +4,7 @@ import numpy as np
 import re
 from av4_input import image_and_label_queue,index_the_database_into_queue
 from av4_main import FLAGS
-from av4_networks import intuit_net
+from av4_networks import wide_conv_net
 from collections import defaultdict
 
 
@@ -368,7 +368,7 @@ def evaluate_on_train_set():
     image_batch = tf.sparse_tensor_to_dense(sparse_image_batch,validate_indices=False)
 
     keep_prob = tf.placeholder(tf.float32)
-    y_conv = intuit_net(image_batch,keep_prob,FLAGS.batch_size)
+    y_conv = wide_conv_net(image_batch,keep_prob,FLAGS.batch_size)
 
     # compute softmax over raw predictions
     predictions = tf.nn.softmax(y_conv)[:,1]
