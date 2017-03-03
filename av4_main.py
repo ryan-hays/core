@@ -20,16 +20,14 @@ def train():
     epoch_counter = tf.div(batch_counter*FLAGS.batch_size,examples_in_database)
 
     # create a custom shuffle queue
-    _,current_epoch,label_batch,sparse_image_batch = image_and_label_queue(batch_size=FLAGS.batch_size, pixel_size=FLAGS.pixel_size,
+    _,current_epoch,label_batch,image_batch = image_and_label_queue(batch_size=FLAGS.batch_size, pixel_size=FLAGS.pixel_size,
                                                                           side_pixels=FLAGS.side_pixels, num_threads=FLAGS.num_threads,
                                                                           filename_queue=filename_queue, epoch_counter=epoch_counter)
-
-    image_batch = tf.sparse_tensor_to_dense(sparse_image_batch,validate_indices=False)
 
     keep_prob = tf.placeholder(tf.float32)
 
 
-    predicted_labels = wide_conv_net(image_batch,keep_prob,FLAGS.batch_size)
+    predicted_labels = float_net(image_batch,keep_prob,FLAGS.batch_size)
 
     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predicted_labels,labels=label_batch)
     cross_entropy_mean = tf.reduce_mean(cross_entropy)
@@ -54,7 +52,6 @@ def train():
     else:
         print "Restoring variables from sleep. This may take a while..."
         saver.restore(sess,FLAGS.saved_session)
-
 
     # launch all threads only after the graph is complete and all the variables initialized
     # previously, there was a hard to find occasional problem where the computations would start on unfinished nodes
@@ -85,9 +82,9 @@ class FLAGS:
     """important model parameters"""
 
     # size of one pixel generated from protein in Angstroms (float)
-    pixel_size = 0.5
+    pixel_size = 1
     # size of the box around the ligand in pixels
-    side_pixels = 40
+    side_pixels = 20
     # weights for each class for the scoring function
     # number of times each example in the dataset will be read
     num_epochs = 50000 # epochs are counted based on the number of the protein examples
@@ -108,7 +105,7 @@ class FLAGS:
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states
-    saved_session = None#'./summaries/36_netstate/saved_state-23999'
+    saved_session = None#'./summaries/1_netstate/saved_state-113999'
 
 
 def main(_):
