@@ -499,14 +499,14 @@ $ unzip labeled_av4.zip
 
 ```
 create batch script to submit your job. You can read more about submission queue [here](https://www.psc.edu/index.php/bridges/user-guide/running-jobs).
+In this case it is just a test file that will be executed by bash. You can use `vi` or any other command line text editor to create it.
 ```
-bash
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -p GPU
 #SBATCH --ntasks-per-node 28
 #SBATCH -t 48:00:00
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:k80:4
 #echo commands to stdout
 set -x
 
@@ -526,5 +526,23 @@ python av4_main.py
  run your job
 ```
 $ sbatch job.sh
+# monitor the status of your job with 
+$ squeue -u korablyo
+
+JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+            893569       GPU   gpu.sh korablyo PD       0:00      1 (Priority)
+            893570       GPU   gpu.sh korablyo PD       0:00      1 (Priority)
+            893576       GPU   gpu.sh korablyo PD       0:00      1 (Priority)
+            893890       GPU   gpu.sh korablyo PD       0:00      1 (Priority)
+            893566       GPU   gpu.sh korablyo  R      26:15      1 gpu021
+            893557       GPU   gpu.sh korablyo  R      34:41      1 gpu038
+            893548       GPU   gpu.sh korablyo  R    1:21:00      1 gpu031
+            893554       GPU   gpu.sh korablyo  R    1:12:31      1 gpu040
+            893546       GPU   gpu.sh korablyo  R    2:32:33      1 gpu043
+            893540       GPU   gpu.sh korablyo  R    4:30:44      1 gpu039
+            893613       GPU   gpu.sh korablyo  R    4:09:42      1 gpu013
+
+# shows that I have seven pending jobs and four running jobs
+
 ```
-monitor the status of your job with `squeue -u korablyo`
+
