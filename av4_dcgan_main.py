@@ -64,6 +64,7 @@ def train():
     g_optim = tf.train.AdamOptimizer(FLAGS.learning_rate, beta1=FLAGS.beta1) \
         .minimize(dcgan.g_loss, var_list=dcgan.g_vars)
 
+    saver = tf.train.Saver()
     try:
       sess.run(tf.global_variables_initializer())
     except:
@@ -75,15 +76,22 @@ def train():
         dcgan.d_loss_fake_sum, dcgan.g_loss_sum])
     dcgan.d_sum = tf.summary.merge(
         [dcgan.z_sum, dcgan.d_sum, dcgan.d_loss_real_sum, dcgan.d_loss_sum])
-    dcgan.writer = tf.summary.FileWriter("./logs", sess.graph)
+    #dcgan.writer = tf.summary.FileWriter("./logs", sess.graph)
 
     batch_z = np.random.uniform(-1, 1, size=(dcgan.sample_number, dcgan.z_dim))
-    
-    
+	
+    all_vars = tf.get_collection('variables')
+    for var in all_vars:
+        print var.name
+    #g_hidden = [var for var in all_vars if '_gh' in var.name]
+    #d_hidden = [var for var in all_vars if '_dh' in var.name]
+    g_merged = tf.summary.merge(tf.get_collection('generator'))
+    d_merged = tf.summary.merge(tf.get_collection('discriminator'))
+    #g_merged = tf.summary.merge(g_hidden)
+    #d_merged = tf.summary.merge(d_hidden)    
 
-   
-    
-
+    #merged_summaries = tf.summary.merge_all()
+    train_writer = tf.summary.FileWriter((FLAGS.summaries_dir + '/' + str(FLAGS.run_index) + '_train'), sess.graph)
 
     # launch all threads only after the graph is complete and all the variables initialized
     # previously, there was a hard to find occasional problem where the computations would start on unfinished nodes
@@ -103,27 +111,34 @@ def train():
         # don't know why it return a list
         sess.run([dcgan.d_loss, dcgan.g_loss],feed_dict={dcgan.inputs:batch_images,dcgan.z: batch_z})
         # Update D network
-        _, summary_str = sess.run([d_optim, dcgan.d_sum],
+        _, summary_str, summary_hidden = sess.run([d_optim, dcgan.d_sum, d_merged],
             feed_dict={ dcgan.inputs: batch_images, dcgan.z: batch_z })
-        dcgan.writer.add_summary(summary_str, counter)
+        train_writer.add_summary(summary_str, batch_num)
+        train_writer.add_summary(summary_hidden, batch_num)
 
         # Update G network
-        _, summary_str = sess.run([g_optim, dcgan.g_sum],
+        _, summary_str, summary_hidden  = sess.run([g_optim, dcgan.g_sum, g_merged],
             feed_dict={ dcgan.z: batch_z })
-        dcgan.writer.add_summary(summary_str, counter)
-
+        #dcgan.writer.add_summary(summary_str, counter)
+        #dcgan.writer.add_summary(summary_hidden, counter)
+	
         # Run g_optim twice to make sure that d_loss does not go to zero (different from paper)
-        _, summary_str = sess.run([g_optim, dcgan.g_sum],
+        _, summary_str, summary_hidden = sess.run([g_optim, dcgan.g_sum, g_merged],
             feed_dict={ dcgan.z: batch_z })
-        dcgan.writer.add_summary(summary_str, counter)
+        train_writer.add_summary(summary_str, batch_num)
+        train_writer.add_summary(summary_hidden, batch_num)
           
+        #all_summaries = sess.run(merged_summaries)
+        #train_writer.add_summary(all_summaries,batch_num)
+        
         #errD_fake = dcgan.d_loss_fake.eval({ dcgan.z: batch_z })
         #errD_real = dcgan.d_loss_real.eval({ dcgan.inputs: batch_images })
         #errG = dcgan.g_loss.eval({dcgan.z: batch_z})
         print "batch ",batch_num 
         #with open('counter.out','a') as fout:
         #    fout.write(str(batch_num)+'\n')
-        if (batch_num % 1000 == 999):
+        if (batch_num % 1000 == 1):
+            saver.save(sess, FLAGS.summaries_dir + '/' + str(FLAGS.run_index) + "_netstate/saved_state", global_step=batch_num)
             #sess.run()
             # once in a while save the network state and write variable summaries to disk
             try:
@@ -134,7 +149,8 @@ def train():
                     dcgan.inputs: batch_images,
                 },
               )
-                np.save(os.path.join(FLAGS.sample_dir,'train_{}.npy'.format(batch_num)),samples)
+                np.save(FLAGS.summaries_dir + '/' + str(FLAGS.run_index) + "_sample/train+{}.npy".format(batch_num),samples)
+                #np.save(os.path.join(FLAGS.sample_dir,'train_{}.npy'.format(batch_num)),samples)
                 #save_images(samples, [40, 40,40],
                 #    './{}/train_{:02d}_{:04d}.png'.format(config.sample_dir, epoch, idx))
                 print("[Sample] d_loss: %.8f, g_loss: %.8f" % (d_loss, g_loss)) 
@@ -200,7 +216,8 @@ def main(_):
         tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) +'_test')
         tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) +'_netstate')
         tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) +'_logs')
-    
+        tf.gfile.MakeDirs(summaries_dir + "/" + str(FLAGS.run_index) +'_sample')
+ 
     sample_dir = os.path.join(FLAGS.sample_dir)
     if not tf.gfile.Exists(sample_dir):
         tf.gfile.MakeDirs(sample_dir)

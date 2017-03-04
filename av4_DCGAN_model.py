@@ -150,25 +150,43 @@ class DCGAN(object):
 
 			if not self.y_dim:
 				h0 = lrelu(conv3d(dis_image, self.df_dim, name='d_h0_conv'))
+				tf.summary.histogram('relu_dh0', h0, ['discriminator'])
+                                tf.summary.scalar('sparsity_dh0', tf.nn.zero_fraction(h0),['discriminator'])
+
 				h1 = lrelu(self.d_bn1(conv3d(h0, self.df_dim*2, name='d_h1_conv')))
+                                tf.summary.histogram('relu_dh1', h1,['discriminator'])
+                                tf.summary.scalar('sparsity_dh1', tf.nn.zero_fraction(h1),['discriminator'])
+
 				h2 = lrelu(self.d_bn2(conv3d(h1, self.df_dim*4, name='d_h2_conv')))
+                                tf.summary.histogram('relu_dh2', h2,['discriminator'])
+                                tf.summary.scalar('sparsity_dh2', tf.nn.zero_fraction(h2),['discriminator'])
+
 				h3 = lrelu(self.d_bn3(conv3d(h2, self.df_dim*8, name='d_h3_conv')))
+                                tf.summary.histogram('relu_dh3', h3,['discriminator'])
+                                tf.summary.scalar('sparsity_dh3', tf.nn.zero_fraction(h3),['discriminator'])
+
 				h4 = linear(tf.reshape(h3, [self.batch_size, -1]), 1, 'd_h3_lin')
 
 				return tf.nn.sigmoid(h4), h4
 			else:
 				yb = tf.reshape(y, [self.batch_size, 1, 1, 1, self.y_dim])
 				x = conv_cond_concat(dis_image, yb)
-
+                               
 				h0 = lrelu(conv3d(x, self.c_dim + self.y_dim, name='d_h0_conv'))
 				h0 = conv_cond_concat(h0, yb)
+                                tf.summary.histogram('relu_dh0', h0,['discriminator'])
+                                tf.summary.scalar('sparsity_dh0', tf.nn.zero_fraction(h0),['discriminator'])                                  
 
 				h1 = lrelu(self.d_bn1(conv3d(h0, self.df_dim + self.y_dim, name='d_h1_conv')))
 				h1 = tf.reshape(h1, [self.batch_size, -1])      
 				h1 = concat([h1, y], 1)
+                                tf.summary.histogram('relu_dh1', h1,['discriminator'])
+                                tf.summary.scalar('sparsity_dh1', tf.nn.zero_fraction(h1),['discriminator'])
 
 				h2 = lrelu(self.d_bn2(linear(h1, self.dfc_dim, 'd_h2_lin')))
 				h2 = concat([h2, y], 1)
+                                tf.summary.histogram('relu_dh2', h2,['discriminator'])
+                                tf.summary.scalar('sparsity_dh2', tf.nn.zero_fraction(h2),['discriminator'])
 
 				h3 = linear(h2, 1, 'd_h3_lin')
 
@@ -197,14 +215,21 @@ class DCGAN(object):
 				self.h1, self.h1_w, self.h1_b = deconv3d(
 				h0, [self.batch_size, s_h8, s_w8, s_d8, self.gf_dim*4], name='g_h1', with_w=True)
 				h1 = tf.nn.relu(self.g_bn1(self.h1))
+                                tf.summary.histogram('relu_gh1', h1,['generator'])
+                                tf.summary.scalar('sparsity_gh1', tf.nn.zero_fraction(h1),['generator'])                                
 
 				h2, self.h2_w, self.h2_b = deconv3d(
 				h1, [self.batch_size, s_h4, s_w4, s_d4, self.gf_dim*2], name='g_h2', with_w=True)
 				h2 = tf.nn.relu(self.g_bn2(h2))
+                                tf.summary.histogram('relu_gh2', h2,['generator'])
+                                tf.summary.scalar('sparsity_gh2', tf.nn.zero_fraction(h2),['generator'])
 
 				h3, self.h3_w, self.h3_b = deconv3d(
 				h2, [self.batch_size, s_h2, s_w2, s_d2, self.gf_dim*1], name='g_h3', with_w=True)
 				h3 = tf.nn.relu(self.g_bn3(h3))
+                                tf.summary.histogram('relu_gh3', h3,['generator'])
+                                tf.summary.scalar('sparsity_gh3', tf.nn.zero_fraction(h3),['generator'])
+
 
 				h4, self.h4_w, self.h4_b = deconv3d(
 				h3, [self.batch_size, s_h, s_w, s_d, self.c_dim], name='g_h4', with_w=True)
@@ -236,12 +261,17 @@ class DCGAN(object):
 				h1 = tf.nn.relu(self.g_bn1(
 					linear(h0, self.gf_dim*2*s_h4*s_w4*s_d4, 'g_h1_lin')))
 				h1 = tf.reshape(h1, [self.batch_size, s_h4, s_w4, s_d4, self.gf_dim * 2])
+                                h1 = conv_cond_concat(h1, yb)
+                                tf.summary.histogram('relu_gh1', h1,['generator'])
+                                tf.summary.scalar('sparsity_gh1', tf.nn.zero_fraction(h1),['generator'])
 
-				h1 = conv_cond_concat(h1, yb)
 
 				h2 = tf.nn.relu(self.g_bn2(deconv3d(h1,
 					[self.batch_size, s_h2, s_w2, s_d2, self.gf_dim * 2], name='g_h2')))
-				h2 = conv_cond_concat(h2, yb)
+                                h2 = conv_cond_concat(h2, yb)
+                                tf.summary.histogram('relu_gh2', h2,['generator'])
+                                tf.summary.scalar('sparsity_gh2', tf.nn.zero_fraction(h2),['generator'])
+				
 
 				return tf.nn.sigmoid(
 					deconv3d(h2, [self.batch_size, s_h, s_w, s_d, self.c_dim], name='g_h3'))
