@@ -80,9 +80,7 @@ def train():
 
     batch_z = np.random.uniform(-1, 1, size=(dcgan.sample_number, dcgan.z_dim))
 	
-    all_vars = tf.get_collection('variables')
-    for var in all_vars:
-        print var.name
+  
     #g_hidden = [var for var in all_vars if '_gh' in var.name]
     #d_hidden = [var for var in all_vars if '_dh' in var.name]
     g_merged = tf.summary.merge(tf.get_collection('generator'))

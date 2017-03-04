@@ -52,7 +52,7 @@ def generate_deep_affine_transform(num_frames):
     afn3_2 = tf.zeros([num_frames])
     afn3_3 = tf.ones([num_frames])
 
-    xyz_shift_stick = tf.pack(
+    xyz_shift_stick = tf.stack(
         [afn0_0, afn0_1, afn0_2, afn0_3, afn1_0, afn1_1, afn1_2, afn1_3, afn2_0, afn2_1, afn2_2, afn2_3, afn3_0,
          afn3_1, afn3_2, afn3_3])
     xyz_shift_matrix = tf.transpose(tf.reshape(xyz_shift_stick, [4, 4, num_frames]), perm=[2, 0, 1])
@@ -86,7 +86,7 @@ def generate_deep_affine_transform(num_frames):
     afn3_2 = tf.zeros([num_frames])
     afn3_3 = tf.ones([num_frames])
 
-    x_rot_stick = tf.pack(
+    x_rot_stick = tf.stack(
         [afn0_0, afn0_1, afn0_2, afn0_3, afn1_0, afn1_1, afn1_2, afn1_3, afn2_0, afn2_1, afn2_2, afn2_3, afn3_0,
          afn3_1, afn3_2, afn3_3])
     x_rot_matrix = tf.transpose(tf.reshape(x_rot_stick, [4, 4, num_frames]), perm=[2, 0, 1])
@@ -120,7 +120,7 @@ def generate_deep_affine_transform(num_frames):
     afn3_2 = tf.zeros([num_frames])
     afn3_3 = tf.ones([num_frames])
 
-    y_rot_stick = tf.pack(
+    y_rot_stick = tf.stack(
         [afn0_0, afn0_1, afn0_2, afn0_3, afn1_0, afn1_1, afn1_2, afn1_3, afn2_0, afn2_1, afn2_2, afn2_3, afn3_0,
          afn3_1, afn3_2, afn3_3])
     y_rot_matrix = tf.transpose(tf.reshape(y_rot_stick, [4, 4, num_frames]), perm=[2, 0, 1])
@@ -154,7 +154,7 @@ def generate_deep_affine_transform(num_frames):
     afn3_2 = tf.zeros([num_frames])
     afn3_3 = tf.ones([num_frames])
 
-    z_rot_stick = tf.pack(
+    z_rot_stick = tf.stack(
         [afn0_0, afn0_1, afn0_2, afn0_3, afn1_0, afn1_1, afn1_2, afn1_3, afn2_0, afn2_1, afn2_2, afn2_3, afn3_0,
          afn3_1, afn3_2, afn3_3])
     z_rot_matrix = tf.transpose(tf.reshape(z_rot_stick, [4, 4, num_frames]), perm=[2, 0, 1])
@@ -165,7 +165,7 @@ def generate_deep_affine_transform(num_frames):
 
 def affine_transform(coordinates,transition_matrix):
     """applies affine transform to the array of coordinates. By default generates a random affine transform matrix."""
-    coordinates_with_ones = tf.concat(1, [coordinates, tf.cast(tf.ones([tf.shape(coordinates)[0],1]),tf.float32)])
+    coordinates_with_ones = tf.concat([coordinates, tf.cast(tf.ones([tf.shape(coordinates)[0],1]),tf.float32)], 1)
     transformed_coords = tf.matmul(coordinates_with_ones,tf.transpose(transition_matrix))[0:,:-1]
 
     return transformed_coords,transition_matrix
@@ -260,7 +260,7 @@ def random_transition_matrix():
 
 
 idx = tf.random_uniform([], minval=0, maxval=100, dtype=tf.int32)
-many_affine = tf.Variable(tf.pack([random_transition_matrix() for i in range(100)]))
+many_affine = tf.Variable(tf.stack([random_transition_matrix() for i in range(100)]))
 
 sess = tf.Session()
 #one_tensor = tf.gather(many_affine,idx)

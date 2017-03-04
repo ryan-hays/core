@@ -63,7 +63,7 @@ def read_receptor_and_ligand(filename_queue,epoch_counter):
         # second (horizontal dimension) is x,y,z coordinate of every atom and is always 3
         # third (depth) dimension corresponds to the number of frames
 
-        coords_shape = tf.concat(0, [number_of_atoms, [3], number_of_frames])
+        coords_shape = tf.concat([number_of_atoms, [3], number_of_frames], 0)
         tmp_coords = tf.slice(tmp_decoded_record, number_of_frames + number_of_atoms + 1,
                               tf.shape(tmp_decoded_record) - number_of_frames - number_of_atoms - 1)
         multiframe_coords = tf.bitcast(tf.reshape(tmp_coords, coords_shape), type=tf.float32)
@@ -175,8 +175,8 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     # in this case TF's sparse_tensor_to_dense can be used to generate an image out of rounded coordinates
 
     # move elemets to the dimension of depth
-    complex_coords_4d = tf.concat(1, [complex_coords, tf.reshape(tf.cast(complex_elements - 1, dtype=tf.int64), [-1, 1])])
-    sparse_image_4d = tf.SparseTensor(indices=complex_coords_4d, values=tf.ones(tf.shape(complex_elements)), shape=[side_pixels,side_pixels,side_pixels,15])
+    complex_coords_4d = tf.concat([complex_coords, tf.reshape(tf.cast(complex_elements - 1, dtype=tf.int64), [-1, 1])], 1)
+    sparse_image_4d = tf.SparseTensor(indices=complex_coords_4d, values=tf.ones(tf.shape(complex_elements)), dense_shape=[side_pixels,side_pixels,side_pixels,15])
 
     # FIXME: try to save an image and see how it looks like
     return sparse_image_4d,ligand_center_of_mass,final_transition_matrix
