@@ -29,7 +29,7 @@ def train():
     keep_prob = tf.placeholder(tf.float32)
 
 
-    predicted_labels = nilai_net(image_batch,keep_prob,FLAGS.batch_size)
+    predicted_labels = max_net(image_batch,keep_prob,FLAGS.batch_size)
 
     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predicted_labels,labels=label_batch)
     cross_entropy_mean = tf.reduce_mean(cross_entropy)
@@ -85,9 +85,9 @@ class FLAGS:
     """important model parameters"""
 
     # size of one pixel generated from protein in Angstroms (float)
-    pixel_size = 0.5
+    pixel_size = 1
     # size of the box around the ligand in pixels
-    side_pixels = 40
+    side_pixels = 20
     # weights for each class for the scoring function
     # number of times each example in the dataset will be read
     num_epochs = 50000 # epochs are counted based on the number of the protein examples
@@ -104,7 +104,7 @@ class FLAGS:
     # data directories
 
     # path to the csv file with names of images selected for training
-    database_path = "../datasets/labeled_av4"
+    database_path = "../datasets/holdout_av4"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states

@@ -83,14 +83,14 @@ def fc_layer(layer_name,input_tensor,output_dim):
     return h_fc
 
 
-def nilai_net(x_image_batch,keep_prob,batch_size):
+def max_net(x_image_batch,keep_prob,batch_size):
     "makes a simple network that can receive 40x40x40 input images. And output 2 classes"
     with tf.name_scope('input'):
         pass
     with tf.name_scope("input_reshape"):
         print "image batch dimensions", x_image_batch.get_shape()
         # formally adding one depth dimension to the input
-        x_image_batch = tf.reshape(x_image_batch, [batch_size, 40, 40, 40, 1])
+        x_image_batch = tf.reshape(x_image_batch, [batch_size, 20, 20, 20, 1])
         print "input to the first layer dimensions", x_image_batch.get_shape()
 
     h_conv1 = conv_layer(layer_name='conv1_5x5x5', input_tensor=x_image_batch, filter_size=[5, 5, 5, 1, 20])
@@ -114,7 +114,7 @@ def nilai_net(x_image_batch,keep_prob,batch_size):
     h_pool5 = pool_layer(layer_name="pool5_2x2x2", input_tensor=h_relu5, ksize=[1, 2, 2, 2, 1], strides=[1, 1, 1, 1, 1])
 
     with tf.name_scope("flatten_layer"):
-        h_pool2_flat = tf.reshape(h_pool5, [-1, 10 * 10 * 10 * 60])
+        h_pool2_flat = tf.reshape(h_pool5, [-1, 5 * 5 * 5 * 60])
 
     h_fc1 = fc_layer(layer_name="fc1", input_tensor=h_pool2_flat, output_dim=1024)
     h_fc1_relu = relu_layer(layer_name="fc1_relu", input_tensor=h_fc1)

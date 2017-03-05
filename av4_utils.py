@@ -172,6 +172,106 @@ def affine_transform(coordinates,transition_matrix):
 
 
 
+def generate_exhaustive_affine_transform(shift_ranges=[10,10,10],shift_deltas=[1,1,1],rot_ranges=[360,360,360]):
+    """By default,makes shifts by 1, in X,Y,Z directions"""
+
+#    shift_range = tf.constant(10, dtype=tf.float32)
+#    rotation_range = tf.cast(tf.convert_to_tensor(np.pi * 2), dtype=tf.float32)
+#
+#    # randomly shift along X,Y,Z
+#    x_shift = tf.random_uniform([num_frames], minval=-1, maxval=1, dtype=tf.float32) * shift_range
+#    y_shift = tf.random_uniform([num_frames], minval=-1, maxval=1, dtype=tf.float32) * shift_range
+#    z_shift = tf.random_uniform([num_frames], minval=-1, maxval=1, dtype=tf.float32) * shift_range
+
+
+    # shift along X,Y,Z
+    x_shift = tf.range(start=-shift_ranges[0],limit=shift_ranges[0],delta=shift_deltas[0])
+    y_shift = tf.range(start=-shift_ranges[1],limit=shift_ranges[1],delta=shift_deltas[1])
+    z_shift = tf.range(start=-shift_ranges[2],limit=shift_ranges[2],delta=shift_deltas[2])
+
+    # [1, 0, 0, random_x_shift],
+    # [0, 1, 0, random_y_shift],
+    # [0, 0, 1, random_z_shift],
+    # [0, 0, 0, 1]])
+
+    # try to do the following:
+    # generate nine tensors for each of them
+    # concatenate and reshape sixteen tensors
+
+
+
+
+    """
+    afn0_0 = tf.ones([num_frames])
+    afn0_1 = tf.zeros([num_frames])
+    afn0_2 = tf.zeros([num_frames])
+    afn0_3 = x_shift
+
+    afn1_0 = tf.zeros([num_frames])
+    afn1_1 = tf.ones([num_frames])
+    afn1_2 = tf.zeros([num_frames])
+    afn1_3 = y_shift
+
+    afn2_0 = tf.zeros([num_frames])
+    afn2_1 = tf.zeros([num_frames])
+    afn2_2 = tf.ones([num_frames])
+    afn2_3 = z_shift
+
+    afn3_0 = tf.zeros([num_frames])
+    afn3_1 = tf.zeros([num_frames])
+    afn3_2 = tf.zeros([num_frames])
+    afn3_3 = tf.ones([num_frames])
+
+    xyz_shift_stick = tf.pack(
+        [afn0_0, afn0_1, afn0_2, afn0_3, afn1_0, afn1_1, afn1_2, afn1_3, afn2_0, afn2_1, afn2_2, afn2_3, afn3_0,
+         afn3_1, afn3_2, afn3_3])
+    xyz_shift_matrix = tf.transpose(tf.reshape(xyz_shift_stick, [4, 4, num_frames]), perm=[2, 0, 1])
+
+
+    #xyz_shift_xyz_rot = tf.matmul(tf.matmul(tf.matmul(xyz_shift_matrix, x_rot_matrix), y_rot_matrix), z_rot_matrix)
+    """
+
+
+    return x_shift
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
