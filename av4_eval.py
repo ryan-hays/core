@@ -363,7 +363,7 @@ def evaluate_on_train_set():
     # create a custom shuffle queue
     ligand_files,current_epoch,label_batch,sparse_image_batch = image_and_label_queue(batch_size=FLAGS.batch_size, pixel_size=FLAGS.pixel_size,
                                                                           side_pixels=FLAGS.side_pixels, num_threads=FLAGS.num_threads,
-                                                                          filename_queue=filename_queue, epoch_counter=epoch_counter)
+                                                                          filename_queue=filename_queue, epoch_counter=epoch_counter,train=False)
 
     image_batch = tf.sparse_tensor_to_dense(sparse_image_batch,validate_indices=False)
 
