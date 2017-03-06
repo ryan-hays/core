@@ -122,4 +122,4 @@ def convert_database_to_av4(database_path,positives_folder,decoys_folder,recepto
 
 
 
-convert_database_to_av4(database_path="../datasets/labeled_pdb",positives_folder="crystal_ligands",decoys_folder="docked_ligands",receptors_folder='receptors')
+convert_database_to_av4(database_path="../datasets/holdout_pdb",positives_folder="crystal_ligands",decoys_folder="docked_ligands",receptors_folder='receptors')
