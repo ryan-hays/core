@@ -134,53 +134,53 @@ av4_utils.py
 ``` 
 here is how a typical session on our Amazon graphical instance with K80 GPU would look like:
 
-```
+```bash
 # log into our remote machine 
 # email maksym to get the key
-ssh -i P2_key.pem ubuntu@awsinstance.com
+$ ssh -i P2_key.pem ubuntu@awsinstance.com
 # every member of the group should have his or her folder
-cd maksym
+$ cd maksym
 # clone affinity core into your working directory 
 ubuntu@ip-172-31-4-5:~/maksym$ git clone https://github.com/mitaffinity/core.git  
-cd core 
-python av4_main.py
+$ cd core 
+$ python av4_main.py
 # does not work; the database is empty
 # point the script to the location of the database
-vi (or any other command line text file editor; some people like nano) 
+$ vi (or any other command line text file editor; some people like nano) 
 # the database has already been downloaded to the instance
 # change the database path under flags to   
 # /home/ubuntu/common/data/labeled_av4  
-python av4_main.py  
+$ python av4_main.py  
 
 # does not work; needs latest tensorflow  
 # tensorflow12 is hidden in an envoronmental variable 
-# source $TF12  
+$ source $TF12  
 # if you are interested what $TF12 it is:  
-echo $TF12 
+$ echo $TF12 
 /home/ubuntu/common/venv/tf12/bin/activate  
 
 # start training
-python av4_main.py 
+$ python av4_main.py 
 # seems to work, now it's time to launch this process for a while
 # the key is to launch it on the background, so it does not die when you log off
 # from your remote host. Use the '&' sign
-python av4_main.py &  
+$ python av4_main.py &  
 # now background process will persist when you exit the session  
 
 # now the nasty problem: TensorFlow tends not to die and hog on the GPU even after it's been terminated
 # also, there are many of us using GPU instance at the same time, but with TF's default settings
 # only one process will capture all VRAM on the GPU 
 # see if anything is running on the GPU  
-nvidia-smi  
+$ nvidia-smi  
 # should show the running processes, and how much VRAM each of them takes
 # you can also use top to monitor RAM and CPU
-top
+$ top
 # since it's a development instance, it is ok to kill all python processes with pkill -9 python
 # be carefull as it kills all the python processes that other people are running 
 # it's ok to do it on our instance since it's consired to be only development zone for debugging
-pkill -9 python
-python av4_main.py &
-exit
+$ pkill -9 python
+$ python av4_main.py &
+$ exit
 ```
 The network training may take hours, or days depending on your dataset and architecture of the network. It's important to note that in our code the epoch is counted by protein-ligand pairs, not by images. Every protein-ligand pair may have multiple incorrect positions of the ligand 50-400, and a single correct, crystal position. In this case, it takes 100 epochs to only show all of the negatives to the network once. That is different from classical understanding of epochs in image recognition when images can't have multiple frames.
 Running the code should have resulted in four folders with outputs:
@@ -198,28 +198,28 @@ be visualized. Let's expect the outputs of in the foders
 
 ```
 # log into our instance
-ssh -i P2_key.pem ubuntu@awsinstance.com
+$ ssh -i P2_key.pem ubuntu@awsinstance.com
 # now I am
 # ubuntu@ip-172-31-4-5:~$
 # cd maksym
-cd /core/summaries
-cd 1_netstate
-ls -l
+$ cd /core/summaries
+$ cd 1_netstate
+$ ls -l
 # should show all of the files together with their size
 # IE: 96789276 Jan 29 16:55 saved_state-60999.data-00000-of-00001
-cd ../1_train
-ls
+$ cd ../1_train
+$ ls
 # should show 
 # events.out.tfevents.1485708632.ip-172-31-4-5
 # which is a tensorflow summaries file
 # let's try to visualize it:
 # load tensorflow 0.12 (default version in the environment is 0.10)
-source $TF12
+$ source $TF12
 # it's important to launch the tensorboard on port 80. By default internet browsers, such as chrome,
 # will connect to port 80. You can read more here: 
 # https://en.wikipedia.org/wiki/Port_(computer_networking)
 # by default port 80 is not available to the user (the error is port is busy) that's why we use sudo
-sudo python -m tensorflow.tensorboard --logdir=. --port=80
+$ sudo python -m tensorflow.tensorboard --logdir=. --port=80
 # now you can navigate your browser to awsinstance.com
 ```
  you should be able to see the following:
@@ -281,26 +281,26 @@ Now let's evaluate our script on distinguishing a single correct position from a
 # Let's download the dataset from Kaggle to our local machine
 # navigate your browser to: https://inclass.kaggle.com/c/affinity4/data
 # and download holdout_av4.zip
-scp -i P2_key.pem holdout_av4.zip ubuntu@awsinstance.com:/home/ubuntu/common/data
-ssh -i P2_key.pem ubuntu@awsinstance.com
-cd common
+$ scp -i P2_key.pem holdout_av4.zip ubuntu@awsinstance.com:/home/ubuntu/common/data
+$ ssh -i P2_key.pem ubuntu@awsinstance.com
+$ cd common
 # unzip the database 
-unzip holdout_av4.zip
+$ unzip holdout_av4.zip
 # get the path to current directory
-pwd 
+$ pwd 
 # /home/ubuntu/common/data/labeled_av4
-cd ~/maksym/core/summaries/1_netstate
-ls
+$ cd ~/maksym/core/summaries/1_netstate
+$ ls
 # note the latest step of the saved network
 # it's saved_state-60999.data-00000-of-00001 in my case
-cd ../..
+$ cd ../..
 # edit 
 # FLAGS.saved_session = ./summaries/1_netstate/saved_state-60999
 # FLAGS.database_path = /home/ubuntu/common/data/labeled_av4
-vi av4_eval.py
+$ vi av4_eval.py
 # now source tensorflow 0.12 and launch the evaluation script
-source $TF12
-python av4_eval.py
+$ source $TF12
+$ python av4_eval.py
 # ....
 # current_epoch: 6 batch_num: [82]  prediction averages: 0.538309   examples per second: 273.89
 # ......
@@ -313,7 +313,7 @@ python av4_eval.py
 # saved_state-60999_predictions.txt
 # saved_state-60999_scores.txt
 # for this kind of evaluation only two files are meaningful:
-vi saved_state-60999_predictions.txt
+$ vi saved_state-60999_predictions.txt
 # saved_state-60999_predictions.txt
 # has four columns:
 # average_prediction   label   filename   predictions
@@ -362,16 +362,16 @@ We have applied our network to distinguish correct position of ligand from incor
 ```
 # edit the name of the database to be used for evaluations
 # to the location of the database at: /home/ubuntu/common/data/labeled_av4
-vi av4_eval.py
+$ vi av4_eval.py
 # run the eval script
-python av4_eval.py
+$ python av4_eval.py
 # the number of epochs in the script FLAGS.num_epochs 
 # will determine the number of frames per each ligand to be evaluated
 # this time we will re-rank only top 20 positions and not consider other 380
 # inspect the outputs of the script at 1_logs
 # cd ./summaries/1_logs
 # again you may find five files in the same folder:
-ls
+$ ls
 # saved_state-60999_average_submission.csv
 # saved_state-60999_max_submission.csv
 # saved_state-60999_multiframe_submission.csv
@@ -379,7 +379,7 @@ ls
 # saved_state-60999_scores.txt
 #
 # this time another three files will carry meaning:
-less saved_state-60999_average_submission.csv
+$ less saved_state-60999_average_submission.csv
 # ID,Predicted
 # 3zw2_270_ligand,0.944675922394
 # 1rmg_432_ligand,0.979166805744
@@ -399,14 +399,14 @@ less saved_state-60999_average_submission.csv
 # will store all of the predictions separated by comma an can be used for future analysis
 # 
 # move all of the predictions to local machine
-cd ..
-tar zcvf 1_logs.tar.gz 1_logs
-pwd
+$ cd ..
+$ tar zcvf 1_logs.tar.gz 1_logs
+$ pwd
 # /home/ubuntu/maksym/core/summaries
-exit
-scp -i P2_key.pem ubuntu@awsinstance.com:/home/ubuntu/maksym/core/summaries/1_logs.tar.gz .
-tar -xzvf 1_logs.tar.gz
-cd 1_logs
+$ exit
+$ scp -i P2_key.pem ubuntu@awsinstance.com:/home/ubuntu/maksym/core/summaries/1_logs.tar.gz .
+$ tar -xzvf 1_logs.tar.gz
+$ cd 1_logs
 # now you are ready to submit your solution:
 # please, navigate your browser to inclass/kaggle.com/c/affinity4
 # how much did you score
@@ -458,3 +458,91 @@ Finally, the naming convention of the database is the following:
  [1a28](http://www.rcsb.org/pdb/explore.do?structureId=1a28) is the structure ID in the PDB. `1a28.av4` is the protein itself, and `1a28_500_ligand.av4` and `1a28_501_ligand.av4` are two of it's ligands.
  
 ####Step 4: running affinity on Bridges, XSEDE national supercomputer
+In steps 2 and 3 we have used Amazon instance that only has a single GPU to run the scripts. It make take up to a few days to train a deep CNN on protein images, and in industrial and scientific applications it's very reasonable to train networks with several different architectures at the same time. XSEDE (Extream Science and Engineering Discovery Environment) is a broad effort that controls access to most of the largest clusters in the US. In this tutorial we will use [Bridges](https://portal.xsede.org/psc-bridges) that has over a 100 GPUs. The current version of Affinity is written for a single GPU. But usually every user submits a few separate, unrelated jobs at the same time. 
+
+```
+# register for XSEDE here: https://portal.xsede.org/#/guest
+# and ask maksym to add you to our computer time grant 
+#
+# login to Bridges through XSEDE Single Sign-On (SSO) Hub. 
+bash
+$ ssh [xsede_username]@login.xsede.org
+$ gsissh bridges
+# each user is prowided with a high performance work directory would be different from your $HOME 
+# (IE: /home/korablyo) for me. Work directory allows to read and write data much faster 
+# you will need to find your work directory and put the database there
+# it is: /pylon1/[groupname]/[username]
+# get groupname
+bash
+$ id -gn
+# clone Affinity source code to your work directory
+bash
+$ cd /pylon1/[groupname]/[username]
+$ git clone https://github.com/mitaffinity/core.git
+# now you will need to log in into our AWS instance to download the database to Bridges
+# you will need a .pem access key 
+# just create a new text file , and copy-paste your key there
+vi P2_key.pem
+# paste
+:wq
+# change permissions of the key so that only you can read it 
+# you can read more here: http://stackoverflow.com/questions/9270734/ssh-permissions-are-too-open-error
+$ cd $HOME
+$ chmod 400 key.pem
+# transfer data from aws instance to bridges
+bash
+$ cd  /pylon1/[groupname]/[username]
+$ scp -i $HOME/key.pem ubuntu@awsinstance.com:/home/ubuntu/common/data/labeled_av4.zip ./
+$ unzip labeled_av4.zip
+# change FLAGS.database_path in av4_main.py
+# to database_path = "/pylon1/[groupname]/[username]/labeled_av4"
+
+```
+create batch script to submit your job. You can read more about submission queue [here](https://www.psc.edu/index.php/bridges/user-guide/running-jobs).
+In this case it is just a test file that will be executed by bash. You can use `vi` or any other command line text editor to create it.
+```
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH -p GPU
+#SBATCH --ntasks-per-node 28
+#SBATCH -t 48:00:00
+#SBATCH --gres=gpu:k80:4
+#echo commands to stdout
+set -x
+
+#load module
+module load cuda/8.0
+module load tensorflow/0.12.1
+
+#set python environment
+source $TENSORFLOW_ENV/bin/activate
+
+#move to working directory
+cd /pylon1/[groupname]/[username]/core
+
+#run GPU program
+python av4_main.py
+```
+ run your job
+```
+$ sbatch job.sh
+# monitor the status of your job with 
+$ squeue -u korablyo
+
+JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+            893569       GPU   gpu.sh korablyo PD       0:00      1 (Priority)
+            893570       GPU   gpu.sh korablyo PD       0:00      1 (Priority)
+            893576       GPU   gpu.sh korablyo PD       0:00      1 (Priority)
+            893890       GPU   gpu.sh korablyo PD       0:00      1 (Priority)
+            893566       GPU   gpu.sh korablyo  R      26:15      1 gpu021
+            893557       GPU   gpu.sh korablyo  R      34:41      1 gpu038
+            893548       GPU   gpu.sh korablyo  R    1:21:00      1 gpu031
+            893554       GPU   gpu.sh korablyo  R    1:12:31      1 gpu040
+            893546       GPU   gpu.sh korablyo  R    2:32:33      1 gpu043
+            893540       GPU   gpu.sh korablyo  R    4:30:44      1 gpu039
+            893613       GPU   gpu.sh korablyo  R    4:09:42      1 gpu013
+
+# shows that I have seven pending jobs and four running jobs
+
+```
+

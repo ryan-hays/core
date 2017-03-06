@@ -42,7 +42,7 @@ def index_the_database_into_queue(database_path,shuffle):
     return filename_queue,examples_in_database
 
 
-def read_receptor_and_ligand(filename_queue,epoch_counter):
+def read_receptor_and_ligand(filename_queue,epoch_counter,train):
     """Reads ligand and protein raw bytes based on the names in the filename queue. Returns tensors with coordinates
     and atoms of ligand and protein for future processing.
     Important: by default it does oversampling of the positive examples based on training epoch."""
@@ -80,7 +80,7 @@ def read_receptor_and_ligand(filename_queue,epoch_counter):
     ligand_labels, ligand_elements, multiframe_ligand_coords = decode_av4(serialized_ligand)
     receptor_labels, receptor_elements, multiframe_receptor_coords = decode_av4(serialized_receptor)
 
-    def count_frame_from_epoch(epoch_counter,ligand_labels):
+    def count_frame_from_epoch(epoch_counter,ligand_labels,train):
         """Some simple arithmetics is used to sample all of the available frames
         if the index of the examle is even, positive label is taken every even epoch
         if the index of the example is odd, positive label is taken every odd epoch
@@ -88,10 +88,13 @@ def read_receptor_and_ligand(filename_queue,epoch_counter):
 
         def select_pos_frame(): return tf.constant(0)
         def select_neg_frame(): return tf.mod(tf.div(1+epoch_counter,2), tf.shape(ligand_labels) - 1) +1
-        current_frame = tf.cond(tf.equal(tf.mod(epoch_counter+idx+1,2),1),select_pos_frame,select_neg_frame)
+        if train==True:
+            current_frame = tf.cond(tf.equal(tf.mod(epoch_counter+idx+1,2),1),select_pos_frame,select_neg_frame)
+        else:
+            current_frame = tf.mod(epoch_counter,tf.shape(ligand_labels))
         return current_frame
 
-    current_frame = count_frame_from_epoch(epoch_counter,ligand_labels)
+    current_frame = count_frame_from_epoch(epoch_counter,ligand_labels,train)
     ligand_coords = tf.gather(tf.transpose(multiframe_ligand_coords, perm=[2, 0, 1]),current_frame)
     label = tf.gather(ligand_labels,current_frame)
 
@@ -177,11 +180,11 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     # FIXME: try to save an image and see how it looks like
     return sparse_image_4d,ligand_center_of_mass,final_transition_matrix
 
-def image_and_label_queue(batch_size,pixel_size,side_pixels,num_threads,filename_queue,epoch_counter):
+def image_and_label_queue(batch_size,pixel_size,side_pixels,num_threads,filename_queue,epoch_counter,train=True):
     """Creates shuffle queue for training the network"""
 
     # read one receptor and stack of ligands; choose one of the ligands from the stack according to epoch
-    ligand_file,current_epoch,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue,epoch_counter=epoch_counter)
+    ligand_file,current_epoch,label,ligand_elements,ligand_coords,receptor_elements,receptor_coords = read_receptor_and_ligand(filename_queue,epoch_counter=epoch_counter,train=train)
 
     # convert coordinates of ligand and protein into an image
     sparse_image_4d,_,_ = convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_elements,receptor_coords,side_pixels,pixel_size)

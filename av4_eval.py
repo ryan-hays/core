@@ -1,11 +1,10 @@
 import time,os
 import tensorflow as tf
 import numpy as np
-import pandas as pd
 import re
 from av4_input import image_and_label_queue,index_the_database_into_queue
 from av4_main import FLAGS
-from av4_networks import intuit_net
+from av4_networks import wide_conv_net
 from collections import defaultdict
 
 
@@ -249,10 +248,10 @@ class store_predictions_av3:
 
 
 class store_predictions:
-    '''
-    store add of the prediction results
-    :return:
-    '''
+
+    #store add of the prediction results
+    #:return:
+
 
     raw_predictions = defaultdict(list)
     processed_predictions = defaultdict(list)
@@ -302,8 +301,11 @@ class store_predictions:
             else:
                 records.append([key]+value)
 
-        submission_csv = pd.DataFrame(records, columns=['Id']+[ 'Predicted_%d'%i for i in range(1,len(records[0]))])
-        submission_csv.to_csv(FLAGS.predictions_file_path + '_multiframe_submission.csv', index=False)
+        columns = ['Id'] + ['Predicted_%d' % i for i in range(1, len(records[0]))]
+        with open(FLAGS.predictions_file_path+'_multiframe_submission.csv','w') as fout:
+            fout.write(','.join(columns)+'\n')
+            for record in records:
+                fout.write(','.join(map(str,record))+'\n')
 
     def save_average(self):
         '''
@@ -314,8 +316,11 @@ class store_predictions:
         for key,value in self.raw_predictions.items():
             records.append([key,np.mean(np.array(value))])
 
-        submission_csv = pd.DataFrame(records,columns=['ID','Predicted'])
-        submission_csv.to_csv(FLAGS.predictions_file_path+'_average_submission.csv',index=False)
+        columns = ['ID', 'Predicted']
+        with open(FLAGS.predictions_file_path + '_average_submission.csv','w') as fout:
+            fout.write(','.join(columns)+'\n')
+            for record in records:
+                fout.write(','.join(map(str,record))+'\n')
 
     def save_max(self):
 
@@ -323,8 +328,12 @@ class store_predictions:
         for key,value in self.raw_predictions.items():
             records.append([key, np.max(np.array(value))])
 
-        submission_csv = pd.DataFrame(records, columns=['ID', 'Predicted'])
-        submission_csv.to_csv(FLAGS.predictions_file_path + '_max_submission.csv', index=False)
+        columns = ['ID', 'Predicted']
+        with open(FLAGS.predictions_file_path+'_max_submission.csv','w') as fout:
+            fout.write(','.join(columns)+'\n')
+            for record in records:
+                fout.write(','.join(map(str,record))+'\n')
+
 
     def save(self):
         self.save_average()
@@ -354,12 +363,12 @@ def evaluate_on_train_set():
     # create a custom shuffle queue
     ligand_files,current_epoch,label_batch,sparse_image_batch = image_and_label_queue(batch_size=FLAGS.batch_size, pixel_size=FLAGS.pixel_size,
                                                                           side_pixels=FLAGS.side_pixels, num_threads=FLAGS.num_threads,
-                                                                          filename_queue=filename_queue, epoch_counter=epoch_counter)
+                                                                          filename_queue=filename_queue, epoch_counter=epoch_counter,train=False)
 
     image_batch = tf.sparse_tensor_to_dense(sparse_image_batch,validate_indices=False)
 
     keep_prob = tf.placeholder(tf.float32)
-    y_conv = intuit_net(image_batch,keep_prob,FLAGS.batch_size)
+    y_conv = wide_conv_net(image_batch,keep_prob,FLAGS.batch_size)
 
     # compute softmax over raw predictions
     predictions = tf.nn.softmax(y_conv)[:,1]
