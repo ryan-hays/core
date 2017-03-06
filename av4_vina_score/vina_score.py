@@ -22,7 +22,7 @@ class evaluation:
     def __init__(self, receptor, ligand):
 
         self.obabel_load(receptor, ligand)
-
+        self.create_scoring_functions()
     def debug_info(self, message):
         if FLAGS.debug == 'print':
             print message
@@ -204,7 +204,7 @@ class evaluation:
                       distance(i, j) < self.const_cutoff]
 
         energy = 0
-        for scoring_term in self.scoring_function:
+        for scoring_term in self.scoring_functions:
             self.debug_info("calculating {} ...".format(scoring_term.name))
             this_e = np.sum(map(lambda (a, b, d): scoring_term.func(a, b, d), eval_pairs))
             self.debug_info("{} original value {}.".format(scoring_term.name, this_e))
