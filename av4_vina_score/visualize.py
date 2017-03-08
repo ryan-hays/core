@@ -6,7 +6,9 @@ from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from collections import namedtuple
+from option import visualize_parser
 
+FLAGS = None
 Axis = namedtuple('Axis',['label','dim'])
 
 class Draw:
@@ -71,10 +73,13 @@ class Draw:
             plt.savefig(os.path.join(self.dest_folder, image_name),transparent=True)
             plt.close(fig)
 
+def main():
+    draw = Draw(FLAGS.input_file,FLAGS.dest_folder)
+    draw.set_fix_axis(FLAGS.fixed_axis)
+    draw.save_image(FLAGS.images_num)
+
 if __name__ == '__main__':
-    args = sys.argv
-    if len(args)<2:
-        print "not enough argument, energy map file needed"
-    else:
-        draw = Draw(args[1])
-        draw.save_image()
+
+    parser = visualize_parser()
+    FLAGS, unparsed = parser.parse_known_args()
+    main()

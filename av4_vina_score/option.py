@@ -34,3 +34,39 @@ def get_parser():
         help='Paht of the log file')
 
     return parser
+
+def visualize_parser():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '-i',
+        dest='input_file',
+        type=str,
+        help='path of npy file for visualize'
+    )
+
+    parser.add_argument(
+        '-d',
+        dest='dest_folder',
+        type=str,
+        default='images',
+        help='path of folder to store result'
+    )
+
+    parser.add_argument(
+        '-a',
+        dest='fixed_axis',
+        type=str,
+        default='X',
+        help='Slice by which axis [X,Y,Z]'
+    )
+
+    parser.add_argumnet(
+        '-n',
+        dest='images_num',
+        type=int,
+        default=10,
+        help='Draw how many images as result'
+    )
+
+    return parser
