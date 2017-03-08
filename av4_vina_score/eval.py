@@ -252,20 +252,40 @@ class evaluation:
     def eval(self):
         '''
          We just eval intermolecular energy
-        :return:
+        :return: float, curled energy
         '''
 
         e = self.eval_inter()
         self.debug_info('intermolecular energy {}'.format(e))
         return e
 
+    def smina_default(self):
+        '''
+        Create scoring function as defualt smina setting
+        :return:
+        '''
+        scoring_term = namedtuple('scoring_term', ['name', 'weight', 'func'])
+        self.scoring_function = []
+        self.scoring_function.append(scoring_term('guass_0_0.5', -0.035579, partial(self.guass, o=0, w=0.5)))
+        self.scoring_function.append(scoring_term('guass_3_2', -0.005156, partial(self.guass, o=3., w=2. )))
+        self.scoring_function.append(scoring_term('replusion_0', 0.840245, partial(self.replusion, o=0.)))
+        self.scoring_function.append(scoring_term('hydrophobic_0.5_1.5', -0.035069, partial(self.hydrophobic, good=0.5, bad=1.5)))
+        self.scoring_function.append(scoring_term('non_dir_h_bond_-0.7_0', -0.587439, partial(self.non_dir_h_bond, good=-0.7, bad=0.)))
+
     def create_scoring_functions(self):
         '''
         Combine different scoring terms as final scoring function and assign different weight to each of them.
         :return:
         '''
+
+        self.smina_default()
+
+        '''
+        All scoring term available:
+
         scoring_term = namedtuple('scoring_term', ['name', 'weight', 'func'])
         self.scoring_function = []
+
         self.scoring_function.append(scoring_term('vdw_12_6', 1.0, partial(self.vdw, m=12, n=6)))
         self.scoring_function.append(scoring_term('guass_3_2', 1.0, partial(self.guass, o=3., w=2.)))
         self.scoring_function.append(scoring_term('replusion_0', 1.0, partial(self.replusion, offset=0.)))
@@ -277,3 +297,4 @@ class evaluation:
                                                   partial(self.non_dir_anti_h_bond_quadratic, offset=1.)))
         self.scoring_function.append(
             scoring_term('non_dir_h_bond_lj_-1', 1.0, partial(self.non_dir_h_bond_lj, offset=-1.)))
+        '''
