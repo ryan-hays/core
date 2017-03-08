@@ -15,6 +15,8 @@ class evaluation:
     const_epsilon = 2.22045e-16
 
     def __init__(self, receptor, ligand, debug, log):
+        self.debug = debug
+        self.log = log
 
         # parse receptor and ligand
         self.obabel_load(receptor, ligand)
@@ -23,8 +25,6 @@ class evaluation:
         # set transform parameter
         self.set_transform()
 
-        self.debug = debug
-        self.log = log
 
     def debug_info(self, message):
         if self.debug == 'print':

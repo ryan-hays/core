@@ -1,4 +1,6 @@
 import os,sys
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
@@ -43,14 +45,13 @@ class Draw:
 
     def save_image(self,sample_on_fix_axis=10):
 
-        edge_size = np.sqrt(self.coords.shape[0]).astype(int)
-
         fixed_axis_value = np.unique(self.coords[:,self.fix.dim])
-        sample_index = np.unique(np.linspace(0,len(fixed_axis_value),sample_on_fix_axis).astype(int))
+        sample_index = np.unique(np.linspace(0,len(fixed_axis_value)-1,sample_on_fix_axis).astype(int))
         sample_value = fixed_axis_value[sample_index]
 
         for value in sample_value:
-            slice_on_fixed_axis = self.coords[self.coords[:,self.fix.dim]]
+            slice_on_fixed_axis = self.coords[self.coords[:,self.fix.dim]==value]
+            edge_size = np.sqrt(slice_on_fixed_axis.shape[0]).astype(int)
             X = slice_on_fixed_axis[:, self.expand[0].dim].reshape(edge_size, edge_size)
             Y = slice_on_fixed_axis[:, self.expand[1].dim].reshape(edge_size, edge_size)
             Z = slice_on_fixed_axis[:, -1].reshape(edge_size,edge_size)
@@ -68,7 +69,7 @@ class Draw:
 
             image_name = '{}_{}.svg'.format(self.fix.label,"{:.3f}".format(value).replace('-','m').replace('.','_'))
             plt.savefig(os.path.join(self.dest_folder, image_name),transparent=True)
-
+            plt.close(fig)
 
 if __name__ == '__main__':
     args = sys.argv
