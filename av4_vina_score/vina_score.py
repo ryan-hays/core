@@ -11,7 +11,7 @@ def test():
 
 def landscape():
     v = evaluation(FLAGS.receptor, FLAGS.ligand, FLAGS.debug, FLAGS.log)
-    shift_coords = [[x, y, z] for x in np.linspace(-1, 1, 21) for y in np.linspace(-1, 1, 21) for z in
+    shift_coords = [[x, y, z] for x in np.linspace(-1, 1, 3) for y in np.linspace(-1, 1, 21) for z in
                     np.linspace(-1, 1, 21)]
     landscape = []
     for shift in shift_coords:

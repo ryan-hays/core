@@ -93,7 +93,7 @@ class evaluation:
             return atom_b.get_atom().xs_donor and not atom_b.get_atom().xs_acceptor
 
         if (not atom_a.get_atom().xs_donor and atom_a.get_atom().xs_acceptor):
-            return not atom_b.get_atom().xs_doner and atom_b.get_atom().xs_acceptor
+            return not atom_b.get_atom().xs_donor and atom_b.get_atom().xs_acceptor
 
         return False
 
@@ -178,7 +178,7 @@ class evaluation:
     def non_dir_h_bond(self, atom_a, atom_b, distance, good, bad):
         if self.h_bond_possible(atom_a, atom_b):
             surface_distance = distance - self.opt_distance(atom_a, atom_b)
-            return slope_step(surface_distance, bad=bad, good=good)
+            return self.slope_step(surface_distance, bad=bad, good=good)
         else:
             return 0
 
