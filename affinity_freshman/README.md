@@ -529,20 +529,33 @@ $ sbatch job.sh
 # monitor the status of your job with 
 $ squeue -u korablyo
 
-JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
-            893569       GPU   gpu.sh korablyo PD       0:00      1 (Priority)
-            893570       GPU   gpu.sh korablyo PD       0:00      1 (Priority)
-            893576       GPU   gpu.sh korablyo PD       0:00      1 (Priority)
-            893890       GPU   gpu.sh korablyo PD       0:00      1 (Priority)
-            893566       GPU   gpu.sh korablyo  R      26:15      1 gpu021
-            893557       GPU   gpu.sh korablyo  R      34:41      1 gpu038
-            893548       GPU   gpu.sh korablyo  R    1:21:00      1 gpu031
-            893554       GPU   gpu.sh korablyo  R    1:12:31      1 gpu040
-            893546       GPU   gpu.sh korablyo  R    2:32:33      1 gpu043
-            893540       GPU   gpu.sh korablyo  R    4:30:44      1 gpu039
-            893613       GPU   gpu.sh korablyo  R    4:09:42      1 gpu013
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+[korablyo@br006 22_single_fastnet_no_H_repeat2]$ squeue -u korablyo
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+            903126       GPU  gpu4.sh korablyo PD       0:00      1 (Resources)
+            903137       GPU gpu5m.sh korablyo PD       0:00      1 (Resources)
+            903157       GPU gpu5t.sh korablyo PD       0:00      1 (Resources)
+            903158       GPU  gpu6.sh korablyo PD       0:00      1 (Resources)
+            903170       GPU gpu16.sh korablyo PD       0:00      1 (Resources)
+            903173       GPU gpu17.sh korablyo PD       0:00      1 (Resources)
+            903176       GPU gpu18.sh korablyo PD       0:00      1 (Resources)
+            903370       GPU gpu13.sh korablyo PD       0:00      1 (Resources)
+            903375       GPU gpu14.sh korablyo PD       0:00      1 (Resources)
+            903377       GPU gpu21.sh korablyo PD       0:00      1 (Resources)
+            903379       GPU gpu22.sh korablyo PD       0:00      1 (Resources)
+            899255       GPU   gpu.sh korablyo  R    8:37:34      1 gpu038
+            900227       GPU   gpu.sh korablyo  R    8:26:57      1 gpu021
+            899232       GPU   gpu.sh korablyo  R 1-16:53:48      1 gpu043
+            899231       GPU   gpu.sh korablyo  R 1-16:57:49      1 gpu034
+            899229       GPU   gpu.sh korablyo  R 1-19:32:28      1 gpu040
+            899227       GPU   gpu.sh korablyo  R 1-21:57:01      1 gpu041
+            901652       GPU   gpu.sh korablyo  R    7:37:56      1 gpu019
+            901668       GPU   gpu.sh korablyo  R    7:37:56      1 gpu026
+            899233       GPU   gpu.sh korablyo  R 1-04:00:11      1 gpu042
+            903120       GPU  gpu1.sh korablyo  R    2:04:47      1 gpu015
 
-# shows that I have seven pending jobs and four running jobs
+
+# shows that I have 10 jobs running and 11 jobs pending
 
 ```
 
