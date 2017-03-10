@@ -61,7 +61,7 @@ def visualize_parser():
         help='Slice by which axis [X,Y,Z]'
     )
 
-    parser.add_argumnet(
+    parser.add_argument(
         '-n',
         dest='images_num',
         type=int,
