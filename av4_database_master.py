@@ -8,15 +8,15 @@ class stats:
     ligands_parsed = 0
     ligands_failed = 0
 
-# crawls the database with crystal ligands
-# looks which of them have docked ligands - if can acquire (?) and have pdb(?) - if can acquire
-# moves all of them in a single folder with protein together
-# writes statistics
-# TODO make exceptions more informative
+# TODO: explanations
+# TODO: this script should be integrated into upside data pipeline
+# TODO: this script should also work for other folder structures 
+# TODO: make folder structure descriptions explicit
+
+# crawls the database with crystal ligands and converts in into av4 format 
 
 def convert_database_to_av4(database_path,positives_folder,decoys_folder,receptors_folder):
-    """Crawls the folder (receptors in this case) and saves every PDB it finds
-    into .npy array with 1) coordinates 2) mapped to the atom name number """
+    """Crawls the folder with crystal and docked ligands and converts everything into av4 - no processing is done """
 
     # make a directory where the av4 form of the output will be written
     output_path = str(database_path+'_av4')
