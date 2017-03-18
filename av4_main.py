@@ -53,7 +53,7 @@ def train():
         sess.run(tf.global_variables_initializer())
     else:
         print "Restoring variables from sleep. This may take a while..."
-        saver.restore(sess,FLAGS.saved_session)
+        saver.restore(sess, FLAGS.saved_session)
 
 
     # launch all threads only after the graph is complete and all the variables initialized
@@ -112,6 +112,8 @@ class FLAGS:
 
 
 def main(_):
+    print "Hello, world!"
+
     """gracefully creates directories for the log files and for the network state launches. After that orders network training to start"""
     summaries_dir = os.path.join(FLAGS.summaries_dir)
     # FLAGS.run_index defines when
