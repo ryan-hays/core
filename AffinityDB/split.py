@@ -22,11 +22,18 @@ def split_structure(pdb_path):
     try:
         parsed = prody.parsePDB(pdb_path)
     except Exception as e:
-        log('parse_failed.log','{},{}\n'.format(pdb_name,str(e)))
+        log('parse_failed.log','{},{}'.format(pdb_name,str(e)))
         return
+    
+    try:
+        header = prody.parsePDBHeader(pdb_path)
+        log('resolution.txt','{},{}'.format(pdb_name,header['resolution']))
+    except Exception as e:
+        log('parse_header_failed.log','{},{}',format(pdb_name, str(e)))
 
     hetero = parsed.select(
-        '(hetero and not water) or resname ATP or resname ADP or sesname AMP or resname GTP or resname GDP or resname GMP')
+        '(hetero and not water) or resname ATP or resname ADP or resname AMP or resname GTP or resname GDP or resname GMP')
+   
     receptor = parsed.select('protein or nucleic')
     if receptor is None:
         log("select_failed.log","{},doesn't have receptor.\n".format(pdb_name))
@@ -35,39 +42,38 @@ def split_structure(pdb_path):
         log("select_failed.log","{},doesn't have ligand.\n".format(pdb_name))
         return
 
-
     # write ligand into file
-    ligand_flags = False
     for each in prody.HierView(hetero).iterResidues():
-        if each.select('not hydrogen').numAtoms() < config.heavy_atom_threshold:
-            continue
-        else:
-            ligand_flags = True
-            ResId = each.getResindex()
-            ligand_path = os.path.join(config.splited_ligand_folder, pdb_name, "{}_{}_ligand.pdb".format(pdb_name, ResId))
-            mkdir(os.path.dirname(ligand_path))
-            prody.writePDB(ligand_path, each)
+        ResId = each.getResindex()
+        ResName = each.getResname()
+        ligand_path = os.path.join(config.splited_ligands_path, pdb_name, "{}_{}_{}_ligand.pdb".format(pdb_name, ResName, ResId))
+        mkdir(os.path.dirname(ligand_path))
+        prody.writePDB(ligand_path, each) 
 
-    # if have valid ligand, write down receptor
-    if ligand_flags:
-        receptor_path = os.path.join(config.splited_receptor_folder, pdb_name + '.pdb')
-        prody.writePDB(receptor_path, receptor)
-        log('success_ligand.log','{} success'.foramt(pdb_name))
-    else:
-        log("threshold_failed.log","{}, no ligand above threshold {}.\n".format(pdb_name,config.heavy_atom_threshold))
-
+    receptor_path = os.path.join(config.splited_receptors_path, pdb_name + '.pdb')
+    prody.writePDB(receptor_path, receptor)
+    log('success_ligand.log','{} success'.format(pdb_name))
 
 def split(target_list):
 
-
+    mkdir(config.splited_receptors_path)
     pool = multiprocessing.Pool(config.process_num)
     pool.map_async(split_structure,target_list)
+    pool.close() 
     pool.join()
-    pool.close()
-
-    #map(split_structure,pdb_list)
+   
+    
+    #map(split_structure,target_list)
 
 if __name__ == '__main__':
 
-    target_list = glob(config.pdb_download_path)
+    target_list = glob(os.path.join(config.pdb_download_path,'*.pdb'))
+    print "target ",len(target_list)
+    args = sys.argv
+    if len(args)>2:
+        a = int(args[1])
+        b = int(args[2])
+        parts = np.linspace(0,len(target_list),int(a)+1).astype(int)
+        target_list = target_list[parts[b-1]:parts[b]]
+
     split(target_list)
