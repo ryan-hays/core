@@ -76,7 +76,7 @@ def train():
 
         print "\texamples per second:", "%.2f" % (FLAGS.batch_size / (time.time() - start))
 
-        if (batch_num % 1000 == 999):
+        if (batch_num % 20 == 8):
             # once in a while save the network state and write variable summaries to disk
             c_entropy_mean, sc_entropy_mean, summaries = sess.run(
                 [cross_entropy_mean, shuffled_cross_entropy_mean, merged_summaries], feed_dict={keep_prob: 1})
