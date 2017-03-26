@@ -111,7 +111,7 @@ class FLAGS:
     # data directories
 
     # path to the csv file with names of images selected for training
-    database_path = "../datasets/labeled_av4"
+    database_path = "../../common/data/labeled_av4"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states

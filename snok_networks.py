@@ -47,7 +47,7 @@ def relu_layer(layer_name,input_tensor,act=tf.nn.relu):
     print layer_name, "output dimensions:", h_relu.get_shape()
     return h_relu
 
-def strained_relu_layer(layer_name,input_tensor,act=tf.nn.crelu):
+def strained_relu_layer(layer_name,input_tensor,act=tf.nn.elu):
     """makes a simple relu layer"""
     with tf.name_scope(layer_name):
         h_relu = act(input_tensor, name='activation')
@@ -57,8 +57,8 @@ def strained_relu_layer(layer_name,input_tensor,act=tf.nn.crelu):
     print layer_name, "output dimensions:", h_relu.get_shape()
     return h_relu
 
-def strained_relu_activation(x):
-    return x * 2
+#def strained_relu_activation(x):
+#    return x * 2
 
 def pool_layer(layer_name,input_tensor,ksize,strides=[1, 1, 1, 1, 1],padding='SAME'):
     """makes a simple max pooling layer"""

@@ -70,7 +70,7 @@ def train():
 
         print "\texamples per second:", "%.2f" % (FLAGS.batch_size / (time.time() - start))
 
-        if (batch_num % 1000 == 999):
+        if (batch_num % 10 == 2):
             # once in a while save the network state and write variable summaries to disk
             c_entropy_mean,sc_entropy_mean,summaries = sess.run(
                 [cross_entropy_mean, shuffled_cross_entropy_mean, merged_summaries], feed_dict={keep_prob: 1})
@@ -104,7 +104,7 @@ class FLAGS:
     # data directories
 
     # path to the csv file with names of images selected for training
-    database_path = "../datasets/labeled_av4"
+    database_path = "/home/ubuntu/common/data/labeled_av4"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states
