@@ -29,7 +29,7 @@ def split_structure(pdb_path):
         header = prody.parsePDBHeader(pdb_path)
         log('resolution.txt','{},{}'.format(pdb_name,header['resolution']))
     except Exception as e:
-        log('parse_header_failed.log','{},{}',format(pdb_name, str(e)))
+        log('parse_header_failed.log','{},{}'.format(pdb_name, str(e)))
 
     hetero = parsed.select(
         '(hetero and not water) or resname ATP or resname ADP or resname AMP or resname GTP or resname GDP or resname GMP')

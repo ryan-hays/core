@@ -3,19 +3,24 @@ import sys
 
 #base folder for all the output
 base = '/n/scratch2/xl198/affinity/affinityDB'
-# folder to store ligands download from Protein DataBank
+# ligands download from Protein DataBank
 lig_download_path = os.path.join(base,'data','lig_downloads')
-# folder to store pdb download from Protein DataBank
+# pdb download from Protein DataBank
 pdb_download_path = os.path.join(base,'data','downloads')
-# folder to store splited receptor
+# splited receptor
 splited_receptors_path = os.path.join(base,'data','receptors')
-# folder to store splited ligands
+# splited ligands
 splited_ligands_path = os.path.join(base,'data','ligands')
-# folder to store log files
+# log files
 log_folder = os.path.join(base,'log')
-# folder to store docked ligands
+# docked ligands
 docked_ligand_path = os.path.join(base,'data','docked')
 
+# docked ligands by smina scoring function: vinardo
+vinardo_docked_path = os.path.join(base, 'data','vinardo')
+
+# ligans output by smina, keep the same atom order as docked result
+smina_std_path = os.path.join(base, 'data', 'smina_std_ligands')
 # only ligands' atom number above threshold will saved
 heavy_atom_threshold = 0
 
