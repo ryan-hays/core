@@ -2,7 +2,7 @@ import os
 import sys
 
 #base folder for all the output
-base = '/n/scratch2/xl198/affinity/affinityDB'
+base = '/home/xander/affinityDB'
 # ligands download from Protein DataBank
 lig_download_path = os.path.join(base,'data','lig_downloads')
 # pdb download from Protein DataBank
@@ -25,12 +25,15 @@ smina_std_path = os.path.join(base, 'data', 'smina_std_ligands')
 heavy_atom_threshold = 0
 
 # path of smina binary file
-smina = ''
+smina = '/home/xander/Program/smina/smina.static'
 # number of process running at the same time
 process_num = 4
 
 # pdb_target_list
-target_list_file = os.path.join(sys.path[0],'target_list','main_pdb_target_list.txt')
-
+#target_list_file = os.path.join(sys.path[0],'target_list','main_pdb_target_list.txt')
+target_list_file = '/home/xander/affinityDB/target_list/main_pdb_target_list.txt'
 # ligand_target_list
 lig_target_list_file = os.path.join(sys.path[0], 'target_list', 'main_ligands_target_list.txt')
+
+# example scoring
+scoring_terms = os.path.join(sys.path[0], 'scoring', 'smina.score')
