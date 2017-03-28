@@ -12,7 +12,7 @@ def dock_ligand(ligand_path):
     docked_ligand_path = os.path.join(config.docked_ligand_path, receptor_name, docked_ligand_name)
 
     if not os.path.exists(docked_ligand_path):
-        cmd = '{} -r {} -l {} --autobox_ligand {} -o {} --num_modes=1000 --energy_range=100 --cpu=1 '\
+        cmd = '{} -r {} -l {} --autobox_ligand {} --autobox_add 12 -o {} --num_modes=400 --exhaustiveness 64 --scoring vinardo --cpu=1 '\
             .format(config.smina,receptor_path,ligand_path,ligand_path,docked_ligand_path)
 
         mkdir(docked_ligand_path)
