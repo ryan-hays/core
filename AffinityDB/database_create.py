@@ -24,7 +24,7 @@ ligand_name_of = lambda x:os.path.basename(x).split('.')[0]
 receptor_of = lambda x:os.path.basename(x).split('_')[0]
 receptor_path_of = lambda x:os.path.join(config.splited_receptors_path,receptor_of(x)+'.pdb')
 
-def download_pdb(pdb_name):
+def download_pdb(lock, pdb_name):
     """
     Download pdb file from rcsb
     """
@@ -33,7 +33,7 @@ def download_pdb(pdb_name):
         os.system('wget -P {}  {}'.format(config.pdb_download_path, download_address))
         print "Download ", pdb_name
 
-def split_structure(pdb_path):
+def split_structure(lock, pdb_path):
     """
     Split downloaded pdb into receptor and ligand
     Record pdb's resolution
@@ -44,14 +44,21 @@ def split_structure(pdb_path):
     try:
         parsed = prody.parsePDB(pdb_path)
     except Exception as e:
-        log('parse_failed.log', '{},{}'.format(pdb_name, str(e)))
+        log('parse_failed.log',
+            '{},{}'.format(pdb_name, str(e)),
+            lock=lock)
         return
 
     try:
         header = prody.parsePDBHeader(pdb_path)
-        log('resolution.csv', '{},{}'.format(pdb_name, header['resolution']))
+        log('resolution.csv',
+            '{},{}'.format(pdb_name, header['resolution']),
+            head='pdb,resolution',
+            lock=lock)
     except Exception as e:
-        log('parse_header_failed.log', '{},{}'.format(pdb_name, str(e)))
+        log('parse_header_failed.log',
+            '{},{}'.format(pdb_name, str(e)),
+            lock=lock)
 
     hetero = parsed.select(
         '(hetero and not water) or resname ATP or resname ADP or resname AMP or resname GTP or resname GDP or resname GMP')
@@ -68,20 +75,25 @@ def split_structure(pdb_path):
     for each in prody.HierView(hetero).iterResidues():
         ResId = each.getResindex()
         ResName = each.getResname()
-        ligand_path = os.path.join(config.splited_ligands_path, pdb_name, "{}_{}_{}_ligand.pdb".format(pdb_name, ResName, ResId))
+        ligand_path = os.path.join(config.splited_ligands_path,
+                                   pdb_name,
+                                   "{}_{}_{}_ligand.pdb".format(pdb_name, ResName, ResId))
         mkdir(os.path.dirname(ligand_path))
         prody.writePDB(ligand_path, each)
         atom_num = each.select('not hydrogen').numAtoms()
 
-        log('atom_num.csv', "{}_{}_{},{}".format(pdb_name, ResName, ResId, atom_num), head='ligand,atom_num')
+        log('atom_num.csv',
+            "{}_{}_{},{}".format(pdb_name, ResName, ResId, atom_num),
+            head='ligand,atom_num')
 
     receptor_path = os.path.join(config.splited_receptors_path, pdb_name + '.pdb')
     prody.writePDB(receptor_path, receptor)
 
-    log('success_split_pdb.log', '{},success'.format(pdb_name), head='pdb,status')
+    log('success_split_pdb.log',
+        '{},success'.format(pdb_name),
+        head='pdb,status')
 
-
-def reorder_ligand(ligand_path):
+def reorder_ligand(lock, ligand_path):
     """
     use smina to read and write ligands, 
     make sure the atom order is the same as docking result
@@ -106,8 +118,7 @@ def reorder_ligand(ligand_path):
         terms = [line.strip().split(' ')[2:] for line in cont if line.startswith('##')]
         head = '\t'.join(['ligand', 'position'] + terms[0])
         data = [ligand_name, '0'] + terms[1]
-        log('crystal_ligands_term_score.tsv', '\t'.join(data), head=head)
-
+        log('crystal_ligands_term_score.tsv', '\t'.join(data), head=head, lock=lock)
 
 def vinardo_dock_ligand(ligand_path):
     """
@@ -140,41 +151,80 @@ def crystal_ligand_for_same_receptor(ligand_path):
 
     ligands_list = glob(os.path.join(os.path.dirname(crystal_ligand), '*.pdb'))
 
-
     other_ligands = list(set(ligands_list) - set([crystal_ligand]))
     return crystal_ligand, other_ligands
 
-def get_similar_ligands(ligand_path, ligands_for_same_receptor):
+def get_similar_ligands(lock, ligand_path):
     """
     calculate tanimoto similarity
     return the ligands with high tanimoto similarity
+    :param lock: multiprocess lock
+    :param ligand_path: path
+    :return: 
     """
+    ligand_path = ligand_path.strip()
+    ligand_name = ligand_name_of(ligand_path)
+
+    receptor, lig, resid, _ = ligand_name.split('_')
+    crystal_ligand = os.path.join(config.smina_std_path, receptor, '_'.join([receptor, lig, resid, 'ligand.pdb']))
+
+    ligands_list = glob(os.path.join(os.path.dirname(crystal_ligand), '*.pdb'))
+
+    ligands_for_same_receptor = list(set(ligands_list) - set([crystal_ligand]))
+
     similar_ligands = []
     for lig_path in ligands_for_same_receptor:
         cmd = 'babel -d {} {} -ofpt '.format(ligand_path, lig_path)
         ls = os.popen(cmd).read()
         tanimoto_similarity = re.split('=|\n', ls)[2]
-        log('tanimoto_similarity.csv', '{},{},{}'.format(ligand_name_of(ligand_path), ligand_name_of(lig_path), tanimoto_similarity), head='lig_a,lig_b,tanimoto')
+        log('tanimoto_similarity.csv',
+            '{},{},{}'.format(ligand_name_of(ligand_path), ligand_name_of(lig_path), tanimoto_similarity),
+            head='lig_a,lig_b,tanimoto',
+            lock=lock)
         if tanimoto_similarity > config.tanimoto_cutoff:
             similar_ligands.append(lig_path)
 
-    return similar_ligands
+    return crystal_ligand, similar_ligands
 
-def calculate_clash(docked_ligand, crystal_ligand):
+def get_same_ligands(ligand_path):
+    """
+    get the path of ligands, they are the same ligand docked to the same receptor,
+    but different binding site.
+    :param ligand_path: 
+    :return: 
+    """
+    ligand_path = ligand_path.strip()
+    ligand_name = ligand_name_of(ligand_path)
+    receptor, lig, resid, _ = ligand_name.split('_')
+    same_ligands = glob(os.path.join(config.smina_std_path,receptor, '{}_{}_*.pdb'.format(receptor, lig)))
+    return same_ligands
+
+def calculate_clash(lock, docked_ligand, crystal_ligand):
     """
     for all position in docked_ligand
     calculate if they are clash with crystal ligand
+    :param lock: multiprocess lock
+    :param docked_ligand: path
+    :param crystal_ligand: path
+    :return: 
     """
+
 
     try:
         docked = prody.parsePDB(docked_ligand).getCoordsets()
     except Exception as e:
-        log("overlap_failed.log", "{},{}".format(ligand_name_of(docked_ligand), str(e)), head='ligand,exception')
+        log("overlap_failed.log",
+            "{},{}".format(ligand_name_of(docked_ligand), str(e)),
+            head='ligand,exception',
+            lock=lock)
         return 
     try:        
         crystal = prody.parsePDB(crystal_ligand).getCoords()
     except Exception as e:
-        log("overlap_failed.log", "{},{}".format(ligand_name_of(crystal_ligand), str(e)), head='ligand,exception')
+        log("overlap_failed.log",
+            "{},{}".format(ligand_name_of(crystal_ligand), str(e)),
+            head='ligand,exception',
+            lock=lock)
 
     expanded_docked = np.expand_dims(docked, -2)
     diff = expanded_docked - crystal
@@ -185,16 +235,20 @@ def calculate_clash(docked_ligand, crystal_ligand):
 
     clash_ratio = sum(position_clash.astype(float))/len(position_clash)
     clash = position_clash.astype(int).astype(str)
-    log("single_overlap.tsv", '\t'.join([ligand_name_of(docked_ligand), ligand_name_of(crystal_ligand), str(clash_ratio), ','.join(clash)]), head='\t'.join(['docked_ligand','crystal_ligand','overlap_ratio','overlap_status']))
+    log("single_overlap.tsv",
+        '\t'.join([ligand_name_of(docked_ligand), ligand_name_of(crystal_ligand), str(clash_ratio), ','.join(clash)]),
+        head='\t'.join(['docked_ligand','crystal_ligand','overlap_ratio','overlap_status']),
+        lock=lock)
     return position_clash
 
-
-
-def detect_overlap(ligand_path):
+def detect_overlap(lock, ligand_path):
     """
     if docked result overlap with other crystal ligands
     splited from the same receptor
     note crystal ligand should reordered by smina
+    :param lock: multiprocess lock
+    :param ligand_path: path
+    :return: 
     """
 
     ligand_path = ligand_path.strip()
@@ -203,15 +257,21 @@ def detect_overlap(ligand_path):
     crystal_ligand, other_ligands = crystal_ligand_for_same_receptor(ligand_path)
 
     if len(other_ligands) == 0:
-        log("overlap_receptor_skip.log","{}, has only one ligand".format(receptor_of(ligand_path)), head='receptor,exception')
+        log("overlap_receptor_skip.log",
+            "{}, has only one ligand".format(receptor_of(ligand_path)),
+            head='receptor,exception',
+            lock=lock)
         return
     similar_ligands = get_similar_ligands(crystal_ligand, other_ligands)
     if len(similar_ligands) == 0:
-        log("overlap_ligand_skip.log","{}, doesn't have similar ligands".format(ligand_name), head='ligand,exception')
+        log("overlap_ligand_skip.log",
+            "{}, doesn't have similar ligands".format(ligand_name),
+            head='ligand,exception',
+            lock=lock)
 
     position_clash = None
     for lig_path in similar_ligands:
-        cur_position_clash = calculate_clash(ligand_path, lig_path)
+        cur_position_clash = calculate_clash(lock, ligand_path, lig_path)
         if position_clash == None:
             position_clash = cur_position_clash
         else:
@@ -220,13 +280,17 @@ def detect_overlap(ligand_path):
     clash = list(position_clash.astype(int).astype(str))
     clash_ratio = sum(position_clash.astype(float))/len(position_clash)
 
-    log("overlap.tsv", '\t'.join([ligand_name, str(clash_ratio), ','.join(clash)]), head='\t'.join(['ligand','overlap_ratio','overlap_status']))
+    log("overlap.tsv",
+        '\t'.join([ligand_name, str(clash_ratio), ','.join(clash)]),
+        head='\t'.join(['ligand','overlap_ratio','overlap_status']),
+        lock=lock)
 
-
-
-def count_rotable_bond(ligand_path):
+def count_rotable_bond(lock, ligand_path):
     """
     count the number of rotable bond in ligand
+    :param lock: multiporcess lock
+    :param ligand_path: path
+    :return: 
     """
     ligand_path = ligand_path.strip()
     ligand_name = os.path.basename(ligand_path).split('.')[0]
@@ -236,7 +300,10 @@ def count_rotable_bond(ligand_path):
     rot_bond = 0
 
     if not obConversion.ReadFile(OBligand, ligand_path):
-        log("rotbond_failed.log", "{}, cannot parse by openbabel".format(ligand_name), head='ligand,exception')
+        log("rotbond_failed.log",
+            "{}, cannot parse by openbabel".format(ligand_name),
+            head='ligand,exception',
+            lock=lock)
         return
 
     for bond in openbabel.OBMolBondIter(OBligand):
@@ -247,37 +314,57 @@ def count_rotable_bond(ligand_path):
         else:
             rot_bond += 1
 
-    log("rotbond.csv","{},{}".format(ligand_name, rot_bond), head='ligand,rotbond')
+    log("rotbond.csv",
+        "{},{}".format(ligand_name, rot_bond),
+        head='ligand,rotbond',
+        lock=lock)
 
-
-def calculate_rmsd(ligand_path):
+def calculate_rmsd(lock, ligand_path):
     """
     calculate rmsd between docked ligands and crystal ligand
     note when calculate rmsd, crystal ligand should be reordered by smina
+    :param lock: multiprocess lock
+    :param ligand_path: path
+    :return: 
     """
 
     ligand_path = ligand_path.strip()
     ligand_name = ligand_name_of(ligand_path)
 
     receptor, lig, resid, _ = ligand_name.split('_')
-    crystal_ligand_path =os.path.join(config.smina_std_path, receptor, '_'.join([receptor, lig, resid, 'ligand.pdb']))
+    crystal_ligands = get_same_ligands(ligand_path)
 
     try:
         docked_coords = prody.parsePDB(ligand_path).getCoordsets()
-        crystal_coord = prody.parsePDB(crystal_ligand_path).getCoords()
-        rmsd = np.sqrt(np.mean(np.sum(np.square(docked_coords - crystal_coord), axis=-1), axis=-1))
+        for crystal_ligand in crystal_ligands:
 
-        rmsd_str = ','.join(rmsd.astype(str))
-        log('rmsd.tsv', '\t'.join([ligand_name, rmsd_str]))
+            crystal_coord = prody.parsePDB(crystal_ligand).getCoords()
+            rmsd = np.sqrt(np.mean(np.sum(np.square(docked_coords - crystal_coord), axis=-1), axis=-1))
+
+            rmsd_str = ','.join(rmsd.astype(str))
+            head = ['ligand','crystal_ligand']
+
+            log('rmsd.tsv',
+                '\t'.join([ligand_name, ligand_name_of(crystal_ligand), rmsd_str]),
+                head=','.join(head),
+                lock=lock)
 
     except Exception as e:
-        log('rmsd_failed.csv','{},{}'.format(ligand_name, str(e)), head='ligand,exception')
+        lock.acquire()
+        log('rmsd_failed.csv',
+            '{},{}'.format(ligand_name, str(e)),
+            head='ligand,exception',
+            lock=lock)
+        lock.release()
         return
 
-
-def calculate_native_contact(mutex, ligand_path):
+def calculate_native_contact(lock, ligand_path):
     """
     calculate native contact between the ligand and receptor
+    notice when calculating native contact, we ignore all hydrogen
+    :param lock: multiprocessing lock
+    :param ligand_path: path
+    :return: 
     """
     ligand_path = ligand_path.strip()
     ligand_name = ligand_name_of(ligand_path)
@@ -298,42 +385,86 @@ def calculate_native_contact(mutex, ligand_path):
         distance = np.sqrt(np.sum(np.square(diff),axis=-1))
 
         num_native_contact = None
-        ratio_native_contact = None
-        start = time.time()
         
         for threshold in np.linspace(4,8,9):
             contact = ( distance < threshold ).astype(int)
             num_contact = np.sum(contact, axis=(-1,-2))
-            ratio_contact = 1.0 * num_contact / ligand_atom_num
 
             if num_native_contact is None:
                 num_native_contact = num_contact
             else:
                 num_native_contact = np.dstack((num_native_contact, num_contact))
-            if ratio_native_contact is None:
-                ratio_native_contact = ratio_contact
-            else:
-                ratio_native_contact = np.dstack((ratio_native_contact, ratio_contact))
 
         # after dstack shape become [1, x, y]
         num_native_contact = num_native_contact[0]
-        ratio_native_contact = ratio_native_contact[0]
-        mutex.acquire()
-        
+
         head = ['ligand','heavy_atom_num', 'position'] + list(np.linspace(4,8,9).astype(str))
         data = []
         for i in range(len(num_native_contact)):
             data.append(','.join([ligand_name, str(ligand_atom_num)  ,str(i+1)]+ list(num_native_contact[i].astype(int).astype(str)))+'\n')
             #log("native_contact.csv", ','.join([ligand_name, str(ligand_atom_num)  ,str(i+1)]+ list(num_native_contact[i].astype(int).astype(str))), head=','.join(head))
             #log("ratio_native_contact.csv", ','.join([ligand_name, str(i+1)]+ list(ratio_native_contact[i].astype(str))), head=','.join(head))
-        log('native_contact.csv', data, head= ','.join(head))
-        print time.time() - start
-        mutex.release()
+        log('native_contact.csv', data, head= ','.join(head), lock=lock)
+
             
     except Exception as e:
-        mutex.acquire()
-        log('native_contact_failed.csv','{},{},{}'.format(receptor_of(ligand_name), ligand_name, str(e)), head=','.join(['receptor','ligand','exception']))
-        mutex.release()
+        lock.acquire()
+        log('native_contact_failed.csv',
+            '{},{},{}'.format(receptor_of(ligand_name), ligand_name, str(e)),
+            head=','.join(['receptor','ligand','exception']),
+            lock=lock)
+        lock.release()
+
+def ligands_pair_native_contact(lock, ligand_path):
+    """
+    calculate native contact between native atom and the ligands
+    
+    :param lock: 
+    :param ligand_path: path 
+    :return: 
+    """
+
+    try:
+
+        ligand_path = ligand_path.strip()
+        ligand_name = ligand_name_of(ligand_path)
+
+        crystal_ligand, similar_ligands = get_similar_ligands(ligand_path)
+
+        parsed_ligands = prody.parsePDB(ligand_path).select('not hydrogen')
+        ligands_coords = parsed_ligands.getCoordsets()
+        exp_ligands_coords = np.expand_dims(ligands_coords, -2)
+
+        for lig_path in [crystal_ligand] + similar_ligands:
+            parsed_lig = prody.parsePDB(lig_path).select('not hydrogen')
+            lig_coord = parsed_lig.getCoords()
+            diff = exp_ligands_coords - lig_coord
+            distance = np.sqrt(np.sum(np.square(diff), axis=-1))
+
+            num_native_contact = None
+
+            for threshold in np.linspace(4, 8, 9):
+                contact = (distance < threshold).astype(int)
+                num_contact = np.sum(contact, axis=(-1, -2))
+
+                if num_native_contact is None:
+                    num_native_contact = num_contact
+                else:
+                    num_native_contact = np.dstack((num_native_contact, num_contact))
+
+            # after dstack shape become [1, x, y]
+            num_native_contact = num_native_contact[0]
+            head = ['ligand', 'crystal_ligand', 'position'] + list(np.linspace(4, 8, 9).astype(str))
+            data = []
+            for i in range(len(num_native_contact)):
+                data.append(','.join([ligand_name, ligand_name_of(lig_path), str(i + 1)] + list(
+                    num_native_contact[i].astype(int).astype(str))) + '\n')
+            log('ligand_pair_native_contact.csv', data, head=','.join(head), lock=lock)
+    except Exception as e:
+        log('ligand_pair_native_contact_failed.csv',
+            ','.join([ligand_name, str(e)]),
+            head = ','.join(['liand','exception']),
+            lock=lock)
 
 
 def run(target_list, func):
@@ -342,8 +473,6 @@ def run(target_list, func):
     pool.map_async(func, target_list)
     pool.close()
     pool.join()
-
-
 
 def main():
     
@@ -354,36 +483,36 @@ def main():
         print "Downloading pdb from rcsb..."
         download_list = open(config.target_list_file).readline().strip().split(', ')
         mkdir(config.pdb_download_path)
-        run(download_list, download_pdb)
+        run(download_list, partial(download_pdb, l))
     if FLAGS.split:
         print "Spliting receptor and ligand..."
         structure_list = glob(os.path.join(config.pdb_download_path, '*.pdb'))
         mkdir(config.splited_receptors_path)
-        run(structure_list, split_structure)
+        run(structure_list, partial(split_structure, l))
     if FLAGS.reorder:
         print "Reorder ligands atom..."
         ligands_list = glob(os.path.join(config.splited_ligands_path, '*', '*.pdb'))
-        run(ligands_list, reorder_ligand)
+        run(ligands_list, partial(reorder_ligand, l))
     if FLAGS.vinardo:
         print "Smina vinardo docking..."
         ligands_list = glob(os.path.join(config.splited_ligands_path, '*', '*.pdb'))
-        run(ligands_list, vinardo_dock_ligand)
+        run(ligands_list, partial(vinardo_dock_ligand, l))
 
     if FLAGS.rotbond:
         print "Counting rotable bonds..."
         ligands_list = glob(os.path.join(config.splited_ligands_path, '*', '*.pdb'))
-        run(ligands_list, count_rotable_bond)
+        run(ligands_list, partial(count_rotable_bond, l))
 
     if FLAGS.overlap:
         print "Overlap detecting..."
         ligands_list = glob(os.path.join(config.vinardo_docked_path, '*', '*.pdb'))
         #ligands_list = ['/home/xander/affinityDB/data/vinardo/1a0b/1a0b_ZN_117_vinardo.pdb']
-        run(ligands_list, detect_overlap)
+        run(ligands_list, partial(detect_overlap, l))
 
     if FLAGS.rmsd:
         print "Calculating rmsd..."
         ligands_list = glob(os.path.join(config.vinardo_docked_path, '*', '*.pdb'))
-        run(ligands_list, calculate_rmsd)
+        run(ligands_list, partial(calculate_rmsd, l))
 
     if FLAGS.contact:
         print "Calculating native contacting..."
