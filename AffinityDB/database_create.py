@@ -84,14 +84,16 @@ def split_structure(lock, pdb_path):
 
         log('atom_num.csv',
             "{}_{}_{},{}".format(pdb_name, ResName, ResId, atom_num),
-            head='ligand,atom_num')
+            head='ligand,atom_num',
+            lock=lock)
 
     receptor_path = os.path.join(config.splited_receptors_path, pdb_name + '.pdb')
     prody.writePDB(receptor_path, receptor)
 
     log('success_split_pdb.log',
         '{},success'.format(pdb_name),
-        head='pdb,status')
+        head='pdb,status',
+        lock=lock)
 
 def reorder_ligand(lock, ligand_path):
     """
@@ -120,7 +122,7 @@ def reorder_ligand(lock, ligand_path):
         data = [ligand_name, '0'] + terms[1]
         log('crystal_ligands_term_score.tsv', '\t'.join(data), head=head, lock=lock)
 
-def vinardo_dock_ligand(ligand_path):
+def vinardo_dock_ligand(lock, ligand_path):
     """
     docking ligand by smina with vinardo
     """
@@ -130,7 +132,7 @@ def vinardo_dock_ligand(ligand_path):
 
     docked_ligand_name = os.path.basename(ligand_path).replace('ligand', 'vinardo')
     docked_ligand_path = os.path.join(config.vinardo_docked_path, receptor_name, docked_ligand_name)
-
+    
     if not os.path.exists(docked_ligand_path):
         cmd = '{} -r {} -l {} --autobox_ligand {} --autobox_add 12 -o {} --num_modes=400 --exhaustiveness 64 --scoring vinardo --cpu=1 '\
             .format(config.smina, receptor_path, ligand_path, ligand_path, docked_ligand_path)
@@ -254,15 +256,8 @@ def detect_overlap(lock, ligand_path):
     ligand_path = ligand_path.strip()
     ligand_name = os.path.basename(ligand_path).split('.')[0]
 
-    crystal_ligand, other_ligands = crystal_ligand_for_same_receptor(ligand_path)
 
-    if len(other_ligands) == 0:
-        log("overlap_receptor_skip.log",
-            "{}, has only one ligand".format(receptor_of(ligand_path)),
-            head='receptor,exception',
-            lock=lock)
-        return
-    similar_ligands = get_similar_ligands(crystal_ligand, other_ligands)
+    crystal_ligand, similar_ligands = get_similar_ligands(lock, ligand_path)
     if len(similar_ligands) == 0:
         log("overlap_ligand_skip.log",
             "{}, doesn't have similar ligands".format(ligand_name),
@@ -335,14 +330,14 @@ def calculate_rmsd(lock, ligand_path):
     crystal_ligands = get_same_ligands(ligand_path)
 
     try:
-        docked_coords = prody.parsePDB(ligand_path).getCoordsets()
+        docked_coords = prody.parsePDB(ligand_path).select('not hydrogen').getCoordsets()
         for crystal_ligand in crystal_ligands:
 
-            crystal_coord = prody.parsePDB(crystal_ligand).getCoords()
+            crystal_coord = prody.parsePDB(crystal_ligand).select('not hydrogen').getCoords()
             rmsd = np.sqrt(np.mean(np.sum(np.square(docked_coords - crystal_coord), axis=-1), axis=-1))
 
             rmsd_str = ','.join(rmsd.astype(str))
-            head = ['ligand','crystal_ligand']
+            head = ['ligand','crystal_ligand','rmsd']
 
             log('rmsd.tsv',
                 '\t'.join([ligand_name, ligand_name_of(crystal_ligand), rmsd_str]),
@@ -350,12 +345,10 @@ def calculate_rmsd(lock, ligand_path):
                 lock=lock)
 
     except Exception as e:
-        lock.acquire()
         log('rmsd_failed.csv',
             '{},{}'.format(ligand_name, str(e)),
             head='ligand,exception',
             lock=lock)
-        lock.release()
         return
 
 def calculate_native_contact(lock, ligand_path):
@@ -401,19 +394,17 @@ def calculate_native_contact(lock, ligand_path):
         head = ['ligand','heavy_atom_num', 'position'] + list(np.linspace(4,8,9).astype(str))
         data = []
         for i in range(len(num_native_contact)):
-            data.append(','.join([ligand_name, str(ligand_atom_num)  ,str(i+1)]+ list(num_native_contact[i].astype(int).astype(str)))+'\n')
+            data.append(','.join([ligand_name, str(ligand_atom_num)  ,str(i+1)]+ list(num_native_contact[i].astype(int).astype(str))))
             #log("native_contact.csv", ','.join([ligand_name, str(ligand_atom_num)  ,str(i+1)]+ list(num_native_contact[i].astype(int).astype(str))), head=','.join(head))
             #log("ratio_native_contact.csv", ','.join([ligand_name, str(i+1)]+ list(ratio_native_contact[i].astype(str))), head=','.join(head))
         log('native_contact.csv', data, head= ','.join(head), lock=lock)
 
             
     except Exception as e:
-        lock.acquire()
         log('native_contact_failed.csv',
             '{},{},{}'.format(receptor_of(ligand_name), ligand_name, str(e)),
             head=','.join(['receptor','ligand','exception']),
             lock=lock)
-        lock.release()
 
 def ligands_pair_native_contact(lock, ligand_path):
     """
@@ -429,7 +420,7 @@ def ligands_pair_native_contact(lock, ligand_path):
         ligand_path = ligand_path.strip()
         ligand_name = ligand_name_of(ligand_path)
 
-        crystal_ligand, similar_ligands = get_similar_ligands(ligand_path)
+        crystal_ligand, similar_ligands = get_similar_ligands(lock, ligand_path)
 
         parsed_ligands = prody.parsePDB(ligand_path).select('not hydrogen')
         ligands_coords = parsed_ligands.getCoordsets()
@@ -458,7 +449,7 @@ def ligands_pair_native_contact(lock, ligand_path):
             data = []
             for i in range(len(num_native_contact)):
                 data.append(','.join([ligand_name, ligand_name_of(lig_path), str(i + 1)] + list(
-                    num_native_contact[i].astype(int).astype(str))) + '\n')
+                    num_native_contact[i].astype(int).astype(str))))
             log('ligand_pair_native_contact.csv', data, head=','.join(head), lock=lock)
     except Exception as e:
         log('ligand_pair_native_contact_failed.csv',
@@ -515,9 +506,11 @@ def main():
         run(ligands_list, partial(calculate_rmsd, l))
 
     if FLAGS.contact:
-        print "Calculating native contacting..."
+        print "Calculating native contact between receptor and ligand..."
         ligands_list = glob(os.path.join(config.vinardo_docked_path, '*', '*.pdb'))
         run(ligands_list, partial(calculate_native_contact, l))
+        print "Calculating native contact between ligands..."
+        run(ligands_list, partial(ligands_pair_native_contact, l))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Database Master Option")
