@@ -11,12 +11,33 @@ heavy_atom_threshold = 0
 # number of process running at the same time
 process_num = 4
 
+
+# RENAMES:
+# tanimoto_cutoff    # minimum Tanimoto similarity score to be considered 
+# clash_size_cutoff  # percentage_of_overlapping_atoms # no cutoff here!
+# base               # database_root
+# lig_download_path  # why ?
+
+# downloads          # raw_pdbs
+# receptors          # raw_receptors
+# raw_ligands
+# docked_ligand_path # SMINA_DOCKED ?? 
+# docking parameters
+
+# target_list_file     list_of_PDBs_to_download
+# lig_target_list_file (Not needed)
+
+# add folder for repaired ligands and proteins (with H)
+# add folder for minimized hydrogens on ligands and proteins (How does the hydrogen addition happen)
+# think how we can deal with multiple docking parameters
+
+
 """
 overlap detaction constant
 """
-tanimoto_cutoff = 0.75
-clash_cutoff_A = 4
-clash_size_cutoff = 0.3
+tanimoto_cutoff = 0.75  # an exact Tanimoto similarity score should be recorded in the file
+clash_cutoff_A = 4      # 
+clash_size_cutoff = 0.3 # __ an exact value should be recorded
 
 
 """
@@ -37,7 +58,7 @@ log_folder = os.path.join(base,'log')
 # docked ligands
 docked_ligand_path = os.path.join(base,'data','docked')
 
-# docked ligands by smina scoring function: vinardo
+# docked ligands by smina scoring function: vinardo                       # will c
 vinardo_docked_path = os.path.join(base, 'data','vinardo')
 
 # ligans output by smina, keep the same atom order as docked result
