@@ -2,17 +2,19 @@
 Some codes from https://github.com/Newmu/dcgan_code
 """
 from __future__ import division
-import math
-import json
-import random
-import pprint
-import scipy.misc
-import numpy as np
-from time import gmtime, strftime
-from six.moves import xrange
 
+import json
+import math
+import pprint
+import random
+from time import gmtime, strftime
+
+import numpy as np
+import scipy.misc
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+
+from six.moves import xrange
 
 pp = pprint.PrettyPrinter()
 
@@ -166,7 +168,8 @@ def visualize(sess, dcgan, config, option):
     values = np.arange(0, 1, 1./config.batch_size)
     for idx in xrange(100):
       print(" [*] %d" % idx)
-      z_sample = np.zeros([config.batch_size, dcgan.z_dim])
+      z_sample = np.random.uniform(-0.5, 0.5, size=(config.batch_size, dcgan.z_dim))
+      #z_sample = np.zeros([config.batch_size, dcgan.z_dim])
       for kdx, z in enumerate(z_sample):
         z[idx] = values[kdx]
 
@@ -184,7 +187,7 @@ def visualize(sess, dcgan, config, option):
     values = np.arange(0, 1, 1./config.batch_size)
     for idx in [random.randint(0, 99) for _ in xrange(100)]:
       print(" [*] %d" % idx)
-      z = np.random.uniform(-0.2, 0.2, size=(dcgan.z_dim))
+      z = np.random.uniform(-0.5, 0.5, size=(dcgan.z_dim))
       z_sample = np.tile(z, (config.batch_size, 1))
       #z_sample = np.zeros([config.batch_size, dcgan.z_dim])
       for kdx, z in enumerate(z_sample):
@@ -215,16 +218,23 @@ def visualize(sess, dcgan, config, option):
       make_gif(samples, './samples/test_gif_%s.gif' % (idx))
   elif option == 4:
     image_set = []
-    values = np.arange(0, 1, 1./config.batch_size)
+    values = np.arange(-0.5, 0.5, 1./config.batch_size)
 
-    for idx in xrange(100):
+    for idx in xrange(16):
       print(" [*] %d" % idx)
-      z_sample = np.zeros([config.batch_size, dcgan.z_dim])
-      for kdx, z in enumerate(z_sample): z[idx] = values[kdx]
+      #z_sample = np.zeros([config.batch_size, dcgan.z_dim])
+      bits = [ i for i in range(dcgan.z_dim) if i%16==idx ]
+      z = np.random.uniform(-0.5, 0.5, size=(dcgan.z_dim))
+      z_sample = np.tile(z, (config.batch_size, 1))
+      for kdx, z in enumerate(z_sample):
+        for bdx in bits:
+          z[bdx] = values[kdx]
+        #z[idx] = values[kdx]
+      
 
       image_set.append(sess.run(dcgan.sampler, feed_dict={dcgan.z: z_sample}))
       make_gif(image_set[-1], './samples/test_gif_%s.gif' % (idx))
 
-    new_image_set = [merge(np.array([images[idx] for images in image_set]), [10, 10]) \
-        for idx in range(64) + range(63, -1, -1)]
-    make_gif(new_image_set, './samples/test_gif_merged.gif', duration=8)
+    new_image_set = [merge(np.array([images[idx] for images in image_set]), [4, 4]) \
+        for idx in range(16) + range(15, -1, -1)]
+    make_gif(new_image_set, './samples/test_gif_merged.gif', duration=4)
