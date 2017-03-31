@@ -1,0 +1,5 @@
+# ignore data, checkpoint, samples, logs
+data/
+checkpoint/
+samples/
+logs/
