@@ -1,19 +1,27 @@
 import os
 import sys
 from collections import namedtuple
+import multiprocessing
+
+"""
+variable shared between file
+"""
+
+manager = multiprocessing.Manager()
+lock = manager.Lock()
 
 """
 Parameter
 """
-
+db_name='affinity.db'
 # only ligands' atom number above threshold will saved
 heavy_atom_threshold = 0
 # number of process running at the same time
-process_num = 4
+process_num = 2
 
 # RENAMES:
 # [ ] tanimoto_cutoff    # minimum Tanimoto similarity score to be considered 
-# [ ] clash_size_cutoff  # percentage_of_overlapping_atoms # no cutoff here!
+# [ ] clash_size_cutoff  # ls # no cutoff here!
 # [x] base               # database_root
 # [x] lig_download_path  # why ?
 
@@ -23,7 +31,7 @@ process_num = 4
 # [-] docked_ligand_path # SMINA_DOCKED ?? 
 # [x] docking parameters
  
-# [ ] target_list_file     list_of_PDBs_to_download
+# [x] target_list_file     list_of_PDBs_to_download
 # [x] lig_target_list_file (Not needed)
  
 # [x] add folder for repaired ligands and proteins (with H)
@@ -44,9 +52,12 @@ clash_size_cutoff = 0.3 # __ an exact value should be recorded
 """
 Folders
 """
+# the path for this script config.py
+script_path = sys.path[0]
 #base folder for all the output
 database_root = '/home/xander/affinityDB/test'
 
+db_path =os.path.join(database_root, db_name)
 # pdb download from Protein DataBank
 pdb_download_path = os.path.join(database_root,'data','row_pdb')
 # splited receptor
@@ -77,7 +88,7 @@ smina = '/home/xander/Program/smina/smina.static'
 
 # pdb_target_list
 #target_list_file = os.path.join(sys.path[0],'target_list','main_pdb_target_list.txt')
-target_list_file = '/home/xander/affinityDB/target_list/main_pdb_target_list.txt'
+list_of_PDBs_to_download = '/home/xander/affinityDB/target_list/main_pdb_target_list.txt'
 
 # example scoring
 scoring_terms = os.path.join(sys.path[0], 'scoring', 'smina.score')

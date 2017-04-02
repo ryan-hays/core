@@ -1,20 +1,86 @@
 import os
 import sys
 import config
+import sqlite3
+from config import lock
+from functools import wraps
+import time
 
 mkdir = lambda path: os.system('mkdir -p {}'.format(path))
 
+
+def lockit(func):
+    """
+    lock before running functiong
+    """
+    @wraps(func)
+    def function_in_lock(*args, **kwargs):
+        lock.acquire()
+        result = func(*args, **kwargs)
+        lock.release()
+        return result
+    return function_in_lock
+
+def timeit(record):
+    def _timeit(func):
+        """
+        counter the time to run a function
+        """
+        @wraps(func)
+        def function_in_timer(*args, **kwargs):
+            start = time.time()
+            result = func(*args, **kwargs)
+            duration = time.time() - start
+            data = [func.__name__, str(duration)]
+            if record:
+                head = ['func','time']
+                log('func_timer.csv',','.join(data), head = ','.join(head))
+            else:
+                print '\t'.join(['timer']+data)
+        return  function_in_timer
+    return _timeit
+
+def create(tabel, kw, primarykey, lock):
+    """
+    create tabel
+    """
+
+def get(tabel, cond, value, lock):
+    """
+    get value from tabel
+    """
+    lock.acquire()
+    cmd = "SELECT "
+    cmd += ','.join(value)
+    cmd += "from " + tabel
+    cmd += "where "
+    cmd += ' AND '.join()
+    cursor = conn.execute()
+
+
+def insert(tabel, content, head, lock):
+    """
+    inseert centent into tabel
+    """
+    lock.acquire()
+    
+    values = ["(" + ','.join([]) ]
+
+    cmd = "INSERT INTO " + tabel
+    cmd += "(" + ",".join(head) + ")"
+        
+    lock.release()
+
+
+@lockit
 def log(log_file, log_content, head=None, lock=None):
     """
     write down log information
     :param log_file: name of log file
     :param log_content: string or list of string, log content
     :param head: head for csv or tsv output file
-    :param lock: multiprocess lock
     :return:
     """
-
-    lock.acquire()
 
     if isinstance(log_content, str):
         log_content = [log_content]
@@ -31,7 +97,7 @@ def log(log_file, log_content, head=None, lock=None):
                 print cont
             fout.write(cont+'\n')
 
-    lock.release()
+    
 
 class smina_param:
 
