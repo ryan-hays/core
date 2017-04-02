@@ -14,10 +14,12 @@ def train():
     # create a filename queue first
     filename_queue, examples_in_database = index_the_database_into_queue(FLAGS.database_path, shuffle=True)
 
+
     # create an epoch counter
-    batch_counter = tf.Variable(0)
-    batch_counter_increment = tf.assign(batch_counter,tf.Variable(0).count_up_to(np.round((examples_in_database*FLAGS.num_epochs)/FLAGS.batch_size)))
-    epoch_counter = tf.div(batch_counter*FLAGS.batch_size,examples_in_database)
+    with tf.name_scope("epoch_counter"):
+        batch_counter = tf.Variable(0)
+        batch_counter_increment = tf.assign(batch_counter,tf.Variable(0).count_up_to(np.round((examples_in_database*FLAGS.num_epochs)/FLAGS.batch_size)))
+        epoch_counter = tf.div(batch_counter*FLAGS.batch_size,examples_in_database)
 
     # create a custom shuffle queue
     _,current_epoch,label_batch,image_batch = image_and_label_queue(batch_size=FLAGS.batch_size, pixel_size=FLAGS.pixel_size,
@@ -28,8 +30,8 @@ def train():
 
     keep_prob = tf.placeholder(tf.float32)
 
-
-    predicted_labels = max_net(image_batch,keep_prob,FLAGS.batch_size)
+    with tf.name_scope("network"):
+        predicted_labels = max_net(image_batch,keep_prob,FLAGS.batch_size)
 
     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predicted_labels,labels=label_batch)
     cross_entropy_mean = tf.reduce_mean(cross_entropy)
@@ -41,19 +43,29 @@ def train():
     tf.summary.scalar('shuffled cross entropy mean', shuffled_cross_entropy_mean)
 
     # Adam optimizer is a very heart of the network
-    train_step_run = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+    with tf.name_scope("Adam_optimizer"):
+        train_step_run = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
     
     # merge all summaries and create a file writer object
     merged_summaries = tf.summary.merge_all()
     train_writer = tf.summary.FileWriter((FLAGS.summaries_dir + '/' + str(FLAGS.run_index) + "_train"), sess.graph)
 
+
     # create saver to save and load the network state
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(var_list=(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope="Adam_optimizer") +
+                                     tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope="network") +
+                                     tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope="epoch_counter")))
+
+
     if FLAGS.saved_session is None:
         sess.run(tf.global_variables_initializer())
     else:
         print "Restoring variables from sleep. This may take a while..."
+        # sess.run(tf.global_variables_initializer())
         saver.restore(sess,FLAGS.saved_session)
+
+        print "all variables restored. Start training"
+
 
 
     # launch all threads only after the graph is complete and all the variables initialized
@@ -63,6 +75,10 @@ def train():
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
     while True:
+
+#        print tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+#        time.sleep(100)
+
         start = time.time()
         batch_num = sess.run(batch_counter_increment)
         epo,c_entropy_mean,_ = sess.run([current_epoch,cross_entropy_mean,train_step_run], feed_dict={keep_prob: 0.5})
@@ -70,7 +86,7 @@ def train():
 
         print "\texamples per second:", "%.2f" % (FLAGS.batch_size / (time.time() - start))
 
-        if (batch_num % 1000 == 999):
+        if (batch_num % 100 == 99):
             # once in a while save the network state and write variable summaries to disk
             c_entropy_mean,sc_entropy_mean,summaries = sess.run(
                 [cross_entropy_mean, shuffled_cross_entropy_mean, merged_summaries], feed_dict={keep_prob: 1})
@@ -104,11 +120,11 @@ class FLAGS:
     # data directories
 
     # path to the csv file with names of images selected for training
-    database_path = "../datasets/holdout_av4"
+    database_path = "../datasets/labeled_av4"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states
-    saved_session = None#'./summaries/36_netstate/saved_state-23999'
+    saved_session = None#'./summaries/1_netstate/saved_state-113999'
 
 
 def main(_):
