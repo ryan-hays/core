@@ -366,6 +366,7 @@ def evaluate_on_train_set():
 
     # restore variables from sleep
     saver = tf.train.Saver()
+
     saver.restore(sess,FLAGS.saved_session)
 
     # use

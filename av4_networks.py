@@ -84,7 +84,7 @@ def fc_layer(layer_name,input_tensor,output_dim):
 
 
 def max_net(x_image_batch,keep_prob,batch_size):
-    "makes a simple network that can receive 40x40x40 input images. And output 2 classes"
+    "makes a simple network that can receive 20x20x20 input images. And output 2 classes"
     with tf.name_scope('input'):
         pass
     with tf.name_scope("input_reshape"):
