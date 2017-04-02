@@ -9,7 +9,6 @@ import argparse
 from glob import glob
 from functools import partial
 from utils import log, smina_param
-import openbabel
 import numpy as np
 import prody
 import config
@@ -17,6 +16,12 @@ import subprocess
 import re
 import pandas
 import time
+
+
+
+
+
+
 
 FLAGS = None
 
@@ -142,55 +147,57 @@ def vinardo_dock_ligand(lock, ligand_path):
         mkdir(os.path.dirname(docked_ligand_path))
         os.system(cmd)
 
-def crystal_ligand_for_same_receptor(ligand_path):
-    """
-    get the ligands splited from same pdb
-    note ligands should be reordered by smina
-    """
-    ligand_path = ligand_path.strip()
-    ligand_name = os.path.basename(ligand_path).split('.')[0]
 
-    receptor, lig, resid, _ = ligand_name.split('_')
-    crystal_ligand = os.path.join(config.smina_std_path, receptor, '_'.join([receptor, lig, resid, 'ligand.pdb']))
+#def crystal_ligand_for_same_receptor(ligand_path):
+#    """
+#    get the ligands splited from same pdb
+#    note ligands should be reordered by smina
+#    """
+#    ligand_path = ligand_path.strip()
+#    ligand_name = os.path.basename(ligand_path).split('.')[0]
+#
+#    receptor, lig, resid, _ = ligand_name.split('_')
+#    crystal_ligand = os.path.join(config.smina_std_path, receptor, '_'.join([receptor, lig, resid, 'ligand.pdb']))
+#
+#    ligands_list = glob(os.path.join(os.path.dirname(crystal_ligand), '*.pdb'))
+#
+#    other_ligands = list(set(ligands_list) - set([crystal_ligand]))
+#    return crystal_ligand, other_ligands
 
-    ligands_list = glob(os.path.join(os.path.dirname(crystal_ligand), '*.pdb'))
+#def get_similar_ligands(lock, ligand_path):
+#    """
+#    calculate tanimoto similarity
+#    return the ligands with high tanimoto similarity
+#    :param lock: multiprocess lock
+#    :param ligand_path: path
+#    :return: 
+#    """
+#    ligand_path = ligand_path.strip()
+#    ligand_name = ligand_name_of(ligand_path)#
+#
+#    receptor, lig, resid, _ = ligand_name.split('_')
+#    crystal_ligand = os.path.join(config.smina_std_path, receptor, '_'.join([receptor, lig, resid, 'ligand.pdb']))#
+#
+#    ligands_list = glob(os.path.join(os.path.dirname(crystal_ligand), '*.pdb'))#
+#
+#    ligands_for_same_receptor = list(set(ligands_list) - set([crystal_ligand]))#
+#
+#    similar_ligands = []
+#    for lig_path in ligands_for_same_receptor:
+#        cmd = 'babel -d {} {} -ofpt '.format(ligand_path, lig_path)
+#        ls = os.popen(cmd).read()
+#        tanimoto_similarity = re.split('=|\n', ls)[2]
+#        print cmd
+#        print ls
+#        log('tanimoto_similarity.csv',
+#            '{},{},{}'.format(ligand_name_of(ligand_path), ligand_name_of(lig_path), tanimoto_similarity),
+#            head='lig_a,lig_b,tanimoto',
+#            lock=lock)
+#        if tanimoto_similarity > config.tanimoto_cutoff:
+#            similar_ligands.append([tanimoto_similarity,lig_path])#
+#
+#    return crystal_ligand, similar_ligands
 
-    other_ligands = list(set(ligands_list) - set([crystal_ligand]))
-    return crystal_ligand, other_ligands
-
-def get_similar_ligands(lock, ligand_path,finger_print='FP4'):
-    """
-    calculate tanimoto similarity
-    return the ligands with high tanimoto similarity
-    :param lock: multiprocess lock
-    :param ligand_path: path
-    :return: 
-    """
-    ligand_path = ligand_path.strip()
-    ligand_name = ligand_name_of(ligand_path)
-
-    receptor, lig, resid, _ = ligand_name.split('_')
-    crystal_ligand = os.path.join(config.smina_std_path, receptor, '_'.join([receptor, lig, resid, 'ligand.pdb']))
-
-    ligands_list = glob(os.path.join(os.path.dirname(crystal_ligand), '*.pdb'))
-
-    ligands_for_same_receptor = list(set(ligands_list) - set([crystal_ligand]))
-
-    similar_ligands = []
-    for lig_path in ligands_for_same_receptor:
-        cmd = 'babel -d {} {} -ofpt -xf{}'.format(ligand_path, lig_path, finger_print)
-        ls = os.popen(cmd).read()
-        tanimoto_similarity = re.split('=|\n', ls)[2]
-        print cmd
-        print ls
-        log('tanimoto_similarity.csv',
-            '{},{},{}'.format(ligand_name_of(ligand_path), ligand_name_of(lig_path), tanimoto_similarity),
-            head='lig_a,lig_b,finger_print, tanimoto',
-            lock=lock)
-        if tanimoto_similarity > config.tanimoto_cutoff:
-            similar_ligands.append([tanimoto_similarity,lig_path])
-
-    return crystal_ligand, similar_ligands
 
 def get_same_ligands(ligand_path):
     """
@@ -309,6 +316,7 @@ def count_rotable_bond(lock, ligand_path):
     :param ligand_path: path
     :return: 
     """
+    import openbabel
     ligand_path = ligand_path.strip()
     ligand_name = os.path.basename(ligand_path).split('.')[0]
 
@@ -522,7 +530,7 @@ def dock(lock, input_dir, output_dir, smina_pm, ligand_path):
         os.system(cmd)
   
 def run(target_list, func):
-    func(target_list[0])
+    #func(target_list[0])
     pool = multiprocessing.Pool(config.process_num)
     pool.map_async(func, target_list)
     pool.close()
@@ -535,7 +543,9 @@ def main():
 
     if FLAGS.download:
         print "Downloading pdb from rcsb..."
+
         download_list = open(config.list_of_PDBs_to_download).readline().strip().split(', ')
+
         mkdir(config.pdb_download_path)
         run(download_list, partial(download_pdb, l))
     if FLAGS.split:
