@@ -5,9 +5,23 @@ import sqlite3
 from config import lock
 from functools import wraps
 import time
+import subprocess
 
 mkdir = lambda path: os.system('mkdir -p {}'.format(path))
 
+def count_lines(file_path):
+    
+    cmd = 'wc -l %s ' % file_path
+    cl = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    cl.wait()
+    cont = cl.communicate()[0].strip().split(' ')[0]
+    try:
+        value = int(cont)
+    except Exception as e:
+        print e
+        value = None
+    
+    return value
 
 def lockit(func):
     """
