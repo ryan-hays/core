@@ -11,8 +11,14 @@ from collections import namedtuple, OrderedDict
 table = namedtuple('Table',['name','columns','primary_key'])
 
 tables = {
-    'atom_num':table(*['atom_num',
-        OrderedDict([('name','text'),('type','text'),('atom','integer')]),
+    'ligand_atom_num':table(*['ligand_atom_num',
+        OrderedDict([('name','text'),('heavy_atom_num','integer')]),
+        ['name']]),
+
+    'receptor_info':table(*['receptor_info',
+        OrderedDict([('name','text'),('experiment','text'),
+                     ('resolution','read'),('heavy_atom_num','integer'),
+                     ('residue_num','ingeter'),('chain_num','integer')]),
         ['name']]),
 
     'rotable_bond':table(*['rotable_bond',
@@ -34,8 +40,9 @@ tables = {
 
     'overlap':table(*['overlap',
         OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),
-            ('position','integer'),('overlap_ratio','real')]),
-        ['docked_ligand', 'crystal_ligand', 'position']]),
+            ('position','integer'),('finger_print','text'),
+            ('similarity','read'),('cutoff_A','real'),('overlap_ratio','real')]),
+        ['docked_ligand', 'crystal_ligand', 'position','finger_print','cutoff_A']]),
 
     'overlap_state':table(*['overlap_state',
         OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),
@@ -54,7 +61,9 @@ tables = {
 
     'native_contact':table(*['native_contact',
         OrderedDict([('docked_ligand','text'),('position','integer'),
-            ('ratio_4_0','real'),('ratio_4_5','real')]),
+            ('ratio_4_0','real'),('ratio_4_5','real'),('ratio_5_0','real'),('ratio_5_5','real'),
+                     ('ratio_6_0','real'),('ratio_6_5','real'),('ratio_7_0','real'),
+                     ('ratio_7_5','real'),('ratio_8_0','real')]),
             ['docked_ligand','position']]),
 
     'native_contact_state':table(*['native_contact_state',
@@ -69,20 +78,37 @@ tables = {
 }
 
 class database:
+    """
+    A simple wrapper for sqlite3
+    Generate sql query and execute it
+    Now only support create table and data insert
+    """
 
     def __init__(self):
         self.db_path = config.db_path
+        self.export_dir = config.table_dir
         self.tables = tables
+
+        # create scoring table base on content in config.scoring_terms
         self.add_scoring_term_tabel()
-        self.connect_db()
+
+        if not os.path.exists(self.db_path):
+            self.backup_and_reset_db()
+        else:
+            self.connect_db()
 
     def connect_db(self):
-        print "connect to %s" % self.db_path
+
         self.conn = sqlite3.connect(self.db_path)
         self.connect = True
 
+        print "connect to %s" % self.db_path
+
     def backup_db(self):
-        
+        """
+        create a copy of current sqlite database
+        :return: 
+        """
         backup_db_path = self.db_path.replace('.', '_'+time.strftime("%Y-%m-%d-%H:%M:%S", time.gmtime()) +'.')
 
         if os.path.exists(self.db_path):
@@ -91,40 +117,19 @@ class database:
             print "backup database %s" % backup_db_path
 
     def backup_and_reset_db(self):
-
+        """
+        backup current database and create a new one
+        :return: 
+        """
         if os.path.exists(self.db_path):
-            self.backup_db()
-            
-            cmd = 'rm %s' % self.db_path
-            os.system(cmd)
+            backup_db_path = self.db_path.replace('.', '_' + time.strftime("%Y-%m-%d-%H:%M:%S", time.gmtime()) + '.')
+            os.rename(self.db_path, backup_db_path)
+
 
         self.connect_db()
         self.create_table()
 
 
-    @lockit
-    def insert(self, tabel, values, head=None):
-        
-        sql_values = [ '(' + ','.join(value) + ')' for value in values ]
-
-        stmt = 'INSERT INTO ' + tabel + ' '
-        if not head is None:
-            stmt += (','.join(head))
-        stmt += ' VALUES '
-        stmt += ','.join(sql_values)
-        stmt += ';'
-
-        if not self.connect:
-            self.connect_db()
-        try:
-            self.conn.execute(stmt)
-        except sqlite3.IntegrityError as e:
-            print "Integrity Error ",
-            print e
-        except Exception as e:
-            print e
-
-        self.conn.commit()
 
     @lockit
     def insert_or_replace(self, tabel, values, head=None):
@@ -133,9 +138,9 @@ class database:
 
         db_values = [ map(db_value, value) for value in values ]
         print db_values
-        
+
         sql_values = [ '(' + ','.join(value) + ')' for value in db_values ]
-        
+
         print sql_values
         stmt = 'REPLACE INTO ' + tabel + ' '
         if not head is None:
@@ -152,19 +157,29 @@ class database:
             self.conn.execute(stmt)
         except Exception as e:
             print e
-        
+
         self.conn.commit()
 
     @lockit
     def insert_or_ignore(self, tabel, values, head):
-        
-        sql_values = [ '(' + ','.join(value) + ')' for value in values ]
 
+
+        db_value = lambda x: '"%s"' % x if type(x).__name__ == 'str' else str(x)
+
+        db_values = [map(db_value, value) for value in values]
+        print db_values
+
+        sql_values = ['(' + ','.join(value) + ')' for value in db_values]
+
+        print sql_values
         stmt = 'INSERT OR IGNORE INTO ' + tabel + ' '
-        stmt += (','.join(head))
+        if not head is None:
+            stmt += '(' + ','.join(head) + ')'
         stmt += ' VALUES '
         stmt += ','.join(sql_values)
         stmt += ';'
+
+        print stmt
 
         if not self.connect:
             self.connect_db()
@@ -172,7 +187,7 @@ class database:
             self.conn.execute(stmt)
         except Exception as e:
             print e
-        
+
         self.conn.commit()
 
     def create_table(self):
@@ -190,132 +205,7 @@ class database:
             self.conn.execute(stmt)
 
         print "Create all %d tables" % len(tables)        
-            
-        
-    def create_tabel_old(self):
-        """
-        create the tabels that we gonna use
-        """
 
-        stmt = []
-        # atom num tabel
-        stmt.append( '''
-        CREATE TABLE ATOM_NUM
-        (NAME       TEXT NOT NULL,
-        TYPE        TEXT NOT NULL,
-        ATOM_NUM    INTEGER,
-        PRIMARY KEY(NAME)
-        );''')
-
-        # rotable bond
-        stmt.append( '''
-        CREATE TABLE ROTABLE_BOND
-        (LIGAND         TEXT NOT NULL,
-        ROTABLE_BOND    INTEGER,
-        PRIMARY KEY(LIGAND)
-        );''')
-
-        stmt.append('''
-        CREATE TABLE RESOLUTION
-        (PDB        TEXT NOT NULL,
-        RESOLUTION  REAL NOT NULL,
-        PRIMARY KEY(PDB)
-        );''')
-
-        # parse stat
-        stmt.append( '''
-        CREATE TABLE SPLIT_STATE
-        (PDB        TEXT NOT NULL,
-        STATE       INTEGER,
-        COMMENT     TEXT,
-        PRIMARY KEY(PDB)
-        );''')
-
-
-        # tanimoto similarity
-        stmt.append( '''
-        CREATE TABLE SIMILARITY
-        (LIGAND_A       TEXT NOT NULL,
-        LIGAND_B        TEXT NOT NULL,
-        FINGER_PRINT    TEXT NOT NULL,
-        SIMILARITY      READ NOT NULL,
-        PRIMARY KEY(LIGAND_A, LIGAND_B)
-        );''')
-
-        stmt.append('''
-        create table similarity
-        (ligand_a       text not null,
-        ligand_b        text not null,
-        );''')
-
-        # overlap
-
-        stmt.append('''
-        create table overlap
-        (docked_ligand      text not null,
-        crystal_ligand      text not null,
-        position            integer not null,
-        overlap_ratio       real,
-        primary key(docked_ligand, crystal_ligand, position)
-        );''')
-
-        # overlap state
-
-        stmt.append('''
-        create table overlap_state
-        (docked_ligand    text not null,
-        state             integer,
-        primary key(docked_ligand);
-        );''')
-
-        # rmsd 
-        stmt.append('''
-        create table rmsd
-        (docked_ligand      text not null,
-        crystal_ligand      text not null,
-        position            integer,
-        rmsd                real,
-        primary key(docked_ligand, crystal_ligand, position)
-        );''')
-
-        stmt.append('''
-        create table rmsd_state
-        (docked_ligand      text not null,
-        crystal_ligand      text not null,
-        state               integer,
-        comment             text,
-        primary key(docked_ligand, crystal_ligand)
-        );''')
-
-        # native contace 
-        stmt.append('''
-        create table native_contact
-        (docked_ligand      text not null,
-        position            integer not null,
-        ratio_4_0           read,
-        ratio_4_5           real,
-        ratio_5_0           real,
-        ratio_5_5           real,
-        ratio_6_0           real,
-        primary key(docked_ligand, position)
-        );''')
-
-        stmt.append('''
-        create table dock_state
-        (docked_ligand      text not null,
-        state               integer,
-        comment             text,
-        primary key(docked_ligand)
-        );''')
-
-
-
-        for s in stmt:
-            self.conn.execute(s)
-
-        print "create all %d tabels" % len(stmt)
-
-    
     def add_scoring_term_tabel(self):
         """
         columns of this tabel will determined by 
@@ -336,7 +226,27 @@ class database:
             OrderedDict(columns),
             ['ligand','position']])
 
-        
+    def export(self):
+        """
+        export data from database to csv file
+        :return: 
+        """
+
+        cursor = self.conn.cursor()
+        for tab in self.tables:
+            table_path = os.path.join(self.export_dir, tab.name+'.csv')
+            os.system('mkdir -p %s' % os.path.dirname(table_path))
+
+            cursor.execute('SELECT * FROM %s' % tab.name)
+            with open(table_path,'w') as fout:
+                csv_out = csv.writer(fout)
+                csv_out.writerow([d[0] for d in cursor.description])
+                for result in cursor:
+                    csv_out.writerow(result)
+
+                print 'export table %s' % tab.name
+
+
         
     
 

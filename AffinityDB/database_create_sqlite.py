@@ -26,11 +26,11 @@ FLAGS = None
 
 db = database()
 
-
-mkdir = lambda path: os.system('mkdir -p {}'.format(path))
-ligand_name_of = lambda x:os.path.basename(x).split('.')[0]
-receptor_of = lambda x:os.path.basename(x).split('_')[0]
-receptor_path_of = lambda x:os.path.join(config.splited_receptors_path, receptor_of(x)+'.pdb')
+# short function for convenient
+_mkdir = lambda path: os.system('mkdir -p {}'.format(path))
+_ligand_name_of = lambda x:os.path.basename(x).split('.')[0]
+_receptor_of = lambda x:os.path.basename(x).split('_')[0]
+_receptor_path_of = lambda x:os.path.join(config.splited_receptors_path, _receptor_of(x) + '.pdb')
 
 
 
@@ -58,28 +58,9 @@ def split_structure(pdb_path):
         data = [data]
         db.insert_or_replace('split_state',data)
 
-        #print 'insert'
-        log('parse_failed.log',
-            '{},{}'.format(pdb_name, str(e)))
         return
 
-    try:
-        
-        header = prody.parsePDBHeader(pdb_path)
-        data = [ pdb_name, header['experiment'], header['resolution']]
-        data = [data]
-        db.insert_or_replace('resolution',data)
-        log('resolution.csv',
-            '{},{}'.format(pdb_name, header['resolution']),
-            head='pdb,resolution')
 
-        
-    except Exception as e:
-        data = [pdb_name, 0, str(e)]
-        data = [data]
-        db.insert_or_replace('split_state',data, head)
-        log('parse_header_failed.log',
-           '{},{}'.format(pdb_name, str(e)))
 
     hetero = parsed.select(
         '(hetero and not water) or resname ATP or resname ADP or resname AMP or resname GTP or resname GDP or resname GMP')
@@ -94,7 +75,7 @@ def split_structure(pdb_path):
     if hetero is None:
         data = [pdb_name, 0, "No ligand found"]
         data = [[data]]
-        db.insert_or_replace('SPLIT_STATE',data, head)
+        db.insert_or_replace('split_state',data)
         log("select_failed.log", "No ligand found")
         return
 
@@ -105,13 +86,13 @@ def split_structure(pdb_path):
         ligand_path = os.path.join(config.splited_ligands_path,
                                    pdb_name,
                                    "{}_{}_{}_ligand.pdb".format(pdb_name, ResName, ResId))
-        mkdir(os.path.dirname(ligand_path))
+        _mkdir(os.path.dirname(ligand_path))
         prody.writePDB(ligand_path, each)
         atom_num = each.select('not hydrogen').numAtoms()
 
-        data = ["{}_{}_{}".format(pdb_name, ResName, ResId), 'ligand', atom_num]
+        data = ["{}_{}_{}".format(pdb_name, ResName, ResId), atom_num]
         data = [data]
-        db.insert_or_replace('atom_num',data)
+        db.insert_or_replace('ligand_atom_num',data)
         log('atom_num.csv',
             "{}_{}_{},{}".format(pdb_name, ResName, ResId, atom_num),
             head='ligand,atom_num')
@@ -120,9 +101,24 @@ def split_structure(pdb_path):
     prody.writePDB(receptor_path, receptor)
     
     receptor_atom_num = receptor.select('not hydrogen').numAtoms()
-    data = [pdb_name, 'receptor', receptor_atom_num]
-    data = [data]
-    db.insert_or_replace('atom_num', data)
+
+    try:
+
+        header = prody.parsePDBHeader(pdb_path)
+        data = [pdb_name, header['experiment'], header['resolution'], receptor_atom_num ,len(header['chemicals']), len(header['biomoltrans']['1'][0])]
+        data = [data]
+        db.insert_or_replace('receptor_info', data)
+        log('resolution.csv',
+            '{},{}'.format(pdb_name, header['resolution']),
+            head='pdb,resolution')
+
+
+    except Exception as e:
+        data = [pdb_name, 0, str(e)]
+        data = [data]
+        db.insert_or_replace('split_state', data)
+        log('parse_header_failed.log',
+            '{},{}'.format(pdb_name, str(e)))
 
     data = [pdb_name, 1, 'success']
     data = [data]
@@ -140,9 +136,9 @@ def reorder_ligand(input_dir, output_dir, smina_pm, ligand_path):
     """
 
     lignad_path = ligand_path.strip()
-    ligand_name = ligand_name_of(ligand_path)
-    receptor_path = receptor_path_of(ligand_path)
-    receptor_name = receptor_of(ligand_path)
+    ligand_name = _ligand_name_of(ligand_path)
+    receptor_path = _receptor_path_of(ligand_path)
+    receptor_name = _receptor_of(ligand_path)
 
     out_ligand_path = ligand_path.replace(input_dir, output_dir)
 
@@ -153,11 +149,10 @@ def reorder_ligand(input_dir, output_dir, smina_pm, ligand_path):
     }
 
     if not os.path.exists(out_ligand_path):
-        mkdir(os.path.dirname(out_ligand_path))
+        _mkdir(os.path.dirname(out_ligand_path))
         cmd = smina_pm.make_command(**kw)
         
         cl = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-        print cmd
         cl.wait()
         cont = cl.communicate()[0].strip().split('\n')
 
@@ -169,24 +164,23 @@ def reorder_ligand(input_dir, output_dir, smina_pm, ligand_path):
         data = [data]
         db.insert_or_replace('scoring_terms',data,head)
 
-
-def get_similar_ligands(ligand_path,finger_print='FP4'):
+def _get_similar_ligands(ligand_path, finger_print='FP4'):
     """
     calculate tanimoto similarity
-    return the ligands with high tanimoto similarity
+    return the ligands with similarty > config.tanimoto_cutoff
     :param ligand_path: path
     :return: 
     """
     ligand_path = ligand_path.strip()
-    ligand_name = ligand_name_of(ligand_path)
+    ligand_name = _ligand_name_of(ligand_path)
 
     receptor, lig, resid, _ = ligand_name.split('_')
-    crystal_ligand = os.path.join(config.smina_std_path, receptor, '_'.join([receptor, lig, resid, 'ligand.pdb']))
+    crystal_dir = os.path.dirname(ligand_path).replace('docked_ligands','crystal_ligands')
+    crystal_ligand = os.path.join(crystal_dir , '_'.join([receptor, lig, resid, 'ligand.pdb']))
 
     ligands_list = glob(os.path.join(os.path.dirname(crystal_ligand), '*.pdb'))
 
     ligands_for_same_receptor = list(set(ligands_list) - set([crystal_ligand]))
-
 
 
     similar_ligands = []
@@ -194,22 +188,22 @@ def get_similar_ligands(ligand_path,finger_print='FP4'):
         cmd = 'babel -d {} {} -ofpt -xf{}'.format(ligand_path, lig_path, finger_print)
         ls = os.popen(cmd).read()
         tanimoto_similarity = re.split('=|\n', ls)[2]
-        print tanimoto_similarity
 
-        lig_pair = [ligand_name_of(ligand_path), ligand_name_of(lig_path)]
+        lig_pair = [_ligand_name_of(ligand_path), _ligand_name_of(lig_path)]
         lig_pair = lig_pair if lig_pair[0]<lig_pair[1] else [lig_pair[1],lig_pair[0]]
+
         data = lig_pair + [finger_print, tanimoto_similarity]
         data = [data]
         db.insert_or_replace('similarity',data)
         log('tanimoto_similarity.csv',
-            '{},{},{}'.format(ligand_name_of(ligand_path), ligand_name_of(lig_path), tanimoto_similarity),
+            '{},{},{}'.format(_ligand_name_of(ligand_path), _ligand_name_of(lig_path), tanimoto_similarity),
             head='lig_a,lig_b,finger_print, tanimoto')
         if tanimoto_similarity > config.tanimoto_cutoff:
             similar_ligands.append([lig_path, tanimoto_similarity, finger_print])
 
     return crystal_ligand, similar_ligands
 
-def get_same_ligands(ligand_path):
+def _get_same_ligands(ligand_path):
     """
     get the path of ligands, they are the same ligand docked to the same receptor,
     but different binding site.
@@ -217,12 +211,13 @@ def get_same_ligands(ligand_path):
     :return:
     """
     ligand_path = ligand_path.strip()
-    ligand_name = ligand_name_of(ligand_path)
+    ligand_name = _ligand_name_of(ligand_path)
     receptor, lig, resid, _ = ligand_name.split('_')
-    same_ligands = glob(os.path.join(config.smina_std_path,receptor, '{}_{}_*.pdb'.format(receptor, lig)))
+    crystal_dir = os.path.dirname(ligand_path).replace("docked_ligands","crystal_ligands")
+    same_ligands = glob(os.path.join(crystal_dir, '{}_{}_*.pdb'.format(receptor, lig)))
     return same_ligands
 
-def calculate_clash(docked_ligand, crystal_ligand, similarity):
+def overlap_with_ligand(docked_ligand, crystal_ligand, similarity, finger_print):
     """
     for all position in docked_ligand
     calculate if they are clash with crystal ligand
@@ -236,14 +231,14 @@ def calculate_clash(docked_ligand, crystal_ligand, similarity):
         docked = prody.parsePDB(docked_ligand).getCoordsets()
     except Exception as e:
         log("overlap_failed.log",
-            "{},{}".format(ligand_name_of(docked_ligand), str(e)),
+            "{},{}".format(_ligand_name_of(docked_ligand), str(e)),
             head='ligand,exception')
         return 
     try:
         crystal = prody.parsePDB(crystal_ligand).getCoords()
     except Exception as e:
         log("overlap_failed.log",
-            "{},{}".format(ligand_name_of(crystal_ligand), str(e)),
+            "{},{}".format(_ligand_name_of(crystal_ligand), str(e)),
             head='ligand,exception')
         return
 
@@ -260,14 +255,14 @@ def calculate_clash(docked_ligand, crystal_ligand, similarity):
 
     data = []
     for i,ratio in enumerate(position_clash_ratio):
-        datum = [ligand_name_of(docked_ligand), ligand_name_of(crystal_ligand), i+1, ratio]
+        datum = [_ligand_name_of(docked_ligand), _ligand_name_of(crystal_ligand), i + 1,finger_print, similarity, config.clash_cutoff_A , ratio]
         data.append(datum)
 
     db.insert_or_replace('overlap',data)
 
     head = ['docked_ligand','crystal_ligand','similarity','positon','precent_of_overlaping_atom']
     data = []
-    datum = [ligand_name_of(docked_ligand), ligand_name_of(crystal_ligand), str(similarity)]
+    datum = [_ligand_name_of(docked_ligand), _ligand_name_of(crystal_ligand), str(similarity)]
     for i, pcr in enumerate(position_clash_ratio):
         data.append(','.join(datum+[str(i+1), str(pcr)]))
     
@@ -276,13 +271,10 @@ def calculate_clash(docked_ligand, crystal_ligand, similarity):
         data,
         head = ','.join(head))
     
- #   log("single_overlap.tsv",
- #       '\t'.join([ligand_name_of(docked_ligand), ligand_name_of(crystal_ligand), str(clash_ratio), ','.join(clash)]),
- #       head='\t'.join(['docked_ligand','crystal_ligand','overlap_ratio','overlap_status']),
- #       lock=lock)
+
     return position_clash
 
-def detect_overlap(ligand_path):
+def overlap_with_ligands(ligand_path):
     """
     if docked result overlap with other crystal ligands
     splited from the same receptor
@@ -295,7 +287,7 @@ def detect_overlap(ligand_path):
     ligand_name = os.path.basename(ligand_path).split('.')[0]
 
 
-    crystal_ligand, similar_ligands = get_similar_ligands(ligand_path)
+    crystal_ligand, similar_ligands = _get_similar_ligands(ligand_path)
     if len(similar_ligands) == 0:
         log("overlap_ligand_skip.log",
             "{}, doesn't have similar ligands".format(ligand_name),
@@ -303,7 +295,7 @@ def detect_overlap(ligand_path):
 
     position_clash = None
     for lig_path, similarity, finger_print in similar_ligands:
-        cur_position_clash = calculate_clash(ligand_path, lig_path, similarity)
+        cur_position_clash = overlap_with_ligand(ligand_path, lig_path, similarity, finger_print)
         if position_clash == None:
             position_clash = cur_position_clash
         else:
@@ -362,10 +354,10 @@ def calculate_rmsd(ligand_path):
     """
 
     ligand_path = ligand_path.strip()
-    ligand_name = ligand_name_of(ligand_path)
+    ligand_name = _ligand_name_of(ligand_path)
 
     receptor, lig, resid, _ = ligand_name.split('_')
-    crystal_ligands = get_same_ligands(ligand_path)
+    crystal_ligands = _get_same_ligands(ligand_path)
 
     try:
         docked_coords = prody.parsePDB(ligand_path).select('not hydrogen').getCoordsets()
@@ -377,12 +369,12 @@ def calculate_rmsd(ligand_path):
             
             data = []
             for i,rd in enumerate(rmsd):
-                datum = [ligand_name, ligand_name_of(crystal_ligand), i+1, rd ]
+                datum = [ligand_name, _ligand_name_of(crystal_ligand), i + 1, rd]
                 data.append(datum)
 
             db.insert_or_replace('rmsd',data)
 
-            data = [ligand_name, ligand_name_of(crystal_ligand), 1, 'success']
+            data = [ligand_name, _ligand_name_of(crystal_ligand), 1, 'success']
             data = [data]
             db.insert_or_replace('rmsd_state',data)
             
@@ -390,7 +382,7 @@ def calculate_rmsd(ligand_path):
             head = ['ligand','crystal_ligand','rmsd']
 
             log('rmsd.tsv',
-                '\t'.join([ligand_name, ligand_name_of(crystal_ligand), rmsd_str]),
+                '\t'.join([ligand_name, _ligand_name_of(crystal_ligand), rmsd_str]),
                 head=','.join(head))
 
     except Exception as e:
@@ -408,7 +400,7 @@ def calculate_native_contact(ligand_path):
     :return: 
     """
     ligand_path = ligand_path.strip()
-    ligand_name = ligand_name_of(ligand_path)
+    ligand_name = _ligand_name_of(ligand_path)
     print ligand_name
     
     receptor, res_name, res_id, _  = ligand_name.split('_')
@@ -416,7 +408,7 @@ def calculate_native_contact(ligand_path):
     crystal_ligand_path = os.path.join(crystal_ligand_dir,'_'.join([receptor, res_name, res_id, 'ligand.pdb']) )
 
 
-    receptor_path = receptor_path_of(ligand_path)
+    receptor_path = _receptor_path_of(ligand_path)
 
     try:
         parsed_ligands = prody.parsePDB(ligand_path).select('not hydrogen')
@@ -465,7 +457,7 @@ def calculate_native_contact(ligand_path):
         
         data = []
         for i, nts in enumerate(num_native_contact):
-            datum = [ligand_name, i+1, nts[0], nts[1]]
+            datum = [ligand_name, i+1, nts]
             data.append(datum)
 
         
@@ -475,17 +467,14 @@ def calculate_native_contact(ligand_path):
         data = []
         for i in range(len(num_native_contact)):
             data.append(','.join([ligand_name, str(ligand_atom_num)  ,str(i+1)]+ list(num_native_contact[i].astype(int).astype(str))))
-            #log("native_contact.csv", ','.join([ligand_name, str(ligand_atom_num)  ,str(i+1)]+ list(num_native_contact[i].astype(int).astype(str))), head=','.join(head))
-            #log("ratio_native_contact.csv", ','.join([ligand_name, str(i+1)]+ list(ratio_native_contact[i].astype(str))), head=','.join(head))
+
         log('native_contact.csv', data, head= ','.join(head))
 
             
     except Exception as e:
         log('native_contact_failed.csv',
-            '{},{},{}'.format(receptor_of(ligand_name), ligand_name, str(e)),
+            '{},{},{}'.format(_receptor_of(ligand_name), ligand_name, str(e)),
             head=','.join(['receptor','ligand','exception']))
-
-
 
 def add_hydrogen(input_dir, output_dir, input_file):
     """
@@ -495,9 +484,29 @@ def add_hydrogen(input_dir, output_dir, input_file):
         input_file = input_file.strip()
         output_file = input_file.replace(input_dir, output_dir)
         if not os.path.exists(os.path.dirname(output_file)):
-            mkdir(os.path.dirname(output_file))
+            _mkdir(os.path.dirname(output_file))
         if not os.path.exists(output_file):
             cmd = 'obabel -ipdb {} -opdb -O {} -h'.format(input_file, output_file)
+            os.system(cmd)
+    except Exception as e:
+        print e
+
+def minimize(input_dir, output_dir, input_file):
+    """
+    
+    :param input_dir: 
+    :param output_dir: 
+    :param input_file: 
+    :return: 
+    """
+
+    try:
+        input_file= input_file.strip()
+        output_file = input_file.replace(input_dir, output_dir)
+        if not os.path.exists(os.path.dirname(output_file)):
+            _mkdir(os.path.dirname(output_file))
+        if not os.path.exists(output_file):
+            cmd = 'obminimize -cg -ff MMFF94 -h -n 500 -o pdb %s > %s'%(input_file, output_file)
             os.system(cmd)
     except Exception as e:
         print e
@@ -505,11 +514,11 @@ def add_hydrogen(input_dir, output_dir, input_file):
 
 def smina_dock(input_dir, output_dir, smina_pm, ligand_path):
     """
-    dock ligands
+    dock ligands by smina
     """
     ligand_path = ligand_path.strip()
-    ligand_name = ligand_name_of(ligand_path)
-    receptor_path = receptor_path_of(ligand_path)
+    ligand_name = _ligand_name_of(ligand_path)
+    receptor_path = _receptor_path_of(ligand_path)
     receptor_name = ligand_name.split('_')[0]
 
     docked_ligand_name = os.path.basename(ligand_path).replace('ligand', smina_pm.name)
@@ -525,13 +534,15 @@ def smina_dock(input_dir, output_dir, smina_pm, ligand_path):
     if os.path.exists(docked_ligand_path):
         pass
     if not os.path.exists(docked_ligand_path):
-        mkdir(os.path.dirname(docked_ligand_path))
+        _mkdir(os.path.dirname(docked_ligand_path))
         cmd = smina_pm.make_command(**kw)
         #print cmd
         os.system(cmd)
         
-        c_cmd = 'wc -l'
-
+        if count_lines(docked_ligand_path):
+            data = [ligand_name, 1, 'success']
+            data = [data]
+            db.insert_or_replace('dock_state',data)
 
 def clean_empty_ligand(ligand_path):
     """
@@ -540,17 +551,19 @@ def clean_empty_ligand(ligand_path):
     """
 
     ligand_path = ligand_path.strip()
-    ligand_name = ligand_name_of(ligand_path)
+    ligand_name = _ligand_name_of(ligand_path)
     
     if not count_lines(ligand_path):
         cmd = 'rm %s' % ligand_path
         os.system(cmd)
         data = [ligand_name, 0, 'empty']
+        data = [data]
         db.insert_or_replace('dock_state',data)
 
-  
+
+
 @profile
-def run(target_list, func):
+def run_multiprocess(target_list, func):
     func(target_list[3])
     pool = multiprocessing.Pool(config.process_num)
     pool.map_async(func, target_list)
@@ -564,91 +577,101 @@ def main():
     if FLAGS.download:
         print "Downloading pdb from rcsb..."
         download_list = open(config.list_of_PDBs_to_download).readline().strip().split(', ')
-        mkdir(config.pdb_download_path)
-        run(download_list, download_pdb)
+        _mkdir(config.pdb_download_path)
+        run_multiprocess(download_list, download_pdb)
     if FLAGS.split:
         print "Spliting receptor and ligand..."
         structure_list = glob(os.path.join(config.pdb_download_path, '*.pdb'))
-        mkdir(config.splited_receptors_path)
-        run(structure_list, split_structure)
-    if FLAGS.reorder:
+        _mkdir(config.splited_receptors_path)
+        run_multiprocess(structure_list, split_structure)
+
+    if FLAGS.vinardo_dock or FLAGS.smina_dock:
         print "Reorder ligands atom..."
-        smina_pm = smina_param()
-        smina_pm.ser_smina(config.smina)
-        smina_pm.set_name('reorder')
+
+        if FLAGS.vinardo_dock:
+            base_out_dir = config.vinardo_docked_path
+        elif FLAGS.smina_dock:
+            base_out_dir = config.smina_docked_path
+
+        smina_pm = smina_param('reorder')
         smina_pm.load_param(*config.reorder_pm['arg'], **config.reorder_pm['kwarg'])
 
-
         ligands_list = glob(os.path.join(config.splited_ligands_path, '*', '*.pdb'))
-        input_dir = config.splited_ligand_path.rstrip('/')
-        run(ligands_list, reorder_ligand)
-    
+        input_dir = config.splited_ligands_path.rstrip('/')
+        output_dir = os.path.join(base_out_dir, 'crystal_ligands')
+        output_dir = output_dir.rstrip('/')
+
+        run_multiprocess(ligands_list, partial(reorder_ligand, input_dir, output_dir, smina_pm))
 
     if FLAGS.rotbond:
         print "Counting rotable bonds..."
         ligands_list = glob(os.path.join(config.splited_ligands_path, '*', '*.pdb'))
-        run(ligands_list, count_rotable_bond)
+        run_multiprocess(ligands_list, count_rotable_bond)
 
     if FLAGS.cleanempty:
         print "Cleaning empty docking result"
         ligands_list = glob(os.path.join(config.vinardo_docked_path,'docked_ligands' , '*' ,'*.pdb'))
-        run(ligands_list, clean_empty_ligand)
+        run_multiprocess(ligands_list, clean_empty_ligand)
 
     if FLAGS.overlap:
         print "Overlap detecting..."
         ligands_list = glob(os.path.join(config.vinardo_docked_path,'docked_ligands', '*', '*.pdb'))
-        #ligands_list = ['/home/xander/affinityDB/data/vinardo/1a0b/1a0b_ZN_117_vinardo.pdb']
-        run(ligands_list, detect_overlap)
+        run_multiprocess(ligands_list, overlap_with_ligands)
 
     if FLAGS.rmsd:
         print "Calculating rmsd..."
         ligands_list = glob(os.path.join(config.vinardo_docked_path,'docked_ligands', '*', '*.pdb'))
-        run(ligands_list, calculate_rmsd)
+        run_multiprocess(ligands_list, calculate_rmsd)
 
     if FLAGS.contact:
         print "Calculating native contact between receptor and ligand..."
         ligands_list = glob(os.path.join(config.vinardo_docked_path,'docked_ligands', '*', '*.pdb'))
-        run(ligands_list, calculate_native_contact)
-        #print "Calculating native contact between ligands..."
-        #run(ligands_list, ligands_pair_native_contact)
+        run_multiprocess(ligands_list, calculate_native_contact)
+
 
     if FLAGS.addh:
         print "Add Hydrogens to receptor..."
         receptors_list = glob(os.path.join(config.splited_receptors_path,'*.pdb'))
         input_dir = config.splited_receptors_path.rstrip('/')
         output_dir = input_dir + '_hydrogens'
-        run(receptors_list,partial(add_hydrogen, input_dir, output_dir))
+        run_multiprocess(receptors_list, partial(add_hydrogen, input_dir, output_dir))
 
         print "Add Hydrogens to original ligands ..."
         ligands_list = glob(os.path.join(config.splited_ligands_path,'*','*.pdb'))
         input_dir = config.splited_ligands_path.rstrip('/')
         output_dir = input_dir + '_hydrogens'
-        run(ligands_list, partial(add_hydrogen, input_dir, output_dir))
+        run_multiprocess(ligands_list, partial(add_hydrogen, input_dir, output_dir))
 
         print "Add Hydrogens to smina ligands ..."
         ligands_list = glob(os.path.join(config.smina_std_path,'*','*.pdb'))
         input_dir = config.smina_std_path.rstrip('/')
         output_dir = input_dir + '_hydrogens'
-        run(ligands_list, partial(add_hydrogen, input_dir, output_dir))
+        run_multiprocess(ligands_list, partial(add_hydrogen, input_dir, output_dir))
 
-    if FLAGS.vinardo:
-        print "Reorder ligands atom..."
-        smina_pm = smina_param()
-        smina_pm.set_smina(config.smina)
-        smina_pm.set_name('reorder')
-        smina_pm.load_param(*config.reorder_pm['arg'], **config.reorder_pm['kwarg'])
+    if FLAGS.minimize:
+        print "Minimize receptor..."
+        receptors_list = glob(os.path.join(config.splited_receptors_path,'*.pdb'))
+        input_dir = config.splited_receptors_path.rstrip('/')
+        output_dir = input_dir + '_minimize'
+        run_multiprocess(receptors_list, partial(minimize, input_dir, output_dir))
 
-
-        ligands_list = glob(os.path.join(config.splited_ligands_path, '*', '*.pdb'))
+        print "Minimize to original ligands ..."
+        ligands_list = glob(os.path.join(config.splited_ligands_path,'*','*.pdb'))
         input_dir = config.splited_ligands_path.rstrip('/')
-        output_dir = os.path.join(config.vinardo_docked_path,'crystal_ligands')
-        output_dir = output_dir.rstrip('/')
-        run(ligands_list, partial(reorder_ligand, input_dir, output_dir, smina_pm))
+        output_dir = input_dir + '_minimize'
+        run_multiprocess(ligands_list, partial(minimize, input_dir, output_dir))
+
+        print "Minimize to smina ligands ..."
+        ligands_list = glob(os.path.join(config.smina_std_path,'*','*.pdb'))
+        input_dir = config.smina_std_path.rstrip('/')
+        output_dir = input_dir + '_minimize'
+        run_multiprocess(ligands_list, partial(minimize, input_dir, output_dir))
+
+
+    if FLAGS.vinardo_dock:
 
         print "Smina Vinardo dokcing..."
-        smina_pm = smina_param()
-        smina_pm.set_smina(config.smina)
-        smina_pm.set_name('vinardo')
+        smina_pm = smina_param('vinardo')
         smina_pm.load_param(*config.vinardo_pm['arg'],**config.vinardo_pm['kwarg'])
 
         ligands_list = glob(os.path.join(config.splited_ligands_path,'*','*.pdb'))
@@ -656,15 +679,20 @@ def main():
         output_dir = os.path.join(config.vinardo_docked_path,'docked_ligands')
         output_dir = output_dir.rstrip('/')
 
-        run(ligands_list, partial(smina_dock, input_dir, output_dir, smina_pm))
+        run_multiprocess(ligands_list, partial(smina_dock, input_dir, output_dir, smina_pm))
 
+
+
+    if FLAGS.export:
+        db.export()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Database Create Option")
 
     parser.add_argument('--download', action='store_true')
     parser.add_argument('--split', action='store_true')
-    parser.add_argument('--vinardo', action='store_true')
+    parser.add_argument('--vinardo_dock', action='store_true')
+    parser.add_argument('--smina_dock', action='store_true')
     parser.add_argument('--rotbond', action='store_true')
     parser.add_argument('--reorder', action='store_true')
     parser.add_argument('--overlap', action='store_true')
@@ -673,6 +701,6 @@ if __name__ == '__main__':
     parser.add_argument('--addh', action='store_true')
     parser.add_argument('--initdb', action='store_true')
     parser.add_argument('--cleanempty', action='store_true')
-    #parser.add_argument('--dock', action='store_true')
+    parser.add_argument('--export',action='store_true')
     FLAGS, unparsed = parser.parse_known_args()
     main()

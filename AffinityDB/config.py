@@ -48,22 +48,22 @@ process_num = 1
 # [x] 1) Fraction of native contacts does not work
 # [ ] 2) similarity cutoff, fraction of native contacts, clash -- all should have a similar simple format
 # [x] 3) reorder should become a part of every docking algorithm
-# [ ] 4) get_same_ligands becomes standalone
-# [ ] 5) ligand_name_of becomes _ligand_name_of same for receptor_of, receptor_path_of, mkdir, run ---> run_multiptocessor
-# [ ] 6) calculate_clash becomes a part of detect_overlap
+# [x] 4) get_same_ligands becomes standalone
+# [x] 5) ligand_name_of becomes _ligand_name_of same for receptor_of, receptor_path_of, mkdir, run ---> run_multiptocessor
+# [-] 6) calculate_clash becomes a part of detect_overlap
 # [x] 7) dock merges with VInardo_do_docking
-# [-] 8) Empty files + broken file check (have a log file to do the stop so as to be able to resume from any point )
-# [ ] broken file is unless "success is written in log"
+# [x] 8) Empty files + broken file check (have a log file to do the stop so as to be able to resume from any point )
+# [x] broken file is unless "success is written in log"
 
 # Enhancements
 # [ ] 0) Dependencies into README.md
 # [x] 1) rename into 1_download, 2_split, 3_docking
-# [ ] 2) split_structure needs medhod (IE: NMR,X-RAY)
+# [x] 2) split_structure needs medhod (IE: NMR,X-RAY)
 
 # 3) More splitting statistics
-# let's also write a number of receptor atoms when splitting
-# and the number of receptor chains when splitting
-# number of receptor residues when splitting
+# [x] let's also write a number of receptor atoms when splitting
+# [ ] and the number of receptor chains when splitting
+# [x] number of receptor residues when splitting
 
 # 4) write a script that will gether all of the logs together and create many plots about the data in python notebook
 # Statistics about the PDB in README.md with all of the plots
@@ -98,12 +98,14 @@ splited_receptors_path = os.path.join(database_root,'data','2_row_receptors')
 # splited ligands
 splited_ligands_path = os.path.join(database_root,'data','3_row_ligands')
 # log files
-log_folder = os.path.join(database_root,'log')
-
-# ligands docked by smina , scoring function: default
-smina_docked_path = os.path.join(database_root, 'data','5_smina')
+log_dir = os.path.join(database_root, 'log')
+# csv files
+table_dir = os.path.join(database_root, 'table')
 # ligands docked by smina , scoring function: vinardo                       # will c
-vinardo_docked_path = os.path.join(database_root, 'data','4_vinardo')
+vinardo_docked_path = os.path.join(database_root, 'data','4_vinardo_dock')
+# ligands docked by smina , scoring function: default
+smina_docked_path = os.path.join(database_root, 'data','5_smina_dock')
+
 
 
 

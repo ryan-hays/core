@@ -99,9 +99,9 @@ def log(log_file, log_content, head=None, lock=None):
     if isinstance(log_content, str):
         log_content = [log_content]
 
-    mkdir(config.log_folder)
+    mkdir(config.log_dir)
 
-    log_file_path = os.path.join(config.log_folder, log_file)
+    log_file_path = os.path.join(config.log_dir, log_file)
     if not os.path.exists(log_file_path) and not head is None:
         with open(log_file_path, 'w') as fout:
             fout.write(head+'\n')
@@ -169,8 +169,11 @@ class smina_param:
         'version'
     ]
 
-    def __init__(self):
-        pass
+    def __init__(self, name=None):
+        self.smina = config.smina
+
+        if not name is None:
+            self.name = name
         
     def set_smina(self, smina):
         self.smina = smina
