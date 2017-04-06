@@ -14,10 +14,9 @@ lock = manager.Lock()
 Parameter
 """
 db_name='affinity.db'
-# only ligands' atom number above threshold will saved
-heavy_atom_threshold = 0
+
 # number of process running at the same time
-process_num = 1
+process_num = 8
 
 
 # RENAMES:
@@ -29,14 +28,14 @@ process_num = 1
 # [x] downloads          # raw_pdbs
 # [x] receptors          # raw_receptors
 # [x] raw_ligands
-# [-] docked_ligand_path # SMINA_DOCKED ?? 
+# [x] docked_ligand_path # SMINA_DOCKED ?? 
 # [x] docking parameters
- 
+
 # [x] target_list_file     list_of_PDBs_to_download
 # [x] lig_target_list_file (Not needed)
  
 # [x] add folder for repaired ligands and proteins (with H)
-# [ ] add folder for minimized hydrogens on ligands and proteins (How does the hydrogen addition happen)
+# [x] add folder for minimized hydrogens on ligands and proteins (How does the hydrogen addition happen)
 # [x] think how we can deal with multiple docking parameters
 
 
@@ -62,13 +61,12 @@ process_num = 1
 
 # 3) More splitting statistics
 # [x] let's also write a number of receptor atoms when splitting
-# [ ] and the number of receptor chains when splitting
+# [x] and the number of receptor chains when splitting
 # [x] number of receptor residues when splitting
 
-# 4) write a script that will gether all of the logs together and create many plots about the data in python notebook
+# 4) write a script that will aether all of the logs together and create many plots about the data in python notebook
 # Statistics about the PDB in README.md with all of the plots
 # def crystal_ligand_for_same_receptor
-
 
 # 5) Write the script that will do a retrieval based on 4 and write the structures in av4 format
 
@@ -88,23 +86,25 @@ Folders
 # the path for this script config.py
 script_path = sys.path[0]
 #base folder for all the output
-database_root = '/home/xander/affinityDB/test'
+database_root = '/home/xander/affinityDB/test2'
 
 db_path =os.path.join(database_root, db_name)
 # pdb download from Protein DataBank
-pdb_download_path = os.path.join(database_root,'data','1_row_pdb')
+pdb_download_path = os.path.join(database_root,'data','1_download')
+
+splited_path = os.path.join(database_root, 'data','2_splited')
 # splited receptor
-splited_receptors_path = os.path.join(database_root,'data','2_row_receptors')
+splited_receptors_path = os.path.join(splited_path,'receptors')
 # splited ligands
-splited_ligands_path = os.path.join(database_root,'data','3_row_ligands')
+splited_ligands_path = os.path.join(splited_path, 'ligands')
 # log files
 log_dir = os.path.join(database_root, 'log')
 # csv files
 table_dir = os.path.join(database_root, 'table')
 # ligands docked by smina , scoring function: vinardo                       # will c
-vinardo_docked_path = os.path.join(database_root, 'data','4_vinardo_dock')
+vinardo_docked_path = os.path.join(database_root, 'data','3_vinardo_dock')
 # ligands docked by smina , scoring function: default
-smina_docked_path = os.path.join(database_root, 'data','5_smina_dock')
+smina_docked_path = os.path.join(database_root, 'data','4_smina_dock')
 
 
 

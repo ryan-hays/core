@@ -25,9 +25,9 @@ tables = {
         OrderedDict([('ligand','text'),('rotable_bond','ingeter')]),
         ['ligand']]),
 
-    'resolution':table(*['resolution',
-        OrderedDict([('pdb','text'),('experiment','text'),('resolution','real')]),
-        ['pdb']]),
+    'reorder_state':table(*['reorder_state',
+        OrderedDict([('ligand','text'),('dock_type','text'),('state','integer'),('comment','text')]),
+        ['ligand','dock_type']]),
 
     'split_state':table(*['split_state',
         OrderedDict([('pdb','text'),('state','integer'),('comment','text')]),
@@ -36,7 +36,7 @@ tables = {
     'similarity':table(*['similarity',
         OrderedDict([('ligand_a','text'),('ligand_b','text'),('finger_print','text'),
             ('similarity','real')]),
-        ['ligand_a,ligand_b']]),
+        ['ligand_a','ligand_b']]),
 
     'overlap':table(*['overlap',
         OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),
@@ -45,9 +45,9 @@ tables = {
         ['docked_ligand', 'crystal_ligand', 'position','finger_print','cutoff_A']]),
 
     'overlap_state':table(*['overlap_state',
-        OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),
+        OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),('finger_print','text'),
             ('state','integer'),('comment','text')]),
-        ['docked_ligand','crystal_ligand']]),
+        ['docked_ligand','crystal_ligand','finger_print']]),
 
     'rmsd':table(*['rmsd',
         OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),
@@ -57,7 +57,7 @@ tables = {
     'rmsd_state':table(*['rmsd_state',
         OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),
             ('state','integer'),('comment','text')]),
-        ['docked_ligand, crystal_ligand']]),
+        ['docked_ligand', 'crystal_ligand']]),
 
     'native_contact':table(*['native_contact',
         OrderedDict([('docked_ligand','text'),('position','integer'),
@@ -74,7 +74,16 @@ tables = {
     'dock_state':table(*['dock_state',
         OrderedDict([('docked_ligand','text'),('state','integer'),
             ('comment','text')]),
-            ['docked_ligand']])
+            ['docked_ligand']]),
+
+    'add_hydrogens_state': table(*['add_hydrogens_state',
+        OrderedDict([('name','text'),('identifier','text'),
+            ('state','integer'),('comment','success')]),
+        ['name','identifier']]),
+    'minimize_state': table(*['minimize_state',
+        OrderedDict([('name','text'),('identifier','text'),
+            ('state','integer'),('comment','success')]),
+        ['name','identifier']])
 }
 
 class database:
@@ -137,11 +146,11 @@ class database:
         db_value = lambda x:'"%s"' % x if type(x).__name__ == 'str' else str(x)
 
         db_values = [ map(db_value, value) for value in values ]
-        print db_values
+        #print db_values
 
         sql_values = [ '(' + ','.join(value) + ')' for value in db_values ]
 
-        print sql_values
+        #print sql_values
         stmt = 'REPLACE INTO ' + tabel + ' '
         if not head is None:
             stmt += '('+ ','.join(head) + ')'
@@ -149,7 +158,7 @@ class database:
         stmt += ','.join(sql_values)
         stmt += ';'
 
-        print stmt
+        #print stmt
 
         if not self.connect:
             self.connect_db()
@@ -161,17 +170,16 @@ class database:
         self.conn.commit()
 
     @lockit
-    def insert_or_ignore(self, tabel, values, head):
-
+    def insert_or_ignore(self, tabel, values, head=None):
 
         db_value = lambda x: '"%s"' % x if type(x).__name__ == 'str' else str(x)
 
         db_values = [map(db_value, value) for value in values]
-        print db_values
+        #print db_values
 
         sql_values = ['(' + ','.join(value) + ')' for value in db_values]
 
-        print sql_values
+        #print sql_values
         stmt = 'INSERT OR IGNORE INTO ' + tabel + ' '
         if not head is None:
             stmt += '(' + ','.join(head) + ')'
@@ -179,7 +187,7 @@ class database:
         stmt += ','.join(sql_values)
         stmt += ';'
 
-        print stmt
+        #print stmt
 
         if not self.connect:
             self.connect_db()
@@ -189,6 +197,57 @@ class database:
             print e
 
         self.conn.commit()
+
+    def get_all_success(self, table_name):
+        
+        columns = self.tables[table_name].columns.keys()[:-2]
+        columns = ','.join(columns)
+        
+        stmt = 'select ' + columns + ' from ' + table_name
+        stmt += ' where state = 1 ;'
+
+        print stmt
+
+        cursor = self.conn.cursor()
+        cursor.execute(stmt)
+        # fetch all result is a list of tuple
+        values = cursor.fetchall()
+        values = map(lambda x:list(x), values)
+
+        return values
+        
+    def if_success(self, table_name, values):
+        """
+        find if there's success record in _state table
+                
+        """
+
+        db_value = lambda x: '"%s"' % x if type(x).__name__ == 'str' else str(x)
+
+        
+        db_values = map(db_value, values)
+        
+        columns = self.tables[table_name].primary_key
+
+        print columns
+
+        cond = map(lambda (col,val) : '%s=%s' % (col,val), zip(columns, db_values))
+        cond.append('state=1')
+
+        stmt = 'select count(*) from ' + table_name
+        stmt += ' where ' + ' and '.join(cond) + ';'
+        print stmt
+
+        cursor = self.conn.cursor()
+        cursor.execute(stmt)
+        #fetch one will return tuple like (3,)
+        values = cursor.fetchone()[0]
+
+        print values
+
+        return values
+
+
 
     def create_table(self):
         
@@ -233,9 +292,9 @@ class database:
         """
 
         cursor = self.conn.cursor()
-        for tab in self.tables:
+        for tab in self.tables.values():
             table_path = os.path.join(self.export_dir, tab.name+'.csv')
-            os.system('mkdir -p %s' % os.path.dirname(table_path))
+            os.system('mkdir -p %s' % self.export_dir)
 
             cursor.execute('SELECT * FROM %s' % tab.name)
             with open(table_path,'w') as fout:

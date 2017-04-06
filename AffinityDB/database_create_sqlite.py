@@ -30,6 +30,7 @@ db = database()
 _mkdir = lambda path: os.system('mkdir -p {}'.format(path))
 _ligand_name_of = lambda x:os.path.basename(x).split('.')[0]
 _receptor_of = lambda x:os.path.basename(x).split('_')[0]
+_name_of = lambda x:os.path.basename(x).split('.')[0]
 _receptor_path_of = lambda x:os.path.join(config.splited_receptors_path, _receptor_of(x) + '.pdb')
 
 
@@ -65,7 +66,7 @@ def split_structure(pdb_path):
     hetero = parsed.select(
         '(hetero and not water) or resname ATP or resname ADP or resname AMP or resname GTP or resname GDP or resname GMP')
 
-    receptor = parsed.select('protein or nucleic')
+    receptor = parsed.select('protein or nucleic ')
     if receptor is None:
         data = [pdb_name, 0, "No receptor found"]
         data = [data]
@@ -76,7 +77,7 @@ def split_structure(pdb_path):
         data = [pdb_name, 0, "No ligand found"]
         data = [[data]]
         db.insert_or_replace('split_state',data)
-        log("select_failed.log", "No ligand found")
+        #log("select_failed.log", "No ligand found")
         return
 
     # write ligand into file
@@ -93,9 +94,9 @@ def split_structure(pdb_path):
         data = ["{}_{}_{}".format(pdb_name, ResName, ResId), atom_num]
         data = [data]
         db.insert_or_replace('ligand_atom_num',data)
-        log('atom_num.csv',
-            "{}_{}_{},{}".format(pdb_name, ResName, ResId, atom_num),
-            head='ligand,atom_num')
+        #log('atom_num.csv',
+        #    "{}_{}_{},{}".format(pdb_name, ResName, ResId, atom_num),
+        #    head='ligand,atom_num')
 
     receptor_path = os.path.join(config.splited_receptors_path, pdb_name + '.pdb')
     prody.writePDB(receptor_path, receptor)
@@ -108,24 +109,17 @@ def split_structure(pdb_path):
         data = [pdb_name, header['experiment'], header['resolution'], receptor_atom_num ,len(header['chemicals']), len(header['biomoltrans']['1'][0])]
         data = [data]
         db.insert_or_replace('receptor_info', data)
-        log('resolution.csv',
-            '{},{}'.format(pdb_name, header['resolution']),
-            head='pdb,resolution')
-
 
     except Exception as e:
         data = [pdb_name, 0, str(e)]
         data = [data]
         db.insert_or_replace('split_state', data)
-        log('parse_header_failed.log',
-            '{},{}'.format(pdb_name, str(e)))
+        return
 
     data = [pdb_name, 1, 'success']
     data = [data]
     db.insert_or_replace('split_state',data)
-    log('success_split_pdb.log',
-        '{},success'.format(pdb_name),
-        head='pdb,status')
+
 
 def reorder_ligand(input_dir, output_dir, smina_pm, ligand_path):
     """
@@ -148,10 +142,12 @@ def reorder_ligand(input_dir, output_dir, smina_pm, ligand_path):
         'out'     :out_ligand_path
     }
 
-    if not os.path.exists(out_ligand_path):
+    if not db.if_success('reorder_state',[ligand_name, smina_pm.name]):
+        print 'reorder %s not success, try again...' % ligand_name
+    #if not os.path.exists(out_ligand_path):
         _mkdir(os.path.dirname(out_ligand_path))
         cmd = smina_pm.make_command(**kw)
-        
+
         cl = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         cl.wait()
         cont = cl.communicate()[0].strip().split('\n')
@@ -164,7 +160,11 @@ def reorder_ligand(input_dir, output_dir, smina_pm, ligand_path):
         data = [data]
         db.insert_or_replace('scoring_terms',data,head)
 
-def _get_similar_ligands(ligand_path, finger_print='FP4'):
+        data = [ligand_name, smina_pm.name, 1, 'success']
+        data = [data]
+        db.insert_or_replace('reorder_state',data)
+
+def _get_similar_ligands(ligand_path, finger_print):
     """
     calculate tanimoto similarity
     return the ligands with similarty > config.tanimoto_cutoff
@@ -185,19 +185,24 @@ def _get_similar_ligands(ligand_path, finger_print='FP4'):
 
     similar_ligands = []
     for lig_path in ligands_for_same_receptor:
-        cmd = 'babel -d {} {} -ofpt -xf{}'.format(ligand_path, lig_path, finger_print)
+        cmd = 'babel -d {} {} -ofpt -xf{}'.format(crystal_ligand, lig_path, finger_print)
         ls = os.popen(cmd).read()
         tanimoto_similarity = re.split('=|\n', ls)[2]
 
-        lig_pair = [_ligand_name_of(ligand_path), _ligand_name_of(lig_path)]
+        try:
+            float(tanimoto_similarity)
+        except:
+            continue
+
+        lig_pair = [_ligand_name_of(crystal_ligand), _ligand_name_of(lig_path)]
         lig_pair = lig_pair if lig_pair[0]<lig_pair[1] else [lig_pair[1],lig_pair[0]]
 
         data = lig_pair + [finger_print, tanimoto_similarity]
         data = [data]
         db.insert_or_replace('similarity',data)
-        log('tanimoto_similarity.csv',
-            '{},{},{}'.format(_ligand_name_of(ligand_path), _ligand_name_of(lig_path), tanimoto_similarity),
-            head='lig_a,lig_b,finger_print, tanimoto')
+        #log('tanimoto_similarity.csv',
+        #    '{},{},{}'.format(_ligand_name_of(ligand_path), _ligand_name_of(lig_path), tanimoto_similarity),
+        #    head='lig_a,lig_b,finger_print, tanimoto')
         if tanimoto_similarity > config.tanimoto_cutoff:
             similar_ligands.append([lig_path, tanimoto_similarity, finger_print])
 
@@ -242,6 +247,11 @@ def overlap_with_ligand(docked_ligand, crystal_ligand, similarity, finger_print)
             head='ligand,exception')
         return
 
+    data = [_ligand_name_of(docked_ligand), _ligand_name_of(crystal_ligand), finger_print]
+    if db.if_success('overlap_state',data):
+        print '%s %s overlap already' % (data[0], data[1])
+        return 
+
     expanded_docked = np.expand_dims(docked, -2)
     diff = expanded_docked - crystal
     distance = np.sqrt(np.sum(np.power(diff, 2), axis=-1))
@@ -260,21 +270,14 @@ def overlap_with_ligand(docked_ligand, crystal_ligand, similarity, finger_print)
 
     db.insert_or_replace('overlap',data)
 
-    head = ['docked_ligand','crystal_ligand','similarity','positon','precent_of_overlaping_atom']
-    data = []
-    datum = [_ligand_name_of(docked_ligand), _ligand_name_of(crystal_ligand), str(similarity)]
-    for i, pcr in enumerate(position_clash_ratio):
-        data.append(','.join(datum+[str(i+1), str(pcr)]))
-    
-    
-    log("ligand_pair_overlap.csv",
-        data,
-        head = ','.join(head))
+    data = [_ligand_name_of(docked_ligand), _ligand_name_of(crystal_ligand),finger_print ,1,'success']
+    data = [data]
+    db.insert_or_replace('overlap_state',data)
     
 
     return position_clash
 
-def overlap_with_ligands(ligand_path):
+def overlap_with_ligands(ligand_path, finger_print='FP4'):
     """
     if docked result overlap with other crystal ligands
     splited from the same receptor
@@ -286,8 +289,12 @@ def overlap_with_ligands(ligand_path):
     ligand_path = ligand_path.strip()
     ligand_name = os.path.basename(ligand_path).split('.')[0]
 
+    if not db.if_success('dock_state',[ligand_name]):
+        print "%s doesn't docked correctly" % ligand_name
+        return 
 
-    crystal_ligand, similar_ligands = _get_similar_ligands(ligand_path)
+
+    crystal_ligand, similar_ligands = _get_similar_ligands(ligand_path, finger_print)
     if len(similar_ligands) == 0:
         log("overlap_ligand_skip.log",
             "{}, doesn't have similar ligands".format(ligand_name),
@@ -296,19 +303,19 @@ def overlap_with_ligands(ligand_path):
     position_clash = None
     for lig_path, similarity, finger_print in similar_ligands:
         cur_position_clash = overlap_with_ligand(ligand_path, lig_path, similarity, finger_print)
-        if position_clash == None:
-            position_clash = cur_position_clash
-        else:
-            position_clash += cur_position_clash
+        #if position_clash == None:
+        #    position_clash = cur_position_clash
+        #else:
+        #    position_clash += cur_position_clash
 
     #print similar_ligands
-    clash = list(position_clash.astype(int).astype(str))
-    clash_ratio = sum(position_clash.astype(float))/len(position_clash)
+    #clash = list(position_clash.astype(int).astype(str))
+    #clash_ratio = sum(position_clash.astype(float))/len(position_clash)
 
     
-    log("overlap.tsv",
-        '\t'.join([ligand_name, str(clash_ratio), ','.join(clash)]),
-        head='\t'.join(['ligand','overlap_ratio','overlap_status']))
+    #log("overlap.tsv",
+    #    '\t'.join([ligand_name, str(clash_ratio), ','.join(clash)]),
+    #    head='\t'.join(['ligand','overlap_ratio','overlap_status']))
 
 def count_rotable_bond(ligand_path):
     """
@@ -359,10 +366,17 @@ def calculate_rmsd(ligand_path):
     receptor, lig, resid, _ = ligand_name.split('_')
     crystal_ligands = _get_same_ligands(ligand_path)
 
+    if not db.if_success('dock_state',[ligand_name]):
+        print "%s doesn't docked correctly" % ligand_name
+        return
+
     try:
         docked_coords = prody.parsePDB(ligand_path).select('not hydrogen').getCoordsets()
         for crystal_ligand in crystal_ligands:
-
+            data = [ligand_name, _ligand_name_of(crystal_ligand)]
+            if db.if_success('rmsd_state',data):
+                print "%s %s rmsd already" % (data[0], data[1])
+                continue
             crystal_coord = prody.parsePDB(crystal_ligand).select('not hydrogen').getCoords()
             rmsd = np.sqrt(np.mean(np.sum(np.square(docked_coords - crystal_coord), axis=-1), axis=-1))
 
@@ -378,13 +392,6 @@ def calculate_rmsd(ligand_path):
             data = [data]
             db.insert_or_replace('rmsd_state',data)
             
-            rmsd_str = ','.join(rmsd.astype(str))
-            head = ['ligand','crystal_ligand','rmsd']
-
-            log('rmsd.tsv',
-                '\t'.join([ligand_name, _ligand_name_of(crystal_ligand), rmsd_str]),
-                head=','.join(head))
-
     except Exception as e:
 
         log('rmsd_failed.csv',
@@ -401,8 +408,15 @@ def calculate_native_contact(ligand_path):
     """
     ligand_path = ligand_path.strip()
     ligand_name = _ligand_name_of(ligand_path)
-    print ligand_name
     
+    if not db.if_success('dock_state',[ligand_name]):
+        print "%s doesn't docked correctly" % ligand_name
+        return 
+    
+    if db.if_success('native_contact_state',[ligand_name]):
+        print "%s native contact already" % ligand_name
+        return 
+
     receptor, res_name, res_id, _  = ligand_name.split('_')
     crystal_ligand_dir = os.path.dirname(ligand_path).replace('/docked_ligands/','/crystal_ligands/')
     crystal_ligand_path = os.path.join(crystal_ligand_dir,'_'.join([receptor, res_name, res_id, 'ligand.pdb']) )
@@ -452,23 +466,20 @@ def calculate_native_contact(ligand_path):
                 num_native_contact = np.dstack((num_native_contact, contact_ratio))
 
         # after dstack shape become [1, x, y]
-        
         num_native_contact = num_native_contact[0]
         
         data = []
         for i, nts in enumerate(num_native_contact):
-            datum = [ligand_name, i+1, nts]
+            datum = [ligand_name, i+1] + list(nts)
             data.append(datum)
 
         
         db.insert_or_replace('native_contact',data)
 
-        head = ['ligand','heavy_atom_num', 'position'] + list(np.linspace(4,8,9).astype(str))
-        data = []
-        for i in range(len(num_native_contact)):
-            data.append(','.join([ligand_name, str(ligand_atom_num)  ,str(i+1)]+ list(num_native_contact[i].astype(int).astype(str))))
+        data = [ligand_name, 1, 'success']
+        data = [data]
+        db.insert_or_replace('native_contact_state',data)
 
-        log('native_contact.csv', data, head= ','.join(head))
 
             
     except Exception as e:
@@ -476,22 +487,27 @@ def calculate_native_contact(ligand_path):
             '{},{},{}'.format(_receptor_of(ligand_name), ligand_name, str(e)),
             head=','.join(['receptor','ligand','exception']))
 
-def add_hydrogen(input_dir, output_dir, input_file):
+def add_hydrogen(input_dir, output_dir, identifier ,input_file):
     """
     add hydrogens to molecule
     """
     try:
         input_file = input_file.strip()
         output_file = input_file.replace(input_dir, output_dir)
-        if not os.path.exists(os.path.dirname(output_file)):
+
+        if not db.if_success('add_hydrogens_state',[_name_of(input_file), identifier]):
             _mkdir(os.path.dirname(output_file))
-        if not os.path.exists(output_file):
             cmd = 'obabel -ipdb {} -opdb -O {} -h'.format(input_file, output_file)
             os.system(cmd)
+
+            if count_lines(output_file):
+                data = [_name_of(input_file), identifier, 1, 'success']
+                data = [data]
+                db.insert_or_replace('add_hydrogens_state',data)
     except Exception as e:
         print e
 
-def minimize(input_dir, output_dir, input_file):
+def minimize_hydrogens(input_dir, output_dir, identifier, input_file):
     """
     
     :param input_dir: 
@@ -501,15 +517,42 @@ def minimize(input_dir, output_dir, input_file):
     """
 
     try:
-        input_file= input_file.strip()
+        import openbabel as ob
+        input_file = input_file.strip()
         output_file = input_file.replace(input_dir, output_dir)
-        if not os.path.exists(os.path.dirname(output_file)):
+
+        data = [_name_of(input_file), identifier]
+        if not db.if_success('minimize_state',data):
+            conv = ob.OBConversion()
+            mol = ob.OBMol()
+            conv.ReadFile(mol,input_file)
+            mol.AddHydrogens()
+
+            heavy_atoms = [ atom for atom in ob.OBMolAtomIter(mol) if not atom.IsHydrogen()]
+
+            print "number of heavy atoms ",len(heavy_atoms)
+            print "number of atoms ",len(list(ob.OBMolAtomIter(mol)))
+            heavy_atoms_idx = [ atom.GetId() for atom in heavy_atoms ]
+            constraints = ob.OBFFConstraints()
+            map(lambda idx: constraints.AddAtomConstraint(idx), heavy_atoms_idx)
+
+            forcefield = ob.OBForceField.FindForceField("MMFF94")
+            forcefield.Setup(mol, constraints)
+            forcefield.SetConstraints(constraints)
+
+            forcefield.ConjugateGradients(500)
+            forcefield.GetCoordinates(mol)
+
             _mkdir(os.path.dirname(output_file))
-        if not os.path.exists(output_file):
-            cmd = 'obminimize -cg -ff MMFF94 -h -n 500 -o pdb %s > %s'%(input_file, output_file)
-            os.system(cmd)
+            conv.WriteFile(mol, output_file)
+
+            if count_lines(output_file):
+                data = [_name_of(input_file), identifier, 1, 'success']
+                data = [data]
+                db.insert_or_replace('minimize_state',data)
     except Exception as e:
         print e
+        
 
 
 def smina_dock(input_dir, output_dir, smina_pm, ligand_path):
@@ -531,18 +574,19 @@ def smina_dock(input_dir, output_dir, smina_pm, ligand_path):
         'out'     :docked_ligand_path
     }
 
-    if os.path.exists(docked_ligand_path):
-        pass
-    if not os.path.exists(docked_ligand_path):
+    
+    if not db.if_success('dock_state',[ligand_name]):
         _mkdir(os.path.dirname(docked_ligand_path))
         cmd = smina_pm.make_command(**kw)
         #print cmd
         os.system(cmd)
         
         if count_lines(docked_ligand_path):
-            data = [ligand_name, 1, 'success']
+            data = [_ligand_name_of(docked_ligand_name), 1, 'success']
             data = [data]
             db.insert_or_replace('dock_state',data)
+    else:
+        print "%s dock already" % ligand_name
 
 def clean_empty_ligand(ligand_path):
     """
@@ -554,21 +598,26 @@ def clean_empty_ligand(ligand_path):
     ligand_name = _ligand_name_of(ligand_path)
     
     if not count_lines(ligand_path):
-        cmd = 'rm %s' % ligand_path
-        os.system(cmd)
+        os.remove(ligand_path)
         data = [ligand_name, 0, 'empty']
         data = [data]
         db.insert_or_replace('dock_state',data)
+    else:
+        try:
+            parsed = prody.parsePDB(ligand_path)
+            data = [ligand_name, 1, 'success']
+            data = [data]
+            db.insert_or_replace('dock_state',data)
+        except:
+            os.remove(ligand_path)
+            data = [ligand_name, 0, 'incomplete']
+            data = [data]
+            db.insert_or_replace('dock_state',data)
+            
 
 
-
-@profile
-def run_multiprocess(target_list, func):
-    func(target_list[3])
-    pool = multiprocessing.Pool(config.process_num)
-    pool.map_async(func, target_list)
-    pool.close()
-    pool.join()
+#@profile
+*
 
 def main():
 
@@ -590,10 +639,12 @@ def main():
 
         if FLAGS.vinardo_dock:
             base_out_dir = config.vinardo_docked_path
+            smina_pm = smina_param('vinardo')
         elif FLAGS.smina_dock:
             base_out_dir = config.smina_docked_path
+            smina_pm = smina_param('smina')
 
-        smina_pm = smina_param('reorder')
+        
         smina_pm.load_param(*config.reorder_pm['arg'], **config.reorder_pm['kwarg'])
 
         ligands_list = glob(os.path.join(config.splited_ligands_path, '*', '*.pdb'))
@@ -604,6 +655,12 @@ def main():
         run_multiprocess(ligands_list, partial(reorder_ligand, input_dir, output_dir, smina_pm))
 
     if FLAGS.rotbond:
+        try:
+            import openbabel as op
+        except:
+            print "Cannot load openbabel"
+            return 
+
         print "Counting rotable bonds..."
         ligands_list = glob(os.path.join(config.splited_ligands_path, '*', '*.pdb'))
         run_multiprocess(ligands_list, count_rotable_bond)
@@ -630,42 +687,57 @@ def main():
 
 
     if FLAGS.addh:
-        print "Add Hydrogens to receptor..."
+        print "Add Hydrogens to splited structure"
         receptors_list = glob(os.path.join(config.splited_receptors_path,'*.pdb'))
-        input_dir = config.splited_receptors_path.rstrip('/')
-        output_dir = input_dir + '_hydrogens'
-        run_multiprocess(receptors_list, partial(add_hydrogen, input_dir, output_dir))
-
-        print "Add Hydrogens to original ligands ..."
         ligands_list = glob(os.path.join(config.splited_ligands_path,'*','*.pdb'))
-        input_dir = config.splited_ligands_path.rstrip('/')
+        input_dir = config.splited_path.rstrip('/')
         output_dir = input_dir + '_hydrogens'
-        run_multiprocess(ligands_list, partial(add_hydrogen, input_dir, output_dir))
 
-        print "Add Hydrogens to smina ligands ..."
-        ligands_list = glob(os.path.join(config.smina_std_path,'*','*.pdb'))
-        input_dir = config.smina_std_path.rstrip('/')
+        identifier = os.path.basename(input_dir)
+        identifier = '_'.join(identifier.split('_')[1:])
+        run_multiprocess(receptors_list, partial(add_hydrogen, input_dir, output_dir, identifier))
+        run_multiprocess(ligands_list, partial(add_hydrogen, input_dir, output_dir, identifier))
+
+        print "Add Hydrogens to vinardo docked ..."
+        
+        ligands_list = glob(os.path.join(config.vinardo_docked_path,'*','*','*.pdb'))
+        input_dir = config.vinardo_docked_path.rstrip('/')
         output_dir = input_dir + '_hydrogens'
-        run_multiprocess(ligands_list, partial(add_hydrogen, input_dir, output_dir))
+
+        identifier = os.path.basename(input_dir)
+        identifier = '_'.join(identifier.split('_')[1:])
+        run_multiprocess(ligands_list, partial(add_hydrogen, input_dir, output_dir, identifier))
+
+
 
     if FLAGS.minimize:
-        print "Minimize receptor..."
-        receptors_list = glob(os.path.join(config.splited_receptors_path,'*.pdb'))
-        input_dir = config.splited_receptors_path.rstrip('/')
-        output_dir = input_dir + '_minimize'
-        run_multiprocess(receptors_list, partial(minimize, input_dir, output_dir))
+        try:
+            import openbabel as ob
+        except:
+            print "Cannot load openbabel"
+            return 
 
-        print "Minimize to original ligands ..."
+
+        print "Minimize splited structures ..."
+        receptors_list = glob(os.path.join(config.splited_receptors_path,'*.pdb'))
         ligands_list = glob(os.path.join(config.splited_ligands_path,'*','*.pdb'))
-        input_dir = config.splited_ligands_path.rstrip('/')
+        input_dir = config.splited_path.rstrip('/')
         output_dir = input_dir + '_minimize'
-        run_multiprocess(ligands_list, partial(minimize, input_dir, output_dir))
+
+        identifier = os.path.basename(input_dir)
+        identifier = '_'.join(identifier.split('_')[1:])
+        
+        run_multiprocess(ligands_list, partial(minimize_hydrogens, input_dir, output_dir, identifier))
+        run_multiprocess(receptors_list, partial(minimize_hydrogens, input_dir, output_dir, identifier))
 
         print "Minimize to smina ligands ..."
-        ligands_list = glob(os.path.join(config.smina_std_path,'*','*.pdb'))
-        input_dir = config.smina_std_path.rstrip('/')
+        ligands_list = glob(os.path.join(config.vinardo_docked_path,'*','*','*.pdb'))
+        input_dir = config.vinardo_docked_path.rstrip('/')
         output_dir = input_dir + '_minimize'
-        run_multiprocess(ligands_list, partial(minimize, input_dir, output_dir))
+
+        identifier = os.path.basename(input_dir)
+        identifier = '_'.join(identifier.split('_')[1:])
+        run_multiprocess(ligands_list, partial(minimize_hydrogens, input_dir, output_dir, identifier))
 
 
     if FLAGS.vinardo_dock:
@@ -680,8 +752,6 @@ def main():
         output_dir = output_dir.rstrip('/')
 
         run_multiprocess(ligands_list, partial(smina_dock, input_dir, output_dir, smina_pm))
-
-
 
     if FLAGS.export:
         db.export()
@@ -702,5 +772,6 @@ if __name__ == '__main__':
     parser.add_argument('--initdb', action='store_true')
     parser.add_argument('--cleanempty', action='store_true')
     parser.add_argument('--export',action='store_true')
+    parser.add_argument('--minimize', action='store_true')
     FLAGS, unparsed = parser.parse_known_args()
     main()
