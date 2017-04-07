@@ -28,21 +28,24 @@ tables = {
     'reorder_state':table(*['reorder_state',
         OrderedDict([('ligand','text'),('dock_type','text'),('state','integer'),('comment','text')]),
         ['ligand','dock_type']]),
-
     'split_state':table(*['split_state',
         OrderedDict([('pdb','text'),('state','integer'),('comment','text')]),
         ['pdb']]),
-
     'similarity':table(*['similarity',
         OrderedDict([('ligand_a','text'),('ligand_b','text'),('finger_print','text'),
             ('similarity','real')]),
-        ['ligand_a','ligand_b']]),
+        ['ligand_a','ligand_b','finger_print']]),
 
+    'similarity_state':table(*['similarity_state',
+        OrderedDict([('lgiand_a','text'),('ligand_b','text'),('finger_print','text'),
+                     ('state','integer'),('comment','text')]),
+        ['ligand_a','ligand_b','finger_print']]),
     'overlap':table(*['overlap',
         OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),
             ('position','integer'),('finger_print','text'),
             ('similarity','read'),('cutoff_A','real'),('overlap_ratio','real')]),
         ['docked_ligand', 'crystal_ligand', 'position','finger_print','cutoff_A']]),
+
 
     'overlap_state':table(*['overlap_state',
         OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),('finger_print','text'),

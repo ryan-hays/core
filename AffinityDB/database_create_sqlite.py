@@ -277,6 +277,53 @@ def overlap_with_ligand(docked_ligand, crystal_ligand, similarity, finger_print)
 
     return position_clash
 
+def calculate_similarity(ligand_path, finger_print):
+    """
+    calculate tanimoto similarity
+    return the ligands with similarty > config.tanimoto_cutoff
+    :param ligand_path: path
+    :return: 
+    """
+    ligand_path = ligand_path.strip()
+    ligand_name = _ligand_name_of(ligand_path)
+
+    receptor, lig, resid, _ = ligand_name.split('_')
+    crystal_dir = os.path.dirname(ligand_path).replace('docked_ligands','crystal_ligands')
+    crystal_ligand = os.path.join(crystal_dir , '_'.join([receptor, lig, resid, 'ligand.pdb']))
+
+    ligands_list = glob(os.path.join(os.path.dirname(crystal_ligand), '*.pdb'))
+
+    ligands_for_same_receptor = list(set(ligands_list) - set([crystal_ligand]))
+
+
+    for lig_path in ligands_for_same_receptor:
+
+        lig_pair = [_ligand_name_of(crystal_ligand), _ligand_name_of(lig_path)]
+        lig_pair = lig_pair if lig_pair[0] < lig_pair[1] else [lig_pair[1], lig_pair[0]]
+        data = lig_pair + [finger_print]
+        if db.if_success('similarity_state',data):
+            continue
+
+        cmd = 'babel -d {} {} -ofpt -xf{}'.format(crystal_ligand, lig_path, finger_print)
+        ls = os.popen(cmd).read()
+        tanimoto_similarity = re.split('=|\n', ls)[2]
+
+        try:
+            float(tanimoto_similarity)
+        except Exception as e:
+            data = data + [0,'babel similarity failed']
+            db.insert_or_replace('similarity_state',data)
+            continue
+
+        data = data + [1, 'success']
+        db.insert_or_replace('similarity_state',data)
+
+        data = lig_pair + [finger_print, tanimoto_similarity]
+        data = [data]
+        db.insert_or_replace('similarity',data)
+
+
+
 def overlap_with_ligands(ligand_path, finger_print='FP4'):
     """
     if docked result overlap with other crystal ligands
@@ -590,7 +637,7 @@ def smina_dock(input_dir, output_dir, smina_pm, ligand_path):
 
 def clean_empty_ligand(ligand_path):
     """
-    for some reason, dock failed and nothing in the output file
+    for some reason, dock failed and nothing fin the output file
     remove empty file, and change dock status to failure
     """
 
@@ -617,7 +664,12 @@ def clean_empty_ligand(ligand_path):
 
 
 #@profile
-*
+def run_multiprocess(target_list, func):
+    func(target_list[3])
+    pool = multiprocessing.Pool(config.process_num)
+    pool.map_async(func, target_list)
+    pool.close()
+    pool.join()
 
 def main():
 
