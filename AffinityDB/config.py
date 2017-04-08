@@ -86,7 +86,7 @@ Folders
 # the path for this script config.py
 script_path = sys.path[0]
 #base folder for all the output
-database_root = '/home/xander/affinityDB/test2'
+database_root = '/home/xander/affinityDB/test3'
 
 db_path =os.path.join(database_root, db_name)
 # pdb download from Protein DataBank

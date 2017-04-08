@@ -26,8 +26,8 @@ tables = {
         ['ligand']]),
 
     'reorder_state':table(*['reorder_state',
-        OrderedDict([('ligand','text'),('dock_type','text'),('state','integer'),('comment','text')]),
-        ['ligand','dock_type']]),
+        OrderedDict([('ligand','text'),('identifier','text'),('state','integer'),('comment','text')]),
+        ['ligand','identifier']]),
     'split_state':table(*['split_state',
         OrderedDict([('pdb','text'),('state','integer'),('comment','text')]),
         ['pdb']]),
@@ -37,47 +37,46 @@ tables = {
         ['ligand_a','ligand_b','finger_print']]),
 
     'similarity_state':table(*['similarity_state',
-        OrderedDict([('lgiand_a','text'),('ligand_b','text'),('finger_print','text'),
+        OrderedDict([('ligand_a','text'),('ligand_b','text'),('finger_print','text'),
                      ('state','integer'),('comment','text')]),
         ['ligand_a','ligand_b','finger_print']]),
     'overlap':table(*['overlap',
         OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),
-            ('position','integer'),('finger_print','text'),
-            ('similarity','read'),('cutoff_A','real'),('overlap_ratio','real')]),
-        ['docked_ligand', 'crystal_ligand', 'position','finger_print','cutoff_A']]),
+            ('position','integer'),('cutoff_A','real'),('identifier','text'),('overlap_ratio','real')]),
+        ['docked_ligand', 'crystal_ligand', 'position','cutoff_A','identifier']]),
 
 
     'overlap_state':table(*['overlap_state',
-        OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),('finger_print','text'),
+        OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),('identifier','text'),
             ('state','integer'),('comment','text')]),
-        ['docked_ligand','crystal_ligand','finger_print']]),
+        ['docked_ligand','crystal_ligand','identifier']]),
 
     'rmsd':table(*['rmsd',
         OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),
-            ('position','ingeter'),('rmsd','real')]),
-            ['docked_ligand','crystal_ligand','position']]),
+            ('position','ingeter'),('identifier','text'),('rmsd','real')]),
+            ['docked_ligand','crystal_ligand','position','identifier']]),
 
     'rmsd_state':table(*['rmsd_state',
-        OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),
+        OrderedDict([('docked_ligand','text'),('crystal_ligand','text'),('identifier','text'),
             ('state','integer'),('comment','text')]),
-        ['docked_ligand', 'crystal_ligand']]),
+        ['docked_ligand', 'crystal_ligand','identifier']]),
 
     'native_contact':table(*['native_contact',
-        OrderedDict([('docked_ligand','text'),('position','integer'),
+        OrderedDict([('docked_ligand','text'),('position','integer'),('identifier','text'),
             ('ratio_4_0','real'),('ratio_4_5','real'),('ratio_5_0','real'),('ratio_5_5','real'),
                      ('ratio_6_0','real'),('ratio_6_5','real'),('ratio_7_0','real'),
                      ('ratio_7_5','real'),('ratio_8_0','real')]),
-            ['docked_ligand','position']]),
+            ['docked_ligand','position','identifier']]),
 
     'native_contact_state':table(*['native_contact_state',
-        OrderedDict([('docked_ligand','text'),('state','integer'),
+        OrderedDict([('docked_ligand','text'),('identifier','text'),('state','integer'),
             ('comment','text')]),
-            ['docked_ligand']]),
+            ['docked_ligand','identifier']]),
 
     'dock_state':table(*['dock_state',
-        OrderedDict([('docked_ligand','text'),('state','integer'),
+        OrderedDict([('docked_ligand','text'),('identifier','text'),('state','integer'),
             ('comment','text')]),
-            ['docked_ligand']]),
+            ['docked_ligand','identifier']]),
 
     'add_hydrogens_state': table(*['add_hydrogens_state',
         OrderedDict([('name','text'),('identifier','text'),
@@ -103,6 +102,9 @@ class database:
 
         # create scoring table base on content in config.scoring_terms
         self.add_scoring_term_tabel()
+
+        if not os.path.exists(os.path.dirname(self.db_path)):
+            os.makedirs(os.path.dirname(self.db_path))
 
         if not os.path.exists(self.db_path):
             self.backup_and_reset_db()
@@ -263,7 +265,7 @@ class database:
                 else:
                     stmt += ' ,'
             stmt += 'primary key(' + ','.join(tab.primary_key) + '));'
-            
+            print tab.name
             self.conn.execute(stmt)
 
         print "Create all %d tables" % len(tables)        
