@@ -16,7 +16,7 @@ Parameter
 db_name='affinity.db'
 
 # number of process running at the same time
-process_num = 8
+process_num = 1
 
 
 # RENAMES:

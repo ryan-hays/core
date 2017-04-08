@@ -309,8 +309,3 @@ class database:
                     csv_out.writerow(result)
 
                 print 'export table %s' % tab.name
-
-
-        
-    
-
