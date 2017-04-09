@@ -1,7 +1,7 @@
 # AffinityDB
 This module is used to prepare data and collect information for them.
 
-##requirement
+## requirement
 - openbabel
     
 ## usage
@@ -41,11 +41,13 @@ Receptors here means `protein or nucleic`
 Ligands here means `(hetero and not water) or resname ATP or resname ADP or resname AMP or resname GTP or resname GDP or resname GMP`
 
 Splited receptors named by `[pdbid]` e.g. `3eml.pdb`
+
 Splited ligands named by `[pdbid]_[residue_name]_[residue_id]_ligand` e.g. `3eml_SO4_123_ligand.pdb` 
 
 
 #### rotbond 
 **Require Openbabel Python binding**
+
 Count the number of rotable bonds for the ligands. 
 
 #### similarity
@@ -79,15 +81,15 @@ Calculate the [RMSD](https://www.wikiwand.com/en/Root-mean-square_deviation_of_a
 #### overlap
 Calculate the overlap ratio for docking result among the ligands splited from the same pdb.
 Overlap ratio measure how close the _ligand-a_ to the _ligand-b_:
-    - _A_ is an atom of the _ligand-a_, if exists atom _B_ of the _ligand-b_ where distance(A,B) <  `config.clash_cufoff_A`, we call A _ovalap atom_
-    - overlap ratio of _ligand-a_ = number(overlap atoms of _ligand-a_ ) / number(all atoms of _ligand-a_)
+ - _A_ is an atom of the _ligand-a_, if exists atom _B_ of the _ligand-b_ where distance(A,B) <  `config.clash_cufoff_A`, we call A _ovalap atom_
+ - overlap ratio of _ligand-a_ = number(overlap atoms of _ligand-a_ ) / number(all atoms of _ligand-a_)
 
 #### native_contact
 Calculate native contact ratio for the docking result with the splited ligand.
 When docking the splited ligand back to its binding pocket, most time the result will not be docked to exactly the same place.
 native contact ratio is an measure about how close the docked result _conf-a_ to the splited ligand _conf-ori_ ( _conf-a_ and _conf-ori_ are different comformation of the same molecule, they have same atoms but different coordinate)
-    - _c(A)_  is the coordinate of atom _A_ in _conf-a_, _c'(A)_ is the coordinate of atom _A_ in _conf-ori_, _c''(P)_ is the coordinate of atom _P_ in receptor .
-    - native contact ratio with cutoff _D_ = number( distance(_c'(A)_,_c''(P)_) < _D_ and distance(_c(A)_,_c''(P)_) < _D_) / number( distance(_c(A)_,_c''(P)_) < _D_ )
+ - _c(A)_  is the coordinate of atom _A_ in _conf-a_, _c'(A)_ is the coordinate of atom _A_ in _conf-ori_, _c''(P)_ is the coordinate of atom _P_ in receptor .
+  - native contact ratio with cutoff _D_ = number( distance(_c'(A)_,_c''(P)_) < _D_ and distance(_c(A)_,_c''(P)_) < _D_) / number( distance(_c(A)_,_c''(P)_) < _D_ )
 
 
 #### addh
@@ -101,6 +103,7 @@ Results will be put in correspond folder with suffix `_hydrogens` e.g.:  `3_vina
 
 #### minimize
 **Require Openbabel Python binding**
+
 minimize the energy of the molecule (only minimize hydrogen, keep other atoms fixed)
 
 Results will be put in correspond folder with suffix `_minimize` e.g: `4_smina_dock` and `4_smina_dock_minimize`
