@@ -207,6 +207,143 @@ def convert_protein_and_ligand_to_image(ligand_elements, ligand_coords, receptor
     return sparse_image_4d, ligand_center_of_mass, final_transition_matrix
 
 
+def convert_protein_and_ligand_to_snok_image(ligand_elements, ligand_coords, receptor_elements, receptor_coords, side_pixels,
+                                        pixel_size):
+    """Take coordinates and elements of protein and ligand and convert them into an image.
+    Return image with one dimension so far."""
+
+    # FIXME abandon ligand when it does not fit into the box (it's kept now)
+
+    print "Converting protein and ligand to snok image."
+
+    # max_num_attempts - maximum number of affine transforms for the ligand to be tried
+    max_num_attemts = 1000
+    # affine_transform_pool_size is the first(batch) dimension of tensor of transition matrices to be returned
+    # affine tranform pool is only generated once in the beginning of training and randomly sampled afterwards
+    affine_transform_pool_size = 10000
+
+    print "Maximum number of attempts: " + str(max_num_attemts)
+    print "Affine transform pool size: " + str(affine_transform_pool_size)
+
+    # transform center ligand around zero
+    print "Transforming center ligand around zero (current coords: " + str(ligand_coords) + "."
+    ligand_center_of_mass = tf.reduce_mean(ligand_coords, reduction_indices=0)
+    centered_ligand_coords = ligand_coords - ligand_center_of_mass
+    centered_receptor_coords = receptor_coords - ligand_center_of_mass
+
+    print "Centered ligand coords: " + str(centered_ligand_coords)
+    print "Centered receptor coords: " + str(centered_receptor_coords)
+
+
+
+    print "Fitting ligand in box..."
+
+    # use TF while loop to find such an affine transform matrix that can fit the ligand so that no atoms are outside
+    box_size = (tf.cast(side_pixels, tf.float32) * pixel_size)
+
+    def generate_transition_matrix(attempt, transition_matrix, batch_of_transition_matrices):
+        """Takes initial coordinates of the ligand, generates a random affine transform matrix and transforms coordinates."""
+        transition_matrix = tf.gather(batch_of_transition_matrices,
+                                      tf.random_uniform([], minval=0, maxval=affine_transform_pool_size,
+                                                        dtype=tf.int32))
+        attempt += 1
+        return attempt, transition_matrix, batch_of_transition_matrices
+
+    def not_all_in_the_box(attempt, transition_matrix, batch_of_transition_matrices,
+                           ligand_coords=centered_ligand_coords, box_size=box_size, max_num_attempts=max_num_attemts):
+        """Takes affine transform matrix and box dimensions, performs the transformation, and checks if all atoms
+        are in the box."""
+        transformed_coords, transition_matrix = affine_transform(ligand_coords, transition_matrix)
+        not_all = tf.cast(
+            tf.reduce_max(tf.cast(tf.square(box_size * 0.5) - tf.square(transformed_coords) < 0, tf.int32)), tf.bool)
+        within_iteration_limit = tf.cast(tf.reduce_sum(tf.cast(attempt < max_num_attemts, tf.float32)), tf.bool)
+        return tf.logical_and(within_iteration_limit, not_all)
+
+    attempt = tf.Variable(tf.constant(0, shape=[1]))
+    batch_of_transition_matrices = tf.Variable(generate_deep_affine_transform(affine_transform_pool_size))
+    transition_matrix = tf.gather(batch_of_transition_matrices,
+                                  tf.random_uniform([], minval=0, maxval=affine_transform_pool_size, dtype=tf.int64))
+
+    last_attempt, final_transition_matrix, _ = tf.while_loop(not_all_in_the_box, generate_transition_matrix,
+                                                             [attempt, transition_matrix, batch_of_transition_matrices],
+                                                             parallel_iterations=1)
+
+    print "Found proper orientation!"
+
+    # rotate receptor and ligand using an affine transform matrix found
+    rotated_ligand_coords, _ = affine_transform(centered_ligand_coords, final_transition_matrix)
+    rotated_receptor_coords, _ = affine_transform(centered_receptor_coords, final_transition_matrix)
+
+    print "Rotated ligand coords: " + str(rotated_ligand_coords)
+    print "Rotated receptor coords: " + str(rotated_receptor_coords)
+
+    # check if all of the atoms are in the box, if not set the ligand to 0, but do not raise an error
+    def set_elements_coords_zero(): return tf.constant([0], dtype=tf.int32), tf.constant([[0, 0, 0]], dtype=tf.float32)
+
+    def keep_elements_coords(): return ligand_elements, rotated_ligand_coords
+
+    not_all = tf.cast(
+        tf.reduce_max(tf.cast(tf.square(box_size * 0.5) - tf.square(rotated_ligand_coords) < 0, tf.int32)), tf.bool)
+    ligand_elements, rotated_ligand_coords = tf.case({tf.equal(not_all, tf.constant(True)): set_elements_coords_zero},
+                                                       keep_elements_coords)
+
+    print "Verified ligand coords (bad if all zeroes): " + str(ligand_elements) + ", " + str(rotated_receptor_coords)
+
+    # move coordinates of a complex to an integer number so as to put every atom on a grid
+    # ceiled coords is an integer number out of real coordinates that corresponds to the index on the cell
+    # epsilon - potentially, there might be very small rounding errors leading to additional indexes
+    print "Snapping coordinates to grid..."
+    epsilon = tf.constant(0.999, dtype=tf.float32)
+    ceiled_ligand_coords = tf.cast(
+        tf.round((-0.5 + (tf.cast(side_pixels, tf.float32) * 0.5) + (rotated_ligand_coords / pixel_size)) * epsilon),
+        tf.int64)
+    ceiled_receptor_coords = tf.cast(
+        tf.round((-0.5 + (tf.cast(side_pixels, tf.float32) * 0.5) + (rotated_receptor_coords / pixel_size)) * epsilon),
+        tf.int64)
+
+    print "Ligand coords: " + str(ceiled_ligand_coords)
+    print "Receptor coords:" + str(ceiled_receptor_coords)
+
+
+
+    print "Cutting atoms that do not fit..."
+
+    # crop atoms of the protein that do not fit inside the box
+    top_filter = tf.reduce_max(ceiled_receptor_coords, reduction_indices=1) < side_pixels
+    bottom_filter = tf.reduce_min(ceiled_receptor_coords, reduction_indices=1) > 0
+    retain_atoms = tf.logical_and(top_filter, bottom_filter)
+    cropped_receptor_coords = tf.boolean_mask(ceiled_receptor_coords, retain_atoms)
+    cropped_receptor_elements = tf.boolean_mask(receptor_elements, retain_atoms)
+
+    print "Done!"
+
+
+    # merge protein and ligand together. In this case an arbitrary value of 10 is added to the ligand
+    print "Merging protein and ligand..."
+    complex_coords = tf.concat(0, [ceiled_ligand_coords, cropped_receptor_coords])
+    complex_elements = tf.concat(0, [ligand_elements + 7, cropped_receptor_elements])
+    print "Complex coords: " + str(complex_coords)
+    print "Complex elements: " + str(complex_elements)
+
+    # in coordinates of a protein rounded to the nearest integer can be represented as indices of a sparse 3D tensor
+    # values from the atom dictionary can be represented as values of a sparse tensor
+    # in this case TF's sparse_tensor_to_dense can be used to generate an image out of rounded coordinates
+
+    print "Generating image out of rounded coordinates..."
+
+    # move elements to the dimension of depth
+    complex_coords_4d = tf.concat(1,
+                                  [complex_coords, tf.reshape(tf.cast(complex_elements - 1, dtype=tf.int64), [-1, 1])])
+    sparse_image_4d = tf.SparseTensor(indices=complex_coords_4d, values=tf.ones(tf.shape(complex_elements)),
+                                      shape=[side_pixels, side_pixels, side_pixels, 14])
+
+    print "4d complex coordinates: " + str(complex_coords_4d)
+    print "Sparse 4d image: " + str(sparse_image_4d)
+
+    # FIXME: try to save an image and see how it looks like
+    return sparse_image_4d, ligand_center_of_mass, final_transition_matrix
+
+
 def image_and_label_queue(batch_size, pixel_size, side_pixels, num_threads, filename_queue, epoch_counter, train=True):
     """Creates shuffle queue for training the network"""
 
@@ -215,7 +352,7 @@ def image_and_label_queue(batch_size, pixel_size, side_pixels, num_threads, file
         filename_queue, epoch_counter=epoch_counter, train=train)
 
     # convert coordinates of ligand and protein into an image
-    sparse_image_4d, _, _ = convert_protein_and_ligand_to_image(ligand_elements, ligand_coords, receptor_elements,
+    sparse_image_4d, _, _ = convert_protein_and_ligand_to_snok_image(ligand_elements, ligand_coords, receptor_elements,
                                                                 receptor_coords, side_pixels, pixel_size)
 
     # create a batch of proteins and ligands to read them together

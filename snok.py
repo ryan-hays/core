@@ -33,8 +33,8 @@ def train():
 
     keep_prob = tf.placeholder(tf.float32)
 
-    #predicted_labels = wide_conv_net(image_batch, keep_prob, FLAGS.batch_size)
-    predicted_labels = wide_conv_net_s(image_batch, keep_prob, FLAGS.batch_size)
+    predicted_labels = wide_conv_net(image_batch, keep_prob, FLAGS.batch_size)
+    #predicted_labels = wide_conv_net_s(image_batch, keep_prob, FLAGS.batch_size) # same but with weird nonlinearities
 
     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predicted_labels, labels=label_batch)
     cross_entropy_mean = tf.reduce_mean(cross_entropy)
