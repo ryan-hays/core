@@ -364,7 +364,6 @@ def overlap_with_ligands(identifier, ligand_path, finger_print='FP4'):
         return 
 
     crystal_ligand, other_ligands = _get_ligands_from_same_receptor(ligand_path)
-    #crystal_ligand, similar_ligands = _get_similar_ligands(ligand_path, finger_print)
     if len(other_ligands) == 0:
         return 
     
