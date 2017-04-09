@@ -1,6 +1,7 @@
 import time, os
 import tensorflow as tf
 import numpy as np
+from termcolor import colored
 from snok_input import index_the_database_into_queue, image_and_label_queue
 from snok_networks import *
 
@@ -119,7 +120,7 @@ class FLAGS:
 
 
 def main(_):
-    print "Hello, world!"
+    print colored('Hello, world!', 'green')
 
     """gracefully creates directories for the log files and for the network state launches. After that orders network training to start"""
     summaries_dir = os.path.join(FLAGS.summaries_dir)

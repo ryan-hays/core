@@ -8,9 +8,9 @@ from snok_networks import wide_conv_net
 from collections import defaultdict
 
 
-FLAGS.saved_session = './summaries/39_netstate/saved_state-37999'
+FLAGS.saved_session = './summaries/1_netstate/saved_state-1343'
 FLAGS.predictions_file_path = re.sub("netstate","logs",FLAGS.saved_session)
-FLAGS.database_path = '../datasets/unlabeled_av4'
+FLAGS.database_path = '../../common/data/holdout_av4'
 FLAGS.num_epochs = 10
 FLAGS.top_k = FLAGS.num_epochs
 

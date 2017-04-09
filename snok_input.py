@@ -1,6 +1,7 @@
 import tensorflow as tf
 from glob import glob
 import os, time
+from termcolor import colored
 from snok_utils import generate_deep_affine_transform, affine_transform
 
 
@@ -214,7 +215,7 @@ def convert_protein_and_ligand_to_snok_image(ligand_elements, ligand_coords, rec
 
     # FIXME abandon ligand when it does not fit into the box (it's kept now)
 
-    print "Converting protein and ligand to snok image."
+    print colored('Converting protein and ligand to snok image.', 'green')
 
     # max_num_attempts - maximum number of affine transforms for the ligand to be tried
     max_num_attemts = 1000
@@ -222,8 +223,8 @@ def convert_protein_and_ligand_to_snok_image(ligand_elements, ligand_coords, rec
     # affine tranform pool is only generated once in the beginning of training and randomly sampled afterwards
     affine_transform_pool_size = 10000
 
-    print "Maximum number of attempts: " + str(max_num_attemts)
-    print "Affine transform pool size: " + str(affine_transform_pool_size)
+    print colored('Maximum number of attempts: ' + str(max_num_attemts), 'yellow')
+    print colored('Affine transform pool size: ' + str(affine_transform_pool_size), 'yellow')
 
     # transform center ligand around zero
     print "Transforming center ligand around zero (current coords: " + str(ligand_coords) + "."
@@ -337,8 +338,8 @@ def convert_protein_and_ligand_to_snok_image(ligand_elements, ligand_coords, rec
     sparse_image_4d = tf.SparseTensor(indices=complex_coords_4d, values=tf.ones(tf.shape(complex_elements)),
                                       shape=[side_pixels, side_pixels, side_pixels, 14])
 
-    print "4d complex coordinates: " + str(complex_coords_4d)
-    print "Sparse 4d image: " + str(sparse_image_4d)
+    print colored('4d complex coordinates: ' + str(complex_coords_4d), 'magenta')
+    print colored('Sparse 4d image: ' + str(sparse_image_4d), 'magenta')
 
     # FIXME: try to save an image and see how it looks like
     return sparse_image_4d, ligand_center_of_mass, final_transition_matrix
