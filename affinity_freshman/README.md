@@ -471,13 +471,13 @@ $ gsissh bridges
 # each user is prowided with a high performance work directory would be different from your $HOME 
 # (IE: /home/korablyo) for me. Work directory allows to read and write data much faster 
 # you will need to find your work directory and put the database there
-# it is: /pylon1/[groupname]/[username]
+# it is: /pylon5/[groupname]/[username]
 # get groupname
 bash
 $ id -gn
 # clone Affinity source code to your work directory
 bash
-$ cd /pylon1/[groupname]/[username]
+$ cd /pylon5/[groupname]/[username]
 $ git clone https://github.com/mitaffinity/core.git
 # now you will need to log in into our AWS instance to download the database to Bridges
 # you will need a .pem access key 
@@ -491,11 +491,11 @@ $ cd $HOME
 $ chmod 400 key.pem
 # transfer data from aws instance to bridges
 bash
-$ cd  /pylon1/[groupname]/[username]
+$ cd  /pylon5/[groupname]/[username]
 $ scp -i $HOME/key.pem ubuntu@awsinstance.com:/home/ubuntu/common/data/labeled_av4.zip ./
 $ unzip labeled_av4.zip
 # change FLAGS.database_path in av4_main.py
-# to database_path = "/pylon1/[groupname]/[username]/labeled_av4"
+# to database_path = "/pylon5/[groupname]/[username]/labeled_av4"
 
 ```
 create batch script to submit your job. You can read more about submission queue [here](https://www.psc.edu/index.php/bridges/user-guide/running-jobs).
@@ -518,7 +518,7 @@ module load tensorflow/0.12.1
 source $TENSORFLOW_ENV/bin/activate
 
 #move to working directory
-cd /pylon1/[groupname]/[username]/core
+cd /pylon5/[groupname]/[username]/core
 
 #run GPU program
 python av4_main.py
