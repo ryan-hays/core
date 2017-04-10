@@ -10,12 +10,13 @@ This module is used to prepare data and collect information for them.
   - In order to count rotable bond and minimize molecular energy, openbabel python bnding is required. You need download source code of OpenBabel and compile it.
   [Instruction](https://openbabel.org/docs/dev/Installation/install.html)
 
-  ```bash
-  pip install openbabel
-  ```
+   ```bash
+   pip install openbabel
+   ```
 
 2. Smina
-    A fork of autodock vina.
+   
+   A fork of autodock vina.
     [link](https://sourceforge.net/projects/smina/)
 
 3. Prody
@@ -48,7 +49,7 @@ python database_create.py --split
 - export
 - download
 - split
-- rotbond
+- rotbond *
 - similarity
 - vinardo_dock
 - smina_dock
@@ -57,19 +58,21 @@ python database_create.py --split
 - overlap
 - native_contact
 - addh
-- minimize
+- minimize *
 
-#### initdb
+__ * : This option need OpenBabel with python binding __
+
+### initdb
 We use sqlite3 database to store the information for our data. When you run it first time, it creates en empty database file `config.db_path` . If the database file already exists, it backup old one and create a new empty database.
 
-#### export
+### export
 Export tabels in database as csv file under `config.table_dir`
 
-#### download
+### download
 Each pdb structure in [Protein Data Bank](http://www.rcsb.org/pdb/home/home.do) has an unique id with 4 letter or number like [3EML](http://www.rcsb.org/pdb/explore/explore.do?structureId=3eml). This option get the id of the pdb structure from `config.list_of_PDB_to_download`, and download pdb file to `config.pdb_download_path`.
 
 
-#### split
+### split
 The pdb file downloaded from [Protein Data Bank](http://www.rcsb.org/pdb/home/home.do) is co-crystal strucute with proteins, nucleics, residues, water and single meal atoms inside. This option select the receptors and ligands from it, and store them to `config.splited_receptors_path` and `config.splited_ligand_path`.
 
 Receptors here means `protein or nucleic`
@@ -81,12 +84,11 @@ Splited receptors named by `[pdbid]` e.g. `3eml.pdb`
 Splited ligands named by `[pdbid]_[residue_name]_[residue_id]_ligand` e.g. `3eml_SO4_123_ligand.pdb` 
 
 
-#### rotbond 
-**!** Require Openbabel Python binding
+### rotbond 
 
 Count the number of rotable bonds for the ligands. 
 
-#### similarity
+### similarity
 The finger print encode molecular structure into binary bits string. We take the similarity between the binary string as the similarity between two ligands.  
 This option use OpenBabel to calculate similarity between the ligands splited from same pdb file. 
 Available finger print types: 
@@ -101,26 +103,26 @@ babel -d ligand-a.pdb ligand-b.pdb -ofpt -xfFP2
 
 [Tutorial:Fingerprints](https://openbabel.org/wiki/Tutorial:Fingerprints)
 
-#### vinardo_dock
+### vinardo_dock
 Docking ligands back to their binding pocket by smina, the scoring function is **[vinardo](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0155183)**
 
-#### smina_dock
+### smina_dock
 Docking ligands back to their binding pocket by smina, the scoring function is the default scoring function in smina.
 
-#### cleanempty
+### cleanempty
 Check if the docking result is empty and if the docking result can be parsed by prody.
 Remove failed docking result.
 
-#### rmsd
+### rmsd
 Calculate the [RMSD](https://www.wikiwand.com/en/Root-mean-square_deviation_of_atomic_positions) for docking result with the ligands splited from the same pdb and have same residue name. 
 
-#### overlap
+### overlap
 Calculate the overlap ratio for docking result among the ligands splited from the same pdb.
 Overlap ratio measure how close the _ligand-a_ to the _ligand-b_:
  - _A_ is an atom of the _ligand-a_, if exists atom _B_ of the _ligand-b_ where distance(A,B) <  `config.clash_cufoff_A`, we call A _ovalap atom_
  - overlap ratio of _ligand-a_ = number(overlap atoms of _ligand-a_ ) / number(all atoms of _ligand-a_)
 
-#### native_contact
+### native_contact
 Calculate native contact ratio for the docking result with the splited ligand.
 When docking the splited ligand back to its binding pocket, most time the result will not be docked to exactly the same place.
 native contact ratio is an measure about how close the docked result _conf-a_ to the splited ligand _conf-ori_ ( _conf-a_ and _conf-ori_ are different comformation of the same molecule, they have same atoms but different coordinate)
@@ -128,7 +130,7 @@ native contact ratio is an measure about how close the docked result _conf-a_ to
  - native contact ratio with cutoff _D_ = number( distance(_c'(A)_,_c''(P)_) < _D_ and distance(_c(A)_,_c''(P)_) < _D_) / number( distance(_c(A)_,_c''(P)_) < _D_ )
 
 
-#### addh
+### addh
 Make all hydrogen explicit
 
 ```bash
@@ -137,8 +139,7 @@ obabel -ipdb input_file -opdb -O output_file -h
 
 Results will be put in correspond folder with suffix `_hydrogens` e.g.:  `3_vinardo_dock` and `3_vinardo_dock_hydrogens`
 
-#### minimize
-**Require Openbabel Python binding**
+### minimize
 
 minimize the energy of the molecule (only minimize hydrogen, keep other atoms fixed)
 
