@@ -10,6 +10,24 @@ from collections import namedtuple, OrderedDict
 
 table = namedtuple('Table',['name','columns','primary_key'])
 
+"""
+tables store the information about the table to be created in the database ( except scoring_terms )
+
+table:
+    name: name of the tabel in database, name of the csv file when export the table
+    columns: the name and value type for each columns in the table
+    primary_key: the name of the primary key for this table
+    
+    
+scoring_terms table:
+    This table store the different scoring terms' value caculated by smina, 
+    the scoring terms are defined in `config.scoring_terms`.
+    
+    
+When initialize the database, it first parse config.scoring_terms and add it in tables  
+and then create all table defined in tables
+"""
+
 tables = {
     'ligand_atom_num':table(*['ligand_atom_num',
         OrderedDict([('name','text'),('heavy_atom_num','integer')]),
@@ -204,6 +222,10 @@ class database:
         self.conn.commit()
 
     def get_all_success(self, table_name):
+        """
+        get all enrty in _state table with state=1
+        
+        """
         
         columns = self.tables[table_name].columns.keys()[:-2]
         columns = ','.join(columns)
@@ -229,12 +251,10 @@ class database:
 
         db_value = lambda x: '"%s"' % x if type(x).__name__ == 'str' else str(x)
 
-        
         db_values = map(db_value, values)
         
         columns = self.tables[table_name].primary_key
-
-        print columns
+        #print columns
 
         cond = map(lambda (col,val) : '%s=%s' % (col,val), zip(columns, db_values))
         cond.append('state=1')
@@ -247,15 +267,12 @@ class database:
         cursor.execute(stmt)
         #fetch one will return tuple like (3,)
         values = cursor.fetchone()[0]
-
-        print values
-
+        #print values
         return values
 
 
 
     def create_table(self):
-        
         for tab in tables.values():
             stmt = 'create table '+ tab.name + ' ('
             for key in tab.columns.keys():
@@ -293,7 +310,7 @@ class database:
     def export(self):
         """
         export data from database to csv file
-        :return: 
+        
         """
 
         cursor = self.conn.cursor()
