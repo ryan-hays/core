@@ -60,7 +60,8 @@ python database_create.py --split
 - addh
 - minimize *
 
-__ * : This option need OpenBabel with python binding __
+
+_* : This option need OpenBabel with python binding_
 
 ### initdb
 We use sqlite3 database to store the information for our data. When you run it first time, it creates en empty database file `config.db_path` . If the database file already exists, it backup old one and create a new empty database.
@@ -75,10 +76,17 @@ Each pdb structure in [Protein Data Bank](http://www.rcsb.org/pdb/home/home.do) 
 ### split
 The pdb file downloaded from [Protein Data Bank](http://www.rcsb.org/pdb/home/home.do) is co-crystal strucute with proteins, nucleics, residues, water and single meal atoms inside. This option select the receptors and ligands from it, and store them to `config.splited_receptors_path` and `config.splited_ligand_path`.
 
-Receptors here means `protein or nucleic`
+We select receptor and ligand by prody
 
-Ligands here means `(hetero and not water) or resname ATP or resname ADP or resname AMP or resname GTP or resname GDP or resname GMP`
+Receptors here means 
+```python
+receptor = parsedPDB.select('protein or nucleic')
+```
 
+Ligands here means
+```python
+ligands = parsedPDB.select('(hetero and not water) or resname ATP or resname ADP or resname AMP or resname GTP or resname GDP or resname GMP')
+```
 Splited receptors named by `[pdbid]` e.g. `3eml.pdb`
 
 Splited ligands named by `[pdbid]_[residue_name]_[residue_id]_ligand` e.g. `3eml_SO4_123_ligand.pdb` 
