@@ -38,6 +38,7 @@ Each pdb structure in [Protein Data Bank](http://www.rcsb.org/pdb/home/home.do) 
 The pdb file downloaded from Protein DataBank is co-crystal strucute with proteins, nucleics, residues, water and single meal atoms inside. This option select the receptors and ligands from it, and store them to `config.splited_receptors_path` and `config.splited_ligand_path`.
 
 Receptors here means `protein or nucleic`
+
 Ligands here means `(hetero and not water) or resname ATP or resname ADP or resname AMP or resname GTP or resname GDP or resname GMP`
 
 Splited receptors named by `[pdbid]` e.g. `3eml.pdb`
