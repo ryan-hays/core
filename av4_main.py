@@ -116,19 +116,21 @@ class FLAGS:
     # number of vectors(images) in one batch
     batch_size = 100
     # number of background processes to fill the queue with images
-    num_threads = 512
+    num_threads = 8
     # data directories
 
     # path to the csv file with names of images selected for training
-    database_path = "../datasets/labeled_av4"
+    database_path = "../datasets/unlabeled_av4"
     # directory where to write variable summaries
     summaries_dir = './summaries'
     # optional saved session: network from which to load variable states
-    saved_session = None#'./summaries/1_netstate/saved_state-113999'
+    saved_session = None #'./summaries/1_netstate/saved_state-113999'
+    # main session for multiagent training
+    main_session = tf.Session()
 
 
 def main(_):
-    """gracefully creates directories for the log files and for the network state launches. After that orders network training to start"""
+    """gracefully creates directories for the log files and for the network state launches. After that orders network training to start."""
     summaries_dir = os.path.join(FLAGS.summaries_dir)
     # FLAGS.run_index defines when
     FLAGS.run_index = 1
