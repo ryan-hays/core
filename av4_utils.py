@@ -16,7 +16,7 @@ def generate_deep_affine_transform(num_frames):
     # rotation range is hardcoded to 360 degrees
 
     shift_range = tf.constant(10, dtype=tf.float32)  # FIXME
-    rotation_range = tf.cast(tf.convert_to_tensor(np.pi * 2), dtype=tf.float32)
+    rotation_range = tf.cast(tf.convert_to_tensor(0), dtype=tf.float32)
 
     # randomly shift along X,Y,Z
     x_shift = tf.random_uniform([num_frames], minval=-1, maxval=1, dtype=tf.float32) * shift_range
@@ -289,3 +289,33 @@ def generate_exhaustive_affine_transform(shift_ranges=[10,10,10],shift_deltas=[1
     xyz_shift_matrix = tf.matmul(broadcast_xy, broadcast_z)
 
     return xyz_shift_matrix
+
+
+def generate_identity_matrices(num_frames):
+    "for convenience of generating identity transformation matrices"
+
+    afn0_0 = tf.ones([num_frames])
+    afn0_1 = tf.zeros([num_frames])
+    afn0_2 = tf.zeros([num_frames])
+    afn0_3 = tf.zeros([num_frames])
+
+    afn1_0 = tf.zeros([num_frames])
+    afn1_1 = tf.ones([num_frames])
+    afn1_2 = tf.zeros([num_frames])
+    afn1_3 = tf.zeros([num_frames])
+
+    afn2_0 = tf.zeros([num_frames])
+    afn2_1 = tf.zeros([num_frames])
+    afn2_2 = tf.ones([num_frames])
+    afn2_3 = tf.zeros([num_frames])
+
+    afn3_0 = tf.zeros([num_frames])
+    afn3_1 = tf.zeros([num_frames])
+    afn3_2 = tf.zeros([num_frames])
+    afn3_3 = tf.ones([num_frames])
+
+    identity_stick = tf.pack(
+        [afn0_0, afn0_1, afn0_2, afn0_3, afn1_0, afn1_1, afn1_2, afn1_3, afn2_0, afn2_1, afn2_2, afn2_3, afn3_0,
+         afn3_1, afn3_2, afn3_3])
+
+    return tf.transpose(tf.reshape(identity_stick, [4, 4, num_frames]), perm=[2, 0, 1])
