@@ -86,7 +86,7 @@ Folders
 # the path for this script config.py
 script_path = sys.path[0]
 #base folder for all the output
-database_root = '/home/xander/affinityDB/test3'
+database_root = os.path.join(script_path, '..', 'AffinityDB')
 
 db_path =os.path.join(database_root, db_name)
 # pdb download from Protein DataBank
@@ -115,12 +115,11 @@ File Path
 """
 
 # path of smina binary file
-smina = '/home/xander/Program/smina/smina.static'
+smina = 'smina.static'
 
 
 # pdb_target_list
-#target_list_file = os.path.join(sys.path[0],'target_list','main_pdb_target_list.txt')
-list_of_PDBs_to_download = '/home/xander/affinityDB/target_list/main_pdb_target_list.txt'
+list_of_PDBs_to_download = os.path.join(sys.path[0],'target_list','main_pdb_target_list.txt')
 
 
 # example scoring

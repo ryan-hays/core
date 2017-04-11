@@ -16,10 +16,12 @@ import config
 from config import lock
 import subprocess
 import re
-import pandas
 import time
 import sqlite3
+<<<<<<< HEAD
 from profilehooks import profile
+=======
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
 from db import database
 
 FLAGS = None
@@ -58,10 +60,15 @@ def split_structure(pdb_path):
         data = [pdb_name, 0, str(e)]
         data = [data]
         db.insert_or_replace('split_state',data)
+<<<<<<< HEAD
 
         return
 
 
+=======
+
+        return
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
 
     hetero = parsed.select(
         '(hetero and not water) or resname ATP or resname ADP or resname AMP or resname GTP or resname GDP or resname GMP')
@@ -115,11 +122,19 @@ def split_structure(pdb_path):
         data = [data]
         db.insert_or_replace('split_state', data)
         return
+<<<<<<< HEAD
 
     data = [pdb_name, 1, 'success']
     data = [data]
     db.insert_or_replace('split_state',data)
 
+=======
+
+    data = [pdb_name, 1, 'success']
+    data = [data]
+    db.insert_or_replace('split_state',data)
+
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
 
 def reorder_ligand(input_dir, output_dir, smina_pm, identifier, ligand_path):
     """
@@ -159,11 +174,19 @@ def reorder_ligand(input_dir, output_dir, smina_pm, identifier, ligand_path):
         data = [ligand_name, 0] + map(lambda x:float(x),terms[1])
         data = [data]
         db.insert_or_replace('scoring_terms',data,head)
+<<<<<<< HEAD
 
         data = [ligand_name, identifier, 1, 'success']
         data = [data]
         db.insert_or_replace('reorder_state',data)
 
+=======
+
+        data = [ligand_name, identifier, 1, 'success']
+        data = [data]
+        db.insert_or_replace('reorder_state',data)
+
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
 def _get_similar_ligands(ligand_path, finger_print):
     """
     calculate tanimoto similarity
@@ -181,8 +204,53 @@ def _get_similar_ligands(ligand_path, finger_print):
     ligands_list = glob(os.path.join(os.path.dirname(crystal_ligand), '*.pdb'))
 
     ligands_for_same_receptor = list(set(ligands_list) - set([crystal_ligand]))
+<<<<<<< HEAD
+=======
 
 
+    similar_ligands = []
+    for lig_path in ligands_for_same_receptor:
+        cmd = 'babel -d {} {} -ofpt -xf{}'.format(crystal_ligand, lig_path, finger_print)
+        print cmd
+        ls = os.popen(cmd).read()
+        tanimoto_similarity = re.split('=|\n', ls)[2]
+
+        try:
+            float(tanimoto_similarity)
+        except:
+            continue
+
+        lig_pair = [_ligand_name_of(crystal_ligand), _ligand_name_of(lig_path)]
+        lig_pair = lig_pair if lig_pair[0]<lig_pair[1] else [lig_pair[1],lig_pair[0]]
+
+        data = lig_pair + [finger_print, tanimoto_similarity]
+        data = [data]
+        db.insert_or_replace('similarity',data)
+        #log('tanimoto_similarity.csv',
+        #    '{},{},{}'.format(_ligand_name_of(ligand_path), _ligand_name_of(lig_path), tanimoto_similarity),
+        #    head='lig_a,lig_b,finger_print, tanimoto')
+        if tanimoto_similarity > config.tanimoto_cutoff:
+            similar_ligands.append([lig_path, tanimoto_similarity, finger_print])
+
+    return crystal_ligand, similar_ligands
+
+def _get_ligands_from_same_receptor(ligand_path):
+    """
+    get the path of ligands, they are splited from the same receptor as the input
+
+    """
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
+
+    ligand_path = ligand_path.strip()
+    ligand_name = _ligand_name_of(ligand_path)
+
+    receptor, lig, resid, _ = ligand_name.split('_')
+    crystal_dir = os.path.dirname(ligand_path).replace('docked_ligands','crystal_ligands')
+    crystal_ligand = os.path.join(crystal_dir , '_'.join([receptor, lig, resid, 'ligand.pdb']))
+
+    ligands_list = glob(os.path.join(os.path.dirname(crystal_ligand), '*.pdb'))
+
+<<<<<<< HEAD
     similar_ligands = []
     for lig_path in ligands_for_same_receptor:
         cmd = 'babel -d {} {} -ofpt -xf{}'.format(crystal_ligand, lig_path, finger_print)
@@ -228,6 +296,11 @@ def _get_ligands_from_same_receptor(ligand_path):
 
     return crystal_ligand, ligands_from_same_receptor
     
+=======
+    ligands_from_same_receptor = list(set(ligands_list) - set([crystal_ligand]))
+
+    return crystal_ligand, ligands_from_same_receptor
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
 
 def _get_same_ligands(ligand_path):
     """
@@ -291,7 +364,10 @@ def calculate_similarity(identifier, finger_print, ligand_path):
         data = [data]
         db.insert_or_replace('similarity',data)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
 def overlap_with_ligand(docked_ligand, crystal_ligand, identifier):
     """
     for all position in docked_ligand
@@ -346,8 +422,12 @@ def overlap_with_ligand(docked_ligand, crystal_ligand, identifier):
 
     return position_clash
 
+<<<<<<< HEAD
 
 def overlap_with_ligands(identifier, ligand_path, finger_print='FP4'):
+=======
+def overlap_with_ligands(identifier, ligand_path):
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
     """
     if docked result overlap with other crystal ligands
     splited from the same receptor
@@ -510,7 +590,10 @@ def calculate_native_contact(identifier, ligand_path):
 
             contact_ratio = np.sum(cry_contact * lig_contact, axis=(-1,-2)) / num_contact
 
+<<<<<<< HEAD
             
+=======
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
 
             if num_native_contact is None:
                 num_native_contact = contact_ratio
@@ -525,15 +608,20 @@ def calculate_native_contact(identifier, ligand_path):
             datum = [ligand_name, i+1, identifier] + list(nts)
             data.append(datum)
 
+<<<<<<< HEAD
         
+=======
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
         db.insert_or_replace('native_contact',data)
 
         data = [ligand_name, identifier,  1, 'success']
         data = [data]
         db.insert_or_replace('native_contact_state',data)
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
 
-            
     except Exception as e:
         data = [ligand_name, identifier, 0, str(e)]
         data = [data]
@@ -567,6 +655,7 @@ def minimize_hydrogens(input_dir, output_dir, identifier, input_file):
     :param input_file: 
     :return: 
     """
+<<<<<<< HEAD
 
     try:
         import openbabel as ob
@@ -598,6 +687,39 @@ def minimize_hydrogens(input_dir, output_dir, identifier, input_file):
             _mkdir(os.path.dirname(output_file))
             conv.WriteFile(mol, output_file)
 
+=======
+
+    try:
+        import openbabel as ob
+        input_file = input_file.strip()
+        output_file = input_file.replace(input_dir, output_dir)
+
+        data = [_name_of(input_file), identifier]
+        if not db.if_success('minimize_state',data):
+            conv = ob.OBConversion()
+            mol = ob.OBMol()
+            conv.ReadFile(mol,input_file)
+            mol.AddHydrogens()
+
+            heavy_atoms = [ atom for atom in ob.OBMolAtomIter(mol) if not atom.IsHydrogen()]
+
+            print "number of heavy atoms ",len(heavy_atoms)
+            print "number of atoms ",len(list(ob.OBMolAtomIter(mol)))
+            heavy_atoms_idx = [ atom.GetId() for atom in heavy_atoms ]
+            constraints = ob.OBFFConstraints()
+            map(lambda idx: constraints.AddAtomConstraint(idx), heavy_atoms_idx)
+
+            forcefield = ob.OBForceField.FindForceField("MMFF94")
+            forcefield.Setup(mol, constraints)
+            forcefield.SetConstraints(constraints)
+
+            forcefield.ConjugateGradients(500)
+            forcefield.GetCoordinates(mol)
+
+            _mkdir(os.path.dirname(output_file))
+            conv.WriteFile(mol, output_file)
+
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
             if count_lines(output_file):
                 data = [_name_of(input_file), identifier, 1, 'success']
                 data = [data]
@@ -606,7 +728,10 @@ def minimize_hydrogens(input_dir, output_dir, identifier, input_file):
         print e
         
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
 def smina_dock(input_dir, output_dir, smina_pm, identifier, ligand_path):
     """
     dock ligands by smina
@@ -670,8 +795,11 @@ def clean_empty_ligand(identifier, ligand_path):
         db.insert_or_replace('dock_state',data)
             
 
+<<<<<<< HEAD
 
 #@profile
+=======
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
 def run_multiprocess(target_list, func):
     func(target_list[3])
 
@@ -754,7 +882,7 @@ def main():
         identifier = _identifier_of(config.vinardo_docked_path)
         run_multiprocess(ligands_list, partial(calculate_rmsd, identifier))
 
-    if FLAGS.contact:
+    if FLAGS.native_contact:
         print "Calculating native contact between receptor and ligand..."
         ligands_list = glob(os.path.join(config.vinardo_docked_path,'docked_ligands', '*', '*.pdb'))
         identifier = _identifier_of(config.vinardo_docked_path)
@@ -836,11 +964,14 @@ if __name__ == '__main__':
     parser.add_argument('--vinardo_dock', action='store_true')
     parser.add_argument('--smina_dock', action='store_true')
     parser.add_argument('--rotbond', action='store_true')
+<<<<<<< HEAD
     parser.add_argument('--reorder', action='store_true')
+=======
+>>>>>>> 5183d7c162edafc43f7908f3750a44ff5f3b366c
     parser.add_argument('--similarity',action='store_true')
     parser.add_argument('--overlap', action='store_true')
     parser.add_argument('--rmsd', action='store_true')
-    parser.add_argument('--contact', action='store_true')
+    parser.add_argument('--native_contact', action='store_true')
     parser.add_argument('--addh', action='store_true')
     parser.add_argument('--initdb', action='store_true')
     parser.add_argument('--cleanempty', action='store_true')
