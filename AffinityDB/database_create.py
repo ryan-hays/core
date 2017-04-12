@@ -90,9 +90,7 @@ def split_structure(pdb_path):
         data = ["{}_{}_{}".format(pdb_name, ResName, ResId), atom_num]
         data = [data]
         db.insert_or_replace('ligand_atom_num',data)
-        #log('atom_num.csv',
-        #    "{}_{}_{},{}".format(pdb_name, ResName, ResId, atom_num),
-        #    head='ligand,atom_num')
+
 
     receptor_path = os.path.join(config.splited_receptors_path, pdb_name + '.pdb')
     prody.writePDB(receptor_path, receptor)
@@ -139,26 +137,32 @@ def reorder_ligand(input_dir, output_dir, smina_pm, identifier, ligand_path):
     }
 
     if not db.if_success('reorder_state',[ligand_name, identifier]):
-        print 'reorder %s ...' % ligand_name
-    #if not os.path.exists(out_ligand_path):
-        _mkdir(os.path.dirname(out_ligand_path))
-        cmd = smina_pm.make_command(**kw)
+        
+        try:
+            print 'reorder %s ...' % ligand_name
+    
+            _mkdir(os.path.dirname(out_ligand_path))
+            cmd = smina_pm.make_command(**kw)
 
-        cl = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-        cl.wait()
-        cont = cl.communicate()[0].strip().split('\n')
+            cl = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+            cl.wait()
+            cont = cl.communicate()[0].strip().split('\n')
 
-        terms = [line.strip().split(' ')[2:] for line in cont if line.startswith('##')]
-        head = map(lambda x:x.replace(',',' '),terms[0])
+            terms = [line.strip().split(' ')[2:] for line in cont if line.startswith('##')]
+            head = map(lambda x:x.replace(',',' '),terms[0])
 
-        head = ['ligand','position'] + map(lambda x:'"%s"' % x, head)
-        data = [ligand_name, 0] + map(lambda x:float(x),terms[1])
-        data = [data]
-        db.insert_or_replace('scoring_terms',data,head)
+            head = ['ligand','position'] + map(lambda x:'"%s"' % x, head)
+            data = [ligand_name, 0] + map(lambda x:float(x),terms[1])
+            data = [data]
+            db.insert_or_replace('scoring_terms',data,head)
 
-        data = [ligand_name, identifier, 1, 'success']
-        data = [data]
-        db.insert_or_replace('reorder_state',data)
+            data = [ligand_name, identifier, 1, 'success']
+            data = [data]
+            db.insert_or_replace('reorder_state',data)
+        except Exception as e:
+            data = [ligand_name, identifier, 0, str(e)]
+            data = [data]
+            db.insert_or_replace('reorder_state',data)
 
 def _get_similar_ligands(ligand_path, finger_print):
     """
@@ -197,9 +201,7 @@ def _get_similar_ligands(ligand_path, finger_print):
         data = lig_pair + [finger_print, tanimoto_similarity]
         data = [data]
         db.insert_or_replace('similarity',data)
-        #log('tanimoto_similarity.csv',
-        #    '{},{},{}'.format(_ligand_name_of(ligand_path), _ligand_name_of(lig_path), tanimoto_similarity),
-        #    head='lig_a,lig_b,finger_print, tanimoto')
+
         if tanimoto_similarity > config.tanimoto_cutoff:
             similar_ligands.append([lig_path, tanimoto_similarity, finger_print])
 
@@ -254,10 +256,10 @@ def calculate_similarity(identifier, finger_print, ligand_path):
 
     ligands_list = glob(os.path.join(os.path.dirname(crystal_ligand), '*.pdb'))
 
-    ligands_for_same_receptor = list(set(ligands_list) - set([crystal_ligand]))
+    #ligands_for_same_receptor = list(set(ligands_list) - set([crystal_ligand]))
 
 
-    for lig_path in ligands_for_same_receptor:
+    for lig_path in ligands_list:
 
         lig_pair = [_ligand_name_of(crystal_ligand), _ligand_name_of(lig_path)]
         lig_pair = lig_pair if lig_pair[0] < lig_pair[1] else [lig_pair[1], lig_pair[0]]
@@ -376,9 +378,9 @@ def count_rotable_bond(ligand_path):
     rot_bond = 0
 
     if not obConversion.ReadFile(OBligand, ligand_path):
-        log("rotbond_failed.log",
-            "{}, cannot parse by openbabel".format(ligand_name),
-            head='ligand,exception')
+        data = [ligand_name, 0, 'Openbabel ReadFile failed']
+        data = [data]
+        db.insert_or_replace('rotable_bond_state',data)      
         return
 
     for bond in openbabel.OBMolBondIter(OBligand):
@@ -393,9 +395,6 @@ def count_rotable_bond(ligand_path):
     data = [ligand_name, rot_bond]
     data = [data]
     db.insert_or_replace('rotable_bond',data)
-    log("rotbond.csv",
-        "{},{}".format(ligand_name, rot_bond),
-        head='ligand,rotbond')
 
 def calculate_rmsd(identifier, ligand_path):
     """
@@ -443,7 +442,7 @@ def calculate_rmsd(identifier, ligand_path):
         db.insert_or_replace('rmsd_state',data)
         return
 
-def calculate_native_contact(identifier, ligand_path):
+def calculate_native_contact(identifier, ligand_path, distance_threshold=4.0):
     """
     calculate native contact between the ligand and receptor
     notice when calculating native contact, we ignore all hydrogen
@@ -490,30 +489,23 @@ def calculate_native_contact(identifier, ligand_path):
         lig_diff = exp_ligands_coords - receptor_coord
         lig_distance = np.sqrt(np.sum(np.square(lig_diff),axis=-1))
 
-        num_native_contact = None
+       
+       
+            
+        cry_contact = ( cry_distance < distance_threshold ).astype(int)
         
-        for threshold in np.linspace(4,8,9):
-            
-            cry_contact = ( cry_distance < threshold ).astype(int)
-            
-            num_contact = np.sum(cry_contact).astype(float)
+        num_contact = np.sum(cry_contact).astype(float)
 
-            lig_contact = (lig_distance < threshold).astype(int)
+        lig_contact = (lig_distance < distance_threshold).astype(int)
 
-            contact_ratio = np.sum(cry_contact * lig_contact, axis=(-1,-2)) / num_contact
+        contact_ratio = np.sum(cry_contact * lig_contact, axis=(-1,-2)) / num_contact
 
 
-            if num_native_contact is None:
-                num_native_contact = contact_ratio
-            else:
-                num_native_contact = np.dstack((num_native_contact, contact_ratio))
-
-        # after dstack shape become [1, x, y]
-        num_native_contact = num_native_contact[0]
+       
         
         data = []
-        for i, nts in enumerate(num_native_contact):
-            datum = [ligand_name, i+1, identifier] + list(nts)
+        for i, nts in enumerate(contact_ratio):
+            datum = [ligand_name, i+1, identifier, distance_threshold , nts]
             data.append(datum)
 
         db.insert_or_replace('native_contact',data)

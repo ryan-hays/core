@@ -42,6 +42,9 @@ tables = {
     'rotable_bond':table(*['rotable_bond',
         OrderedDict([('ligand','text'),('rotable_bond','ingeter')]),
         ['ligand']]),
+    'rotable_bond_state':table(*['rotable_bond_state',
+        OrderedDict([('ligand','text'),('state','integer'),('comment','text')]),
+        ['ligand']]),
 
     'reorder_state':table(*['reorder_state',
         OrderedDict([('ligand','text'),('identifier','text'),('state','integer'),('comment','text')]),
@@ -80,11 +83,8 @@ tables = {
         ['docked_ligand', 'crystal_ligand','identifier']]),
 
     'native_contact':table(*['native_contact',
-        OrderedDict([('docked_ligand','text'),('position','integer'),('identifier','text'),
-            ('ratio_4_0','real'),('ratio_4_5','real'),('ratio_5_0','real'),('ratio_5_5','real'),
-                     ('ratio_6_0','real'),('ratio_6_5','real'),('ratio_7_0','real'),
-                     ('ratio_7_5','real'),('ratio_8_0','real')]),
-            ['docked_ligand','position','identifier']]),
+        OrderedDict([('docked_ligand','text'),('position','integer'),('identifier','text'),('distance_threshold','real'),('native_contact_ratio','real')]),
+            ['docked_ligand','position','identifier','distance_threshold']]),
 
     'native_contact_state':table(*['native_contact_state',
         OrderedDict([('docked_ligand','text'),('identifier','text'),('state','integer'),
