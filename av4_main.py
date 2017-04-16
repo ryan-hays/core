@@ -31,13 +31,13 @@ def train():
 
     predicted_labels = wide_conv_net(image_batch,keep_prob,FLAGS.batch_size)
 
-    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predicted_labels,labels=label_batch)
+    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=label_batch,logits=predicted_labels)
     cross_entropy_mean = tf.reduce_mean(cross_entropy)
     tf.summary.scalar('cross entropy mean', cross_entropy_mean)
 
     # randomly shuffle along the batch dimension and calculate an error
     shuffled_labels = tf.random_shuffle(label_batch)
-    shuffled_cross_entropy_mean = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(predicted_labels,shuffled_labels))
+    shuffled_cross_entropy_mean = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=shuffled_labels,logits=predicted_labels))
     tf.summary.scalar('shuffled cross entropy mean', shuffled_cross_entropy_mean)
 
     # Adam optimizer is a very heart of the network

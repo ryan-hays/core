@@ -512,7 +512,11 @@ set -x
 
 #load module
 module load cuda/8.0
-module load tensorflow/0.12.1
+#module load tensorflow/0.12.1
+# TF is compiled with 1.1 as of April 15th 2015
+# as og apr 15th, Tensorflow 1.1 is not available yet on Bridges.
+# needs fix
+module load tensorflow/0.9.0
 
 #set python environment
 source $TENSORFLOW_ENV/bin/activate

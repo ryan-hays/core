@@ -63,7 +63,7 @@ def read_receptor_and_ligand(filename_queue,epoch_counter,train):
         # second (horizontal dimension) is x,y,z coordinate of every atom and is always 3
         # third (depth) dimension corresponds to the number of frames
 
-        coords_shape = tf.concat(0, [number_of_atoms, [3], number_of_frames])
+        coords_shape = tf.concat([number_of_atoms, [3], number_of_frames],0)
         tmp_coords = tf.slice(tmp_decoded_record, number_of_frames + number_of_atoms + 1,
                               tf.shape(tmp_decoded_record) - number_of_frames - number_of_atoms - 1)
         multiframe_coords = tf.bitcast(tf.reshape(tmp_coords, coords_shape), type=tf.float32)
@@ -166,16 +166,16 @@ def convert_protein_and_ligand_to_image(ligand_elements,ligand_coords,receptor_e
     cropped_receptor_elements = tf.boolean_mask(receptor_elements,retain_atoms)
 
     # merge protein and ligand together. In this case an arbitrary value of 10 is added to the ligand
-    complex_coords = tf.concat(0,[ceiled_ligand_coords,cropped_receptor_coords])
-    complex_elements = tf.concat(0,[ligand_elements+7,cropped_receptor_elements])
+    complex_coords = tf.concat([ceiled_ligand_coords,cropped_receptor_coords],0)
+    complex_elements = tf.concat([ligand_elements+7,cropped_receptor_elements],0)
 
     # in coordinates of a protein rounded to the nearest integer can be represented as indices of a sparse 3D tensor
     # values from the atom dictionary can be represented as values of a sparse tensor
     # in this case TF's sparse_tensor_to_dense can be used to generate an image out of rounded coordinates
 
     # move elemets to the dimension of depth
-    complex_coords_4d = tf.concat(1, [complex_coords, tf.reshape(tf.cast(complex_elements - 1, dtype=tf.int64), [-1, 1])])
-    sparse_image_4d = tf.SparseTensor(indices=complex_coords_4d, values=tf.ones(tf.shape(complex_elements)), shape=[side_pixels,side_pixels,side_pixels,14])
+    complex_coords_4d = tf.concat([complex_coords, tf.reshape(tf.cast(complex_elements - 1, dtype=tf.int64), [-1, 1])],1)
+    sparse_image_4d = tf.SparseTensor(indices=complex_coords_4d, values=tf.ones(tf.shape(complex_elements)), dense_shape=[side_pixels,side_pixels,side_pixels,14])
 
     # FIXME: try to save an image and see how it looks like
     return sparse_image_4d,ligand_center_of_mass,final_transition_matrix
