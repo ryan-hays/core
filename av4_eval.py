@@ -9,7 +9,7 @@ from av4_networks import max_net
 from collections import defaultdict
 
 
-FLAGS.saved_session = './summaries/1_netstate/saved_state-113999'
+FLAGS.saved_session = './summaries/4_netstate/saved_state-82099'
 FLAGS.predictions_file_path = re.sub("netstate","logs",FLAGS.saved_session)
 FLAGS.database_path = '../datasets/unlabeled_av4'
 FLAGS.num_epochs = 10

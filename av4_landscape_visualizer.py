@@ -145,7 +145,7 @@ class minima_search_agent:
         # generate a single image from protein coordinates, and ligand coordinates + transition matrix
         self.sess = sess
         self.ligand_pose_transformations_queue = tf.FIFOQueue(capacity=80000,dtypes=tf.float32,shapes=[4,4])
-        self.ligand_pose_transformations = tf.concat(0,[generate_identity_matrices(num_frames=1000),generate_exhaustive_affine_transform()])
+        self.ligand_pose_transformations = tf.concat([generate_identity_matrices(num_frames=1000),generate_exhaustive_affine_transform()],0)
         self.ligand_elements = tf.Variable([0],trainable=False,validate_shape=False)
         self.ligand_coords = tf.Variable([[0.0,0.0,0.0]],trainable=False,validate_shape=False)
         self.receptor_elements = tf.Variable([0],trainable=False,validate_shape=False)

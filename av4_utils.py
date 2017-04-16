@@ -52,7 +52,7 @@ def generate_deep_affine_transform(num_frames):
     afn3_2 = tf.zeros([num_frames])
     afn3_3 = tf.ones([num_frames])
 
-    xyz_shift_stick = tf.pack(
+    xyz_shift_stick = tf.stack(
         [afn0_0, afn0_1, afn0_2, afn0_3, afn1_0, afn1_1, afn1_2, afn1_3, afn2_0, afn2_1, afn2_2, afn2_3, afn3_0,
          afn3_1, afn3_2, afn3_3])
     xyz_shift_matrix = tf.transpose(tf.reshape(xyz_shift_stick, [4, 4, num_frames]), perm=[2, 0, 1])
@@ -86,7 +86,7 @@ def generate_deep_affine_transform(num_frames):
     afn3_2 = tf.zeros([num_frames])
     afn3_3 = tf.ones([num_frames])
 
-    x_rot_stick = tf.pack(
+    x_rot_stick = tf.stack(
         [afn0_0, afn0_1, afn0_2, afn0_3, afn1_0, afn1_1, afn1_2, afn1_3, afn2_0, afn2_1, afn2_2, afn2_3, afn3_0,
          afn3_1, afn3_2, afn3_3])
     x_rot_matrix = tf.transpose(tf.reshape(x_rot_stick, [4, 4, num_frames]), perm=[2, 0, 1])
@@ -120,7 +120,7 @@ def generate_deep_affine_transform(num_frames):
     afn3_2 = tf.zeros([num_frames])
     afn3_3 = tf.ones([num_frames])
 
-    y_rot_stick = tf.pack(
+    y_rot_stick = tf.stack(
         [afn0_0, afn0_1, afn0_2, afn0_3, afn1_0, afn1_1, afn1_2, afn1_3, afn2_0, afn2_1, afn2_2, afn2_3, afn3_0,
          afn3_1, afn3_2, afn3_3])
     y_rot_matrix = tf.transpose(tf.reshape(y_rot_stick, [4, 4, num_frames]), perm=[2, 0, 1])
@@ -154,7 +154,7 @@ def generate_deep_affine_transform(num_frames):
     afn3_2 = tf.zeros([num_frames])
     afn3_3 = tf.ones([num_frames])
 
-    z_rot_stick = tf.pack(
+    z_rot_stick = tf.stack(
         [afn0_0, afn0_1, afn0_2, afn0_3, afn1_0, afn1_1, afn1_2, afn1_3, afn2_0, afn2_1, afn2_2, afn2_3, afn3_0,
          afn3_1, afn3_2, afn3_3])
     z_rot_matrix = tf.transpose(tf.reshape(z_rot_stick, [4, 4, num_frames]), perm=[2, 0, 1])
@@ -165,7 +165,7 @@ def generate_deep_affine_transform(num_frames):
 
 def affine_transform(coordinates,transition_matrix):
     """Applies affine transform to the array of X,Y,Z coordinates. By default generates a random affine transform matrix."""
-    coordinates_with_ones = tf.concat(1, [coordinates, tf.cast(tf.ones([tf.shape(coordinates)[0],1]),tf.float32)])
+    coordinates_with_ones = tf.concat([coordinates, tf.cast(tf.ones([tf.shape(coordinates)[0],1]),tf.float32)],1)
     transformed_coords = tf.matmul(coordinates_with_ones,tf.transpose(transition_matrix))[0:,:-1]
 
     return transformed_coords,transition_matrix
@@ -175,7 +175,7 @@ def deep_affine_transform(coords,deep_transition_matrix):
     """Applies multiple affine transformations to the array of X,Y,Z coordinates."""
     # TODO generate random affine transform matrix by default
     depth_dimensions = tf.shape(deep_transition_matrix)[0]
-    coords_with_ones = tf.concat(1,[coords, tf.cast(tf.ones([tf.shape(coords)[0],1]),tf.float32)])
+    coords_with_ones = tf.concat([coords, tf.cast(tf.ones([tf.shape(coords)[0],1]),tf.float32)],1)
     broadcast_coords_with_ones = tf.reshape(tf.tile(coords_with_ones,[depth_dimensions,1]),[depth_dimensions,tf.shape(coords)[0],4])
     transformed_coords = tf.batch_matmul(broadcast_coords_with_ones,tf.transpose(deep_transition_matrix,[0,2,1]))[:,:,:3]
 
@@ -220,7 +220,7 @@ def generate_exhaustive_affine_transform(shift_ranges=[10,10,10],shift_deltas=[1
     afn3_2 = tf.zeros([num_frames])
     afn3_3 = tf.ones([num_frames])
 
-    x_shift_stick = tf.pack(
+    x_shift_stick = tf.stack(
         [afn0_0, afn0_1, afn0_2, afn0_3, afn1_0, afn1_1, afn1_2, afn1_3, afn2_0, afn2_1, afn2_2, afn2_3, afn3_0,
          afn3_1, afn3_2, afn3_3])
 
@@ -247,7 +247,7 @@ def generate_exhaustive_affine_transform(shift_ranges=[10,10,10],shift_deltas=[1
     afn3_2 = tf.zeros([num_frames])
     afn3_3 = tf.ones([num_frames])
 
-    y_shift_stick = tf.pack(
+    y_shift_stick = tf.stack(
         [afn0_0, afn0_1, afn0_2, afn0_3, afn1_0, afn1_1, afn1_2, afn1_3, afn2_0, afn2_1, afn2_2, afn2_3, afn3_0,
          afn3_1, afn3_2, afn3_3])
 
@@ -274,7 +274,7 @@ def generate_exhaustive_affine_transform(shift_ranges=[10,10,10],shift_deltas=[1
     afn3_2 = tf.zeros([num_frames])
     afn3_3 = tf.ones([num_frames])
 
-    z_shift_stick = tf.pack(
+    z_shift_stick = tf.stack(
         [afn0_0, afn0_1, afn0_2, afn0_3, afn1_0, afn1_1, afn1_2, afn1_3, afn2_0, afn2_1, afn2_2, afn2_3, afn3_0,
          afn3_1, afn3_2, afn3_3])
 
@@ -314,7 +314,7 @@ def generate_identity_matrices(num_frames):
     afn3_2 = tf.zeros([num_frames])
     afn3_3 = tf.ones([num_frames])
 
-    identity_stick = tf.pack(
+    identity_stick = tf.stack(
         [afn0_0, afn0_1, afn0_2, afn0_3, afn1_0, afn1_1, afn1_2, afn1_3, afn2_0, afn2_1, afn2_2, afn2_3, afn3_0,
          afn3_1, afn3_2, afn3_3])
 
