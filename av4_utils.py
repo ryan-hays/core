@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_function
 
 import threading
 import weakref
@@ -11,6 +10,7 @@ from tensorflow.python.framework import ops
 from tensorflow.python.platform import tf_logging as logging
 
 import tensorflow as tf
+import numpy as np
 
 
 # generate one very large tensor
@@ -194,7 +194,7 @@ def deep_affine_transform(coords,deep_transition_matrix):
 
 
 
-def generate_exhaustive_affine_transform(shift_ranges=[4,4,4],shift_deltas=[1,1,1],rot_ranges=[360,360,360]):
+def generate_exhaustive_affine_transform(shift_ranges=[10,10,10],shift_deltas=[1,1,1],rot_ranges=[360,360,360]):
     """By default,makes shifts by 1, in X,Y,Z directions"""
 
     # shift along X,Y,Z
@@ -330,6 +330,20 @@ def generate_identity_matrices(num_frames):
          afn3_1, afn3_2, afn3_3])
 
     return tf.transpose(tf.reshape(identity_stick, [4, 4, num_frames]), perm=[2, 0, 1])
+
+
+
+
+def describe_variables(vals):
+    "Take a dictionary of variables and variable names, and prints statistics."
+    print "==============================================================================="
+    for val in vals:
+        print val,"\tlen:",len(vals[val]), "min:","%.3f" %  min(vals[val]), "max:","%.3f" % max(vals[val]),"ave:",
+        print "%.3f" % np.average(vals[val]), "median:", "%.3f" % np.sort(vals[val], axis=0)[len(vals[val])//2],
+        print "first:","%.3f" % vals[val][0], "last:","%.3f" % vals[val][-1],
+        print "middle (no formatting):",vals[val][len(vals[val])//2]
+    print "================================================================================"
+
 
 
 
@@ -676,3 +690,7 @@ class QueueRunner(object):
     """Returns a `QueueRunner` object created from `queue_runner_def`."""
     return QueueRunner(queue_runner_def=queue_runner_def,
                        import_scope=import_scope)
+
+
+
+# TODO: (maksym) Queue runner invokes a nasty future print function that has better to be substituted

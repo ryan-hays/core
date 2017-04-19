@@ -5,6 +5,14 @@ import av4_input
 from av4_main import FLAGS
 import av4_conformation_sampler
 
+
+FLAGS.saved_session = './summaries/4_netstate/saved_state-82099'
+FLAGS.predictions_file_path = re.sub("netstate","logs",FLAGS.saved_session)
+FLAGS.database_path = '../datasets/holdout_av4'
+FLAGS.num_epochs = 2
+FLAGS.top_k = FLAGS.num_epochs
+
+
 minimizer1 = av4_conformation_sampler.SearchAgent()
 
 
