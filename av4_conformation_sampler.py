@@ -16,11 +16,13 @@ def softmax_cross_entropy_with_RMSD(logits,lig_RMSDs,RMSD_threshold=3.0):
     """
     labels = tf.cast((lig_RMSDs < 0.01), tf.int32)
     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels,logits=logits)
-#    cost_correct_positions = cross_entropy * tf.cast(labels,tf.float32)
-#    cost_incorrect_positions = cross_entropy * tf.cast((lig_RMSDs > RMSD_threshold), tf.float32)
-#    cost_semicorrect_positions = cross_entropy * tf.cast((lig_RMSDs < RMSD_threshold), tf.float32) * (lig_RMSDs/RMSD_threshold)
-#    return cost_incorrect_positions + cost_semicorrect_positions + cost_correct_positions
-    return cross_entropy
+    cost_correct_positions = cross_entropy * tf.cast(labels,tf.float32)
+    cost_incorrect_positions = cross_entropy * tf.cast((lig_RMSDs > RMSD_threshold), tf.float32)
+    cost_semicorrect_positions = cross_entropy \
+                                 * tf.cast((lig_RMSDs < RMSD_threshold), tf.float32) \
+                                 * tf.cast((lig_RMSDs > 0.01), tf.float32) * (lig_RMSDs/RMSD_threshold)
+    return cost_incorrect_positions + cost_semicorrect_positions + cost_correct_positions
+
 
 class SearchAgent:
     """ Search agent takes a single protein with a bound ligand, samples many possible protein-ligand conformations,
@@ -119,11 +121,8 @@ class SearchAgent:
             var_list = {'lig_RMSDs':self.lig_RMSDs[sel_gen_poses_idx], 'preds':self.preds[sel_gen_poses_idx],
                         'costs':self.costs[sel_gen_poses_idx]}
             av4_utils.describe_variables(var_list)
-
-
             sel_idx = np.hstack([sel_init_poses_idx,sel_gen_poses_idx])
-
-            return self.preds[sel_idx],self.costs[sel_idx],self.lig_pose_transforms[sel_idx],self.cameraviews[sel_idx],self.lig_RMSDs[sel_idx]
+            return self.lig_pose_transforms[sel_idx],self.cameraviews[sel_idx]
 
 
     def __init__(self,
@@ -165,7 +164,7 @@ class SearchAgent:
 
         self.image_queue_enqueue = self.image_queue.enqueue([complex_image, lig_pose_tform, cameraview, lig_RMSD])
         self.queue_runner = av4_utils.QueueRunner(self.image_queue, [self.image_queue_enqueue]*num_threads)
-        self.image_batch,self.lig_pose_tform_batch,self.cameraview_batch,self.lig_RMSD_batch = self.image_queue.dequeue_many(batch_size)
+        self.image_batch,self.lig_pose_tform_batch, self.cameraview_batch,self.lig_RMSD_batch = self.image_queue.dequeue_many(batch_size)
         self.keep_prob = tf.placeholder(tf.float32)
         with tf.name_scope("network"):
             y_conv = av4_networks.max_net(self.image_batch, self.keep_prob, batch_size)
@@ -174,7 +173,31 @@ class SearchAgent:
         self.pred_batch = tf.nn.softmax(y_conv)[:,1]
         self.cost_batch = softmax_cross_entropy_with_RMSD(y_conv,self.lig_RMSD_batch)
 
-        # create a pipeline to convert ligand transition matrices + cameraviews into images again
+        # REGENERATOR: r_
+        # This part of the pipeline is for re-creation of already scored images from affine transform matrices
+        # describing the conformation of ligand, and a particular cameraview from which the 3D snapshot was taken.
+        # Double pipeline allows to store only transformation matrices instead of images - needs less memory.
+
+        # enqueue data into the
+        self._tforms_and_cameraviews_queue = tf.FIFOQueue(capacity=80000, dtypes=[tf.float32,tf.float32],shapes=[[4,4],[4,4]])
+        r_tform,r_cameraview = self._tforms_and_cameraviews_queue.dequeue()
+
+        r_tformed_lig_coords,_ = av4_utils.affine_transform(self.lig_coords, self._affine_tforms_queue.dequeue())
+        av4_utils.affine_transform(self.lig_coords, self._affine_tforms_queue.dequeue())
+        # Regenerator to convert coordinates of the protein and ligand into an image
+        r_complex_image,_,_ = av4_input.convert_protein_and_ligand_to_image(self.lig_elements,
+                                                                                   r_tformed_lig_coords,
+                                                                                   self.rec_elements,
+                                                                                   self.rec_coords,
+                                                                                   side_pixels,
+                                                                                   pixel_size,
+                                                                                   r_cameraview)
+        # Regenerator to calculate Root Mean Square Deviation
+        r_lig_RMSD = tf.reduce_mean(tf.square(r_tformed_lig_coords - self.lig_coords))**0.5
+        self.r_image_queue_enqueue = self.image_queue.enqueue([r_complex_image,r_tform,r_cameraview,r_lig_RMSD])
+
+        # downstream
+#        sess.run(self._tforms_and_cameraviews_queue.enqueue_many()
 
 
     def grid_evaluate_positions(self,my_lig_elements,my_lig_coords,my_rec_elements,my_rec_coords):
@@ -237,9 +260,8 @@ class SearchAgent:
 
         except tf.errors.DeadlineExceededError:
             # create training examples for the main queue
-            self.evaluated.convert_into_training_batch(cameraviews_initial_pose=20,
-                                                       generated_poses=200,
-                                                       remember_poses=300)
+            sel_lig_pose_transforms,sel_cameraviews = self.evaluated.convert_into_training_batch(
+                cameraviews_initial_pose=20,generated_poses=200,remember_poses=300)
 
             # accurately terminate all threads without closing the queue (uses custom QueueRunner class)
             self.sess.run(self._affine_tforms_queue.enqueue_many(
@@ -262,6 +284,10 @@ class SearchAgent:
                     self.sess.run(self.image_queue.dequeue(),options=tf.RunOptions(timeout_in_ms=500))
             except tf.errors.DeadlineExceededError:
                 print "image queue size:", self.sess.run(self.image_queue.size())
+
+            # use the same queue to generate a batch of images
+
+
 
         return 0
 
